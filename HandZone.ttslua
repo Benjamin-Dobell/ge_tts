@@ -1,0 +1,170 @@
+ge_tts_package('ge_tts/HandZone', function()
+    local table_utils = ge_tts_require('ge_tts/table_utils')
+    local EventManager = ge_tts_require('ge_tts/EventManager')
+
+    local handZones = {}
+    local objectHandZones = {}
+
+    local function spawn(position, rotation, scale, callback)
+        local json = {
+            Name = "ScriptingTrigger",
+            Transform = {
+                posX = position[1],
+                posY = position[2],
+                posZ = position[3],
+                rotX = rotation[1],
+                rotY = rotation[2],
+                rotZ = rotation[3],
+                scaleX = scale[1],
+                scaleY = scale[2],
+                scaleZ = scale[3]
+            },
+            Locked = true,
+            GUID = "000000"
+        }
+        return spawnObjectJSON({
+            callback_function=callback,
+            json=JSON.encode(json)
+        })
+    end
+
+    local HandZone = {}
+
+    setmetatable(HandZone, {
+        -- ownerOrData: TTS player, or saved state table
+        __call = function(_, ownerOrData)
+            local self = {}
+
+            setmetatable(self, {
+                __tostring = function(_)
+                    return self.toString()
+                end
+            })
+
+            local owner
+            local scriptedZone
+
+            if HandZone.isSavedState(ownerOrData) then
+                local data = ownerOrData
+
+                owner = Player[data.ownerColor]
+                scriptedZone = getObjectFromGUID(data.guid)
+
+                handZones[data.guid] = self
+            else
+                owner = ownerOrData
+
+                local handTransform = owner.getHandTransform()
+
+                scriptedZone = spawn(handTransform.position, handTransform.rotation, handTransform.scale, function()
+                    handZones[scriptedZone.getGUID()] = self
+                end)
+            end
+
+            function self.getOwner()
+                return owner
+            end
+
+            function self.getScriptedZone()
+                return scriptedZone
+            end
+
+            function self.onEnter(object)
+                if object.tag == 'Card' then
+                end
+            end
+
+            function self.onLeave(object)
+            end
+
+            function self.onDrop(colorName, object)
+            end
+
+            function self.save()
+                return {
+                    __savedState = true,
+                    ownerColor = owner.color,
+                    guid = scriptedZone.getGUID(),
+                }
+            end
+
+            function self.destruct()
+                handZones[scriptedZone.getGUID()] = nil
+                scriptedZone.destruct()
+            end
+
+            function self.toString()
+                return 'HandZone (' .. tostring(scriptedZone.getGUID()) .. ')'
+            end
+
+            return self
+        end,
+    })
+
+    function HandZone.isSavedState(value)
+        return type(value) == 'table' and value.__savedState
+    end
+
+    EventManager.addHandler('onObjectEnterScriptingZone', function(scriptingZone, object)
+        local handZone = handZones[scriptingZone.getGUID()]
+
+        if handZone then
+            local objectZones = objectHandZones[object.getGUID()]
+
+            if objectZones then
+                table.insert(objectZones, handZone)
+            else
+                objectHandZones[object.getGUID()] = { handZone }
+            end
+
+            handZone.onEnter(object)
+        end
+    end)
+
+    EventManager.addHandler('onObjectLeaveScriptingZone', function(scriptingZone, object)
+        local handZone = handZones[scriptingZone.getGUID()]
+
+        if handZone then
+            local objectZones = objectHandZones[object.getGUID()]
+
+            if objectZones then
+                objectZones = table_utils.reject(objectZones, function(z)
+                    return handZone == z
+                end)
+
+                objectHandZones[object.getGUID()] = #objectZones > 0 and objectZones or nil
+
+                handZone.onLeave(object)
+            end
+        end
+    end)
+
+    EventManager.addHandler('onObjectDrop', function(colorName, object)
+        local objectZones = objectHandZones[object.getGUID()]
+
+        if objectZones then
+            local objectPosition = object.getPosition()
+
+            -- Note: We're *assuming* that if an object is in several hand zones simultaneously, that TTS will "drop" the object in the closer zone.
+            local nearestHandZone = table_utils.reduce(objectZones, {math.huge, nil}, function(pair, dropZone)
+                local zonePosition = dropZone.getScriptedZone().getPosition()
+                local delta = {zonePosition[1] - objectPosition[1], zonePosition[3] - objectPosition[3]}
+                local dist_2 = delta[1] * delta[1] + delta[2] * delta[2]
+                return dist_2 < pair[1] and {dist_2, dropZone } or pair
+            end)[2]
+
+            nearestHandZone.onDrop(colorName, object)
+        end
+    end)
+
+    EventManager.addHandler('onObjectDestroy', function(object)
+        local handZone = objectHandZones[object.getGUID()]
+
+        if handZone then
+            handZone.onLeave(object)
+            objectHandZones[object.getGUID()] = nil
+        end
+    end)
+
+    return HandZone
+end)

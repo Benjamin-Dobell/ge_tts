@@ -1,0 +1,66 @@
+-- We use onCollisionEnter (requires InstanceCollisionProxy be included in Card scripts) and onUpdate event handlers as a hacky work-around for
+-- onObjectEnterContainer not firing when it should. For this to work reliably we must be the first subscriber to the onObjectDestroy event.
+-- Bug report: http://www.berserk-games.com/forums/showthread.php?5461-onObjectEnterContainer-never-fires-for-bottom-card
+
+ge_tts_package('ge_tts/ContainerEventsFix', function()
+    local Logger = ge_tts_require('ge_tts/Logger')
+    local EventManager = ge_tts_require('ge_tts/EventManager')
+
+    local frameCardObjectCollisions = {}
+    local frameCardObjectEnteredDecks = {}
+
+    local function fireMissingOnObjectEnterContainerEvents(cardObject)
+        if _G.onObjectEnterContainer and not frameCardObjectEnteredDecks[cardObject] then
+            local collisionCardObjects = frameCardObjectCollisions[cardObject]
+
+            if collisionCardObjects then
+                for _, collisionCardObject in ipairs(collisionCardObjects) do
+                    local deckObject = frameCardObjectEnteredDecks[collisionCardObject]
+
+                    if deckObject then
+                        Logger.log(
+                            'Firing missed onObjectEnterContainer for ' .. cardObject.tag .. ' (' .. tostring(cardObject.getGUID()) .. ') entering '
+                                    .. deckObject.tag .. ' (' .. tostring(deckObject.getGUID()) .. ')',
+                            Logger.DEBUG
+                        )
+                        _G.onObjectEnterContainer(deckObject, cardObject)
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    EventManager.addHandler('onUpdate', function()
+        frameCardObjectCollisions = {}
+        frameCardObjectEnteredDecks = {}
+    end)
+
+    EventManager.addHandler('onCollisionEnter', function(collisionInfo)
+        local object = collisionInfo.object
+        local collisionObject = collisionInfo.collision_object
+
+        if object.tag == 'Card' and collisionObject.tag == 'Card' then
+            local cardCollisions = frameCardObjectCollisions[object] or {}
+            table.insert(cardCollisions, collisionObject)
+            frameCardObjectCollisions[object] = cardCollisions
+
+            Logger.log(
+                object.tag .. ' (' .. tostring(object.getGUID()) .. ') collided with ' .. collisionObject.tag .. ' (' .. tostring(collisionObject.getGUID()) .. ')',
+                Logger.VERBOSE
+            )
+        end
+    end)
+
+    EventManager.addHandler('onObjectEnterContainer', function(container, object)
+        if object.tag == 'Card' and container.tag == 'Deck' then
+            frameCardObjectEnteredDecks[object] = container
+        end
+    end)
+
+    EventManager.addHandler('onObjectDestroy', function(object)
+        if object.tag == 'Card' then
+            fireMissingOnObjectEnterContainerEvents(object)
+        end
+    end)
+end)

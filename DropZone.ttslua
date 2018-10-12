@@ -1,0 +1,288 @@
+ge_tts_package('ge_tts/DropZone', function()
+    local table_utils = ge_tts_require('ge_tts/table_utils')
+    local EventManager = ge_tts_require('ge_tts/EventManager')
+    local Logger = ge_tts_require('ge_tts/Logger')
+
+    local DROP_ZONE_Y = 0.96
+    local DISTANCE_EPSILON = 0.01
+
+    local MAX_DROP_VELOCITY_2 = 5 * 5 -- 5 in/sec
+
+    local dropZones = {}
+    local objectDropZones = {}
+
+    local function spawn(position, size, rotation, callback)
+        local json = {
+            Name = "ScriptingTrigger",
+            Transform = {
+                posX = position[1],
+                posY = 2.5 + DROP_ZONE_Y,
+                posZ = position[2],
+                rotX = 0.0,
+                rotY = rotation,
+                rotZ = 0.0,
+                scaleX = size[1],
+                scaleY = 5,
+                scaleZ = size[2]
+            },
+            Locked = true,
+            GUID = "000000"
+        }
+        return spawnObjectJSON({
+            callback_function=callback,
+            json=JSON.encode(json)
+        })
+    end
+
+    local function isObjectStacked(object)
+        local bounds = object.getBoundsNormalized()
+        local pos = object.getPosition()
+        local hits = Physics.cast({
+            origin = {pos[1], pos[2] + 0.5 * bounds.size[2], pos[3]},
+            direction = {0, -1, 0},
+            max_distance = 0.75 * bounds.size[2],
+            type = 1, -- Ray
+        })
+
+        return #hits > 0 and object ~= hits[1].hit_object
+    end
+
+    local DropZone = {}
+
+    setmetatable(DropZone, {
+        -- positionOrData: 2D vector, or saved state table
+        -- size: 2D vector
+        -- rotation: angle, around Y-axis
+        -- occupantScale: number, occupants desired X-axis scale, applied to all dimensions i.e. aspect ratio is preserved
+        __call = function(_, positionOrData, size, rotation, occupantScale)
+            local self = {}
+
+            setmetatable(self, {
+                __tostring = function(_)
+                    return self.toString()
+                end
+            })
+
+            local position
+
+            local scriptedZone
+            local occupyingObjects
+
+            if DropZone.isSavedState(positionOrData) then
+                local data = positionOrData
+
+                position = data.position
+                size = data.size
+                rotation = data.rotation
+                occupantScale = data.occupantScale
+                scriptedZone = getObjectFromGUID(data.guid)
+                occupyingObjects = table_utils.map(data.occupyingObjectGuids, function(guid) return getObjectFromGUID(guid) end)
+
+                dropZones[data.guid] = self
+            else
+                position = positionOrData
+
+                scriptedZone = spawn(position, size, rotation, function()
+                    dropZones[scriptedZone.getGUID()] = self
+                end)
+                occupyingObjects = {}
+            end
+
+            function self.getPosition()
+                return position
+            end
+
+            function self.getSize()
+                return size
+            end
+
+            function self.getRotation()
+                return rotation
+            end
+
+            function self.getOccupantScale()
+                return occupantScale
+            end
+
+            function self.getScriptedZone()
+                return scriptedZone
+            end
+
+            function self.getOccupyingObjects()
+                return occupyingObjects
+            end
+
+            function self.getHighestOccupyingObject(excludedOccupyingObjects)
+                excludedOccupyingObjects = excludedOccupyingObjects or {}
+
+                local highestY = -math.huge
+                local highestObject = nil
+
+                for _, object in ipairs(occupyingObjects) do
+                    local y = object.getPosition()[2]
+
+                    if y > highestY and not table_utils.find(excludedOccupyingObjects, object) then
+                        highestY = y
+                        highestObject = object
+                    end
+                end
+
+                return highestObject
+            end
+
+            function self.onEnter(object)
+            end
+
+            function self.onLeave(object)
+                local index = table.find(occupyingObjects, object)
+
+                if index then
+                    table.remove(occupyingObjects, index)
+                end
+            end
+
+            function self.onDrop(colorName, object)
+                -- If an object is stacked on another we don't want to explictly move it as it's attached to its parent, we should just move the parent.
+                -- Buuuuuuuut... TTS being TTS this of course does not work, and TTS being TTS, there's no way to work out what's attached to what. Yay
+--                if isObjectStacked(object) then
+--                    return
+--                end
+
+                local objectRotation = object.getRotation()
+                local facingRotation = 0
+
+                if objectRotation[3] > 90 then
+                    facingRotation = 180
+                elseif objectRotation[3] < -90 then
+                    facingRotation = -180
+                end
+
+--                local occupant = self.getHighestOccupyingObject({object})
+--                local snapPoints = occupant and occupant.getSnapPoints()
+--                local snapPoint = snapPoints and #snapPoints > 0 and snapPoints[1]
+--
+--                if snapPoint then
+--                    object.setPositionSmooth(occupant.positionToWorld(snapPoint.position))
+--                    object.setRotationSmooth(occupant.getRotation())
+--                else
+                    object.setPositionSmooth({position[1], object.getPosition()[2], position[2]})
+                    object.setRotationSmooth({0, rotation, facingRotation})
+--                end
+
+                object.scale(occupantScale / object.getScale()[1])
+
+                table.insert(occupyingObjects, object)
+            end
+
+            function self.save()
+                return {
+                    __savedState = true,
+                    guid = scriptedZone.getGUID(),
+                    position = position,
+                    size = size,
+                    rotation = rotation,
+                    occupantScale = occupantScale,
+                    occupyingObjectGuids = table_utils.map(occupyingObjects, function(object) return object.getGUID() end)
+                }
+            end
+
+            function self.destruct()
+                dropZones[scriptedZone.getGUID()] = nil
+                scriptedZone.destruct()
+            end
+
+            function self.toString()
+                return 'DropZone (' .. tostring(scriptedZone.getGUID()) .. ')'
+            end
+
+            return self
+        end,
+    })
+
+    function DropZone.isSavedState(value)
+        return type(value) == 'table' and value.__savedState
+    end
+
+    EventManager.addHandler('onObjectEnterScriptingZone', function(scriptingZone, object)
+        local dropZone = dropZones[scriptingZone.getGUID()]
+
+        if dropZone then
+            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered Drop Zone (' .. tostring(scriptingZone.getGUID()) .. ')', Logger.DEBUG)
+            local objectZones = objectDropZones[object]
+
+            if objectZones then
+                table.insert(objectZones, dropZone)
+            else
+                objectDropZones[object] = {dropZone}
+            end
+
+            dropZone.onEnter(object)
+        end
+    end)
+
+    EventManager.addHandler('onObjectLeaveScriptingZone', function(scriptingZone, object)
+        local dropZone = dropZones[scriptingZone.getGUID()]
+
+        if dropZone then
+            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') left Drop Zone (' .. tostring(scriptingZone.getGUID()) .. ')', Logger.DEBUG)
+            local objectZones = objectDropZones[object]
+
+            if objectZones then
+                objectZones = table_utils.reject(objectZones, function(z)
+                    return dropZone == z
+                end)
+
+                objectDropZones[object] = #objectZones > 0 and objectZones or nil
+
+                dropZone.onLeave(object)
+            end
+        end
+    end)
+
+    EventManager.addHandler('onObjectDrop', function(colorName, object)
+        local velocity = object.getVelocity()
+        local velocity_2 = velocity[1] * velocity[1] + velocity[2] * velocity[2] + velocity[3] * velocity[3]
+
+        if velocity_2 < MAX_DROP_VELOCITY_2 then
+            local objectZones = objectDropZones[object]
+
+            if objectZones then
+                local objectPosition = object.getPosition()
+
+                local nearestDropZone = table_utils.reduce(objectZones, {math.huge, nil}, function(pair, dropZone)
+                    local zonePosition = dropZone.getPosition()
+                    local delta = {zonePosition[1] - objectPosition[1], zonePosition[2] - objectPosition[3]}
+                    local dist_2 = delta[1] * delta[1] + delta[2] * delta[2]
+                    return dist_2 < pair[1] and {dist_2, dropZone } or pair
+                end)[2]
+
+                Logger.log(
+                    object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in Drop Zone (' .. tostring(nearestDropZone.getScriptedZone().getGUID())
+                            .. ')',
+                    Logger.DEBUG
+                )
+
+                nearestDropZone.onDrop(colorName, object)
+            end
+        end
+    end)
+
+    EventManager.addHandler('onObjectDestroy', function(object)
+        local dropZones = objectDropZones[object]
+
+        if dropZones then
+            for _, dropZone in ipairs(dropZones) do
+                Logger.log(
+                    object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from Drop Zone (' .. dropZone.getScriptedZone().getGUID()
+                            .. ') as it\'s being destroyed',
+                    Logger.DEBUG
+                )
+                dropZone.onLeave(object)
+            end
+
+            objectDropZones[object] = nil
+        end
+    end)
+
+    return DropZone
+end)

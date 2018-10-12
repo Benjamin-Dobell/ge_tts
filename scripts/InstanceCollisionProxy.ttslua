@@ -1,0 +1,17 @@
+function init()
+    local table_utils = ge_tts_require('ge_tts/table_utils')
+
+    local ready = false
+
+    EventManager.addHandler('onCollisionEnter', function(collisionInfo)
+        if ready then
+            local globalCollisionInfo = table_utils.merge({object = self}, collisionInfo)
+            Global.call('onCollisionEnter', globalCollisionInfo)
+        end
+    end)
+
+    -- Just good ol' TTS being TTS...
+    Wait.frames(function() ready = true end, 1)
+end
+
+init()

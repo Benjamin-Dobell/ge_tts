@@ -1,0 +1,76 @@
+ge_tts_package('ge_tts/Logger', function()
+    local Logger = {}
+
+    Logger.ERROR = 1
+    Logger.WARNING = 2
+    Logger.INFO = 3
+    Logger.DEBUG = 4
+    Logger.VERBOSE = 5
+
+    local levelPrefixes = {
+        [Logger.ERROR] = 'ERROR: ',
+        [Logger.WARNING] = 'WARNING: ',
+        [Logger.INFO] = '',
+        [Logger.DEBUG] = '',
+        [Logger.VERBOSE] = '',
+    }
+
+    setmetatable(Logger, {
+        -- positionOrData: 2D vector, or saved state table
+        -- size: 2D vector
+        -- rotation: angle, around Y-axis
+        -- scale: number, objects' desired X-axis scale, applied to all dimensions i.e. aspect ratio is preserved
+        -- owner: 2D vector
+        __call = function()
+            local self = {}
+
+            local logLevel = Logger.INFO
+
+            function self.getLogLevel()
+                return logLevel
+            end
+
+            function self.setLogLevel(level)
+                logLevel = level
+            end
+
+            function self.log(message, level)
+                if level <= logLevel then
+                    if level <= Logger.WARNING then
+                        print(levelPrefixes[level] .. message)
+                    else
+                        log(levelPrefixes[level] .. message)
+                    end
+                end
+            end
+
+            return self
+        end
+    })
+
+    local defaultLogger = Logger()
+    local defaultLogLevel = Logger.DEBUG
+
+    function Logger.setDefaultLogger(logger)
+        defaultLogger = logger
+    end
+
+    function Logger.getDefaultLogger(logger)
+        return defaultLogger
+    end
+
+    function Logger.setDefaultLogLevel(level)
+        defaultLogLevel = level
+    end
+
+    function Logger.getDefaultLogLevel(logger)
+        return defaultLogLevel
+    end
+
+    function Logger.log(message, level)
+        level = level or defaultLogLevel
+        defaultLogger.log(message, level)
+    end
+
+    return Logger
+end)

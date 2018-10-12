@@ -1,0 +1,195 @@
+ge_tts_package('ge_tts/table_utils', function()
+    local table_utils = {}
+
+    table_utils.map = function(tab, func)
+        local mapped = {}
+        local contiguous = false
+
+        for i, v in ipairs(tab) do
+            contiguous = true
+            mapped[i] = func(v, i)
+        end
+
+        if not contiguous then
+            for k, v in pairs(tab) do
+                mapped[k] = func(v, k)
+            end
+        end
+
+        return mapped
+    end
+
+    table_utils.invert = function(tab)
+        local inverted = {}
+
+        for k, v in pairs(tab) do
+          inverted[v] = k
+        end
+
+        return inverted
+    end
+
+    table_utils.remap = function(tab, func)
+        local remapped = {}
+        local contiguous = false
+
+        for i, v in ipairs(tab) do
+            contiguous = true
+            remapped[func(v, i)] = v
+        end
+
+        if not contiguous then
+            for k, v in pairs(tab) do
+                remapped[func(v, k)] = v
+            end
+        end
+
+        return remapped
+    end
+
+    table_utils.select = function(tab, func)
+        local selected = {}
+
+        local contiguous = false
+        local index = 1
+
+        for i, v in ipairs(tab) do
+            contiguous = true
+
+            if func(v, i) then
+                selected[index] = v
+                index = index + 1
+            end
+        end
+
+        if not contiguous then
+            for k, v in pairs(tab) do
+                if func(v, k) then
+                    selected[k] = v
+                end
+            end
+        end
+
+        return selected
+    end
+
+    table_utils.reject = function(tab, func)
+        return table_utils.select(tab, function(v, k) return not func(v, k) end)
+    end
+
+    table_utils.reduce = function(tab, initialOrFunc, funcOrNil)
+        local memo = funcOrNil and initialOrFunc or next(tab)
+        local func = funcOrNil or initialOrFunc
+
+        local initialK = nil
+
+        if not funcOrNil then
+            initialK = memo
+        end
+
+        for k, v in next, tab, initialK do
+            memo = func(memo, v, k)
+        end
+
+        return memo
+    end
+
+    table_utils.find = function(tab, value)
+        for k, v in pairs(tab) do
+            if v == value then
+                return k
+            end
+        end
+
+        return nil
+    end
+
+    table_utils.detect = function(tab, func)
+        for k, v in pairs(tab) do
+            if func(v, k) then
+                return v, k
+            end
+        end
+
+        return nil, nil
+    end
+
+    table_utils.copy = function(tab)
+        local copied = {}
+
+        for k, v in pairs(tab) do
+            copied[k] = v
+        end
+
+        return copied
+    end
+
+    table_utils.overwrite = function(tab, ...)
+        local otherTables = {...}
+
+        for _, t in ipairs(otherTables) do
+            local contiguous = false
+
+            for _, v in ipairs(t) do
+                contiguous = true
+                table.insert(tab, v)
+            end
+
+            if not contiguous then
+                for k, v in pairs(t) do
+                    tab[k] = v
+                end
+            end
+        end
+    end
+
+    table_utils.merge = function(...)
+        local joined = {}
+        table_utils.overwrite(joined, table.unpack({...}))
+        return joined
+    end
+
+    table_utils.count = function(tab)
+        local count = 0
+
+        for _, _ in pairs(tab) do
+            count = count + 1
+        end
+
+        return count
+    end
+
+    local TYPE_STRINGIFIERS = {
+        ['nil'] = function(v) return 'nil' end,
+        boolean = function(v) return tostring(v) end,
+        number = function(v) return tostring(v) end,
+        string = function(v) return "'" .. v .. "'" end,
+        userdata = function(v) return 'userdata' end,
+        ['function'] = function(v) return 'function' end,
+        thread = function(v) return 'thread' end,
+        table = function(v) return tostring(v) end,
+    }
+
+    table_utils.dump = function(tab, recursive, depth)
+        depth = depth or 1
+
+        local indentation = string.rep('  ', depth)
+        local string = '{'
+
+        for k, v in pairs(tab) do
+            string = string .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
+
+            if recursive and type(v) == 'table' then
+                string = string .. table_utils.dump(v, true, depth + 1) .. ','
+            else
+                string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
+            end
+        end
+
+        string = string .. '\n' .. string.rep('  ', depth - 1) .. '}'
+
+        return string
+    end
+
+    return table_utils
+end)

@@ -1,0 +1,52 @@
+ge_tts_package('ge_tts/EventManager', function()
+    local table_utils = ge_tts_require('ge_tts/table_utils')
+    local Logger = ge_tts_require('ge_tts/Logger')
+
+    local eventHandlers = {}
+
+    local function listen(event)
+        local previousGlobalHandler = _G[event]
+
+        _G[event] = function(...)
+            local args = {...}
+            local handlers = table_utils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
+
+            for _, handler in ipairs(handlers) do
+                handler(table.unpack(args))
+            end
+        end
+
+        local handlers = {}
+        eventHandlers[event] = handlers
+
+        Logger.log('EventManager now listening for ' .. event, Logger.DEBUG)
+
+        if previousGlobalHandler then
+            table.insert(handlers, previousGlobalHandler)
+            Logger.log('Pre-existing global ' .. event .. ' handler preserved as the first handler', Logger.DEBUG)
+        end
+
+        return handlers
+    end
+
+    local EventManager = {}
+
+    function EventManager.addHandler(event, handler)
+        local handlers = eventHandlers[event] or listen(event)
+
+        if not table_utils.find(handlers, handler) then
+            table.insert(handlers, handler)
+        end
+    end
+
+    function EventManager.removeHandler(event, handler)
+        local handlers = eventHandlers[event]
+        local handlerIndex = handlers and table_utils.find(handlers, handler)
+
+        if handlerIndex then
+            table.remove(handlers, handlerIndex)
+        end
+    end
+
+    return EventManager
+end)

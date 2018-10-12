@@ -1,0 +1,41 @@
+ge_tts_package('ge_tts/PlayerDropZone', function()
+    local table_utils = ge_tts_require('ge_tts/table_utils')
+    local DropZone = ge_tts_require('ge_tts/DropZone')
+
+    local PlayerDropZone = {}
+
+    setmetatable(PlayerDropZone, table_utils.merge(getmetatable(DropZone), {
+        -- positionOrData: 2D vector, or saved state table
+        -- size: 2D vector
+        -- rotation: angle, around Y-axis
+        -- occupantScale: number, occupants desired X-axis scale, applied to all dimensions i.e. aspect ratio is preserved
+        -- owner: TTS player
+        __call = function(_, positionOrData, size, rotation, occupantScale, owner)
+            local self = DropZone(positionOrData, size, rotation, occupantScale)
+
+            if PlayerDropZone.isSavedState(positionOrData) then
+                local data = positionOrData
+                owner = data.ownerColor and Player[data.ownerColor]
+            end
+
+            function self.getOwner()
+                return owner
+            end
+
+            local superSave = self.save
+
+            function self.save()
+                local data = superSave()
+
+                return table_utils.merge({
+                    ownerColor = owner and owner.color or nil
+                })
+            end
+
+            return self
+        end,
+        __index = DropZone,
+    }))
+
+    return PlayerDropZone
+end)
