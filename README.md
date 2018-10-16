@@ -83,11 +83,11 @@ Individual packages should *not* ever `#include` code from another file. A packa
 File: `my_prefix/international/some_package.ttslua`
 ```lua
 ge_tts_package('my_prefix/international/some_package', function()
-	local table_utils = ge_tts_require('ge_tts/table_utils') -- ge_tts comes with its own "standard library" including table helper functions
+	local TableUtils = ge_tts_require('ge_tts/TableUtils') -- ge_tts comes with its own "standard library" including table helper functions
 	
 	local english_some_package = ge_tts_require('my_prefix/some_package')
 
-	local some_package = table_utils.copy(english_some_package)
+	local some_package = TableUtils.copy(english_some_package)
 	
 	function some_package.sayGutenTag()
 		print('Guten tag!')
@@ -101,7 +101,7 @@ The example above demonstrates a few key concepts.
 
 - We've required `my_prefix/some_package` and given it the name `english_some_package`
 - We've created our own local `some_package` which copies `english_some_package` and then exposes `sayGutenTag()` (in addition to `sayHi()`).
-- We're using `table_utils` which come with `ge_tts`.
+- We're using `TableUtils` which come with `ge_tts`.
 
 Now our updated Global script could look like
 
@@ -151,7 +151,7 @@ Because of the way ge_tts packages are written, if you don't use a particular pa
 
 #### _Naming Conventions_
 
-We use upper camel-case filenames to indicate packages that define a "class" (something that can be instantiated), and lower-case snake-case for other packages.
+We use upper camel-case filenames to indicate packages, lower-case snake-case is used for any other TTS lua which do not define a package.
 
 You're welcome to follow this convention, but you're not obligated to.
 
@@ -163,7 +163,7 @@ A package for encoding and decoding Base64 binary data.
 
 **NOTE**: This package will likely be subject to refactoring as it was intially based on third-party (public domain) code and doesn't really follow ge_tts conventions properly.
 
-### container_events_fix
+### ContainerEventsFix
 
 Dependencies: **core**
 
@@ -175,7 +175,7 @@ Specifically `onObjectEnterContainer` is only fired for one card, when two cards
 #include ./ge_tts
 #include ./ge_tts/core
 
-#include ./ge_tts/scripts/InstanceCollisionProxy
+#include ./ge_tts/scripts/instance_collision_proxy
 ```
 
 Then in your Global script you can then simply require `ContainerEventsFix`.
@@ -224,7 +224,7 @@ We don't presently provide a corresponding server, but it's pretty trivial to cr
 
 Remote logs could be useful for diagnosing issues your players are running into, however personally I just use it in development as my logs are kept even if TTS crashes, and it's easy to copy and paste data from my logs etc. 
 
-### table_utils
+### TableUtils
 
 Part of **core**.
 
@@ -250,8 +250,8 @@ A convenience file that includes several common packages, those included are doc
 
 Code that is designed to be included directly into an Object script in your game, they are _not_ packages.
 
-#### InstanceCollisionProxy
+#### instance_collision_proxy
 
 Dependencies: **core**
 
-Used in conjunction with the `container_events_fix` package.
+Used in conjunction with the `ContainerEventsFix` package.

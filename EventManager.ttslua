@@ -1,15 +1,19 @@
 ge_tts_package('ge_tts/EventManager', function()
-    local table_utils = ge_tts_require('ge_tts/table_utils')
+    ---@type ge_tts__TableUtils
+    local TableUtils = ge_tts_require('ge_tts/TableUtils')
+
+    ---@type ge_tts__Logger
     local Logger = ge_tts_require('ge_tts/Logger')
 
     local eventHandlers = {}
 
+    ---@param event string
     local function listen(event)
         local previousGlobalHandler = _G[event]
 
         _G[event] = function(...)
             local args = {...}
-            local handlers = table_utils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
+            local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
 
             for _, handler in ipairs(handlers) do
                 handler(table.unpack(args))
@@ -29,19 +33,24 @@ ge_tts_package('ge_tts/EventManager', function()
         return handlers
     end
 
+    ---@type ge_tts__EventManager
     local EventManager = {}
 
+    ---@param event string @Event name
+    ---@param handler fun(...) @Function that will be called when the event fires. Parameters vary depending on the event.
     function EventManager.addHandler(event, handler)
         local handlers = eventHandlers[event] or listen(event)
 
-        if not table_utils.find(handlers, handler) then
+        if not TableUtils.find(handlers, handler) then
             table.insert(handlers, handler)
         end
     end
 
+    ---@param event string @Event name
+    ---@param handler fun(...) @A previously registered handler that you which to remove.
     function EventManager.removeHandler(event, handler)
         local handlers = eventHandlers[event]
-        local handlerIndex = handlers and table_utils.find(handlers, handler)
+        local handlerIndex = handlers and TableUtils.find(handlers, handler)
 
         if handlerIndex then
             table.remove(handlers, handlerIndex)

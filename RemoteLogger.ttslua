@@ -1,11 +1,16 @@
 ge_tts_package('ge_tts/RemoteLogger', function()
-    local table_utils = ge_tts_require('ge_tts/table_utils')
+    ---@type ge_tts__TableUtils
+    local TableUtils = ge_tts_require('ge_tts/TableUtils')
+
+    ---@type ge_tts__Logger
     local Logger = ge_tts_require('ge_tts/Logger')
 
     local MAX_RETRIES = 5
 
+    ---@class ge_tts__RemoteLogger
     local RemoteLogger = {}
 
+    ---@type table<number, string>
     local levelPrefixes = {
         [Logger.ERROR] = 'ERROR: ',
         [Logger.WARNING] = 'WARNING: ',
@@ -20,7 +25,7 @@ ge_tts_package('ge_tts/RemoteLogger', function()
     -- Note: The retry mechanism may cause duplicate messages to be logged depending on server implementation. Specifically there's an edge-case if the server
     -- receives a request, logs the messages, but the connection drops before we receive a 200 status code. Generally this won't occur, however if it's a major
     -- concern then the server could first respond 200, wait for TCP confirmation, *then* log the messages received in the request.
-    setmetatable(RemoteLogger, table_utils.merge(getmetatable(Logger), {
+    setmetatable(RemoteLogger, TableUtils.merge(getmetatable(Logger), {
         -- url: string
         __call = function(_, url)
             local self = Logger()

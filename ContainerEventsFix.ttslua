@@ -1,9 +1,12 @@
--- We use onCollisionEnter (requires InstanceCollisionProxy be included in Card scripts) and onUpdate event handlers as a hacky work-around for
+-- We use onCollisionEnter (requires instance_collision_proxy be included in Card scripts) and onUpdate event handlers as a hacky work-around for
 -- onObjectEnterContainer not firing when it should. For this to work reliably we must be the first subscriber to the onObjectDestroy event.
 -- Bug report: http://www.berserk-games.com/forums/showthread.php?5461-onObjectEnterContainer-never-fires-for-bottom-card
 
 ge_tts_package('ge_tts/ContainerEventsFix', function()
+    ---@type ge_tts__Logger
     local Logger = ge_tts_require('ge_tts/Logger')
+
+    ---@type ge_tts__EventManager
     local EventManager = ge_tts_require('ge_tts/EventManager')
 
     local frameCardObjectCollisions = {}

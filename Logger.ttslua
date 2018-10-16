@@ -1,4 +1,5 @@
 ge_tts_package('ge_tts/Logger', function()
+    ---@class ge_tts__Logger
     local Logger = {}
 
     Logger.ERROR = 1
@@ -7,6 +8,7 @@ ge_tts_package('ge_tts/Logger', function()
     Logger.DEBUG = 4
     Logger.VERBOSE = 5
 
+    ---@type table<number, string>
     local levelPrefixes = {
         [Logger.ERROR] = 'ERROR: ',
         [Logger.WARNING] = 'WARNING: ',
@@ -16,12 +18,8 @@ ge_tts_package('ge_tts/Logger', function()
     }
 
     setmetatable(Logger, {
-        -- positionOrData: 2D vector, or saved state table
-        -- size: 2D vector
-        -- rotation: angle, around Y-axis
-        -- scale: number, objects' desired X-axis scale, applied to all dimensions i.e. aspect ratio is preserved
-        -- owner: 2D vector
         __call = function()
+            ---@type ge_tts__Logger
             local self = {}
 
             local logLevel = Logger.INFO
@@ -36,11 +34,7 @@ ge_tts_package('ge_tts/Logger', function()
 
             function self.log(message, level)
                 if level <= logLevel then
-                    if level <= Logger.WARNING then
-                        print(levelPrefixes[level] .. message)
-                    else
-                        log(levelPrefixes[level] .. message)
-                    end
+                    print(levelPrefixes[level] .. message)
                 end
             end
 

@@ -1,7 +1,8 @@
-ge_tts_package('ge_tts/table_utils', function()
-    local table_utils = {}
+ge_tts_package('ge_tts/TableUtils', function()
+    ---@type ge_tts__TableUtils
+    local TableUtils = {}
 
-    table_utils.map = function(tab, func)
+    TableUtils.map = function(tab, func)
         local mapped = {}
         local contiguous = false
 
@@ -19,7 +20,7 @@ ge_tts_package('ge_tts/table_utils', function()
         return mapped
     end
 
-    table_utils.invert = function(tab)
+    TableUtils.invert = function(tab)
         local inverted = {}
 
         for k, v in pairs(tab) do
@@ -29,7 +30,7 @@ ge_tts_package('ge_tts/table_utils', function()
         return inverted
     end
 
-    table_utils.remap = function(tab, func)
+    TableUtils.remap = function(tab, func)
         local remapped = {}
         local contiguous = false
 
@@ -47,7 +48,7 @@ ge_tts_package('ge_tts/table_utils', function()
         return remapped
     end
 
-    table_utils.select = function(tab, func)
+    TableUtils.select = function(tab, func)
         local selected = {}
 
         local contiguous = false
@@ -73,11 +74,11 @@ ge_tts_package('ge_tts/table_utils', function()
         return selected
     end
 
-    table_utils.reject = function(tab, func)
-        return table_utils.select(tab, function(v, k) return not func(v, k) end)
+    TableUtils.reject = function(tab, func)
+        return TableUtils.select(tab, function(v, k) return not func(v, k) end)
     end
 
-    table_utils.reduce = function(tab, initialOrFunc, funcOrNil)
+    TableUtils.reduce = function(tab, initialOrFunc, funcOrNil)
         local memo = funcOrNil and initialOrFunc or next(tab)
         local func = funcOrNil or initialOrFunc
 
@@ -94,7 +95,7 @@ ge_tts_package('ge_tts/table_utils', function()
         return memo
     end
 
-    table_utils.find = function(tab, value)
+    TableUtils.find = function(tab, value)
         for k, v in pairs(tab) do
             if v == value then
                 return k
@@ -104,7 +105,7 @@ ge_tts_package('ge_tts/table_utils', function()
         return nil
     end
 
-    table_utils.detect = function(tab, func)
+    TableUtils.detect = function(tab, func)
         for k, v in pairs(tab) do
             if func(v, k) then
                 return v, k
@@ -114,7 +115,7 @@ ge_tts_package('ge_tts/table_utils', function()
         return nil, nil
     end
 
-    table_utils.copy = function(tab)
+    TableUtils.copy = function(tab)
         local copied = {}
 
         for k, v in pairs(tab) do
@@ -124,7 +125,7 @@ ge_tts_package('ge_tts/table_utils', function()
         return copied
     end
 
-    table_utils.overwrite = function(tab, ...)
+    TableUtils.overwrite = function(tab, ...)
         local otherTables = {...}
 
         for _, t in ipairs(otherTables) do
@@ -143,13 +144,13 @@ ge_tts_package('ge_tts/table_utils', function()
         end
     end
 
-    table_utils.merge = function(...)
+    TableUtils.merge = function(...)
         local joined = {}
-        table_utils.overwrite(joined, table.unpack({...}))
+        TableUtils.overwrite(joined, table.unpack({ ...}))
         return joined
     end
 
-    table_utils.count = function(tab)
+    TableUtils.count = function(tab)
         local count = 0
 
         for _, _ in pairs(tab) do
@@ -170,7 +171,7 @@ ge_tts_package('ge_tts/table_utils', function()
         table = function(v) return tostring(v) end,
     }
 
-    table_utils.dump = function(tab, recursive, depth)
+    TableUtils.dump = function(tab, recursive, depth)
         depth = depth or 1
 
         local indentation = string.rep('  ', depth)
@@ -180,7 +181,7 @@ ge_tts_package('ge_tts/table_utils', function()
             string = string .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
 
             if recursive and type(v) == 'table' then
-                string = string .. table_utils.dump(v, true, depth + 1) .. ','
+                string = string .. TableUtils.dump(v, true, depth + 1) .. ','
             else
                 string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
             end
@@ -191,5 +192,5 @@ ge_tts_package('ge_tts/table_utils', function()
         return string
     end
 
-    return table_utils
+    return TableUtils
 end)
