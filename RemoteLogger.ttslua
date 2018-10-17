@@ -6,6 +6,7 @@ ge_tts_package('ge_tts/RemoteLogger', function()
     local Logger = ge_tts_require('ge_tts/Logger')
 
     local MAX_RETRIES = 5
+    local MAX_MESSAGES_PER_REQUEST = 20 -- TTS doesn't give us much control over web requests. Content is URI encoded, and Unity has URI length constraints.
 
     ---@class ge_tts__RemoteLogger
     local RemoteLogger = {}
@@ -41,11 +42,11 @@ ge_tts_package('ge_tts/RemoteLogger', function()
                     if retry <= MAX_RETRIES then
                         local messages = {}
 
-                        for _, message in ipairs(queuedMessages) do
-                            table.insert(messages, message)
-                        end
+                        postingCount = math.min(MAX_MESSAGES_PER_REQUEST, #queuedMessages)
 
-                        postingCount = #messages
+                        for i=1, postingCount do
+                            table.insert(messages, queuedMessages[i])
+                        end
 
                         local content = JSON.encode({
                             messages=messages
