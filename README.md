@@ -16,30 +16,40 @@ In the simple case, direct text replacement works well enough. However, as your 
 
 ge_tts offers a solution for this problem in the form of `ge_tts_package` and `ge_tts_require`.
 
+### EmmyLua and Jetbrains IntelliJ IDEA
+
+For development of your TTS mod we highly recommend using Jetbrains IntelliJ IDEA with the [EmmyLua](https://github.com/EmmyLua/IntelliJ-EmmyLua) (_not_ the plugin simply called 'Lua') to write your code, instead of (or rather in conjunction with) Atom and the Atom TTS plugin.
+
+[IntelliJ Community Edition](https://www.jetbrains.com/idea/download/) and EmmyLua are both free, and offer significantly more advanced Lua editing capabilities than Atom.
+
+Most importantly, we've included EmmyLua type definitions for our APIs. This means that when you use our types, function and variable names will auto-complete.
+
+_However_, at present there is not yet a Tabletop Simulator plugin available for Jetbrains IntelliJ IDEA. So you must still use Atom for loading code out of, and saving code into Tabletop Simulator.
+
 ### Creating a package
 
 You define a package like so:
 
-File: `my_prefix/some_package.ttslua`
+File: `my_prefix/SomePackage.ttslua`
 ```lua
-ge_tts_package('my_prefix/some_package', function()
-	local some_package = {}
+ge_tts_package('my_prefix/SomePackage', function()
+	local SomePackage = {}
 	
-	some_package.VERSION = '1'
+	SomePackage.VERSION = '1'
 	
 	local function localSayHi()
 		print('Hiya!')
 	end
 	
-	function some_package.sayHi()
+	function SomePackage.sayHi()
 		print('Hi!')
 	end
 	
-	return some_package
+	return SomePackage
 end)
 ```
 
-Here we're creating a package called `my_prefix/some_package`, it's suggested you come up with a unique prefix for all your packages. A company name or domain name is a good choice.
+Here we're creating a package called `my_prefix/SomePackage`, it's suggested you come up with a unique prefix for all your packages. A company name or domain name is a good choice.
 
 What you've probably noticed is that your package code is wrapped up in a function, with a return value. This function is "lazy evaluated" i.e. It's only executed when another piece of code tries to use this package.
 
@@ -51,26 +61,26 @@ File: Global script (`Global.-1.ttslua`)
 ```lua
 #include ge_tts/ge_tts
 
-#include my_prefix/some_package
+#include my_prefix/SomePackage
 
-local my_name_for_some_package = ge_tts_require('my_prefix/some_package')
+local MyNameForSomePackage = ge_tts_require('my_prefix/SomePackage')
 
-my_name_for_some_package.sayHi() -- Will print 'Hi!'
-print('some_package version = ' .. my_name_for_some_package.VERSION)
+MyNameForSomePackage.sayHi() -- Will print 'Hi!'
+print('SomePackage version = ' .. MyNameForSomePackage.VERSION)
 
 
 -- Both of the following very intentionally won't work, because localSayHi() is
 -- scoped inside the package and never exposed publicly.
 
-my_name_for_some_package.localSayHi()
+MyNameForSomePackage.localSayHi()
 localSayHi()
 
--- This following also intentionally won't work, because some_package isn't defined publicly
+-- This following also intentionally won't work, because SomePackage isn't defined publicly
 
-some_package.sayHi()
+SomePackage.sayHi()
 ```
 
-This is great, we're not leaking local functions, we're not stuck using the name `some_package` globally, which could collide with some other `some_package` and we can safely access functions and variables that have intentionally been exposed by the package.
+This is great, we're not leaking local functions, we're not stuck using the name `SomePackage` globally, which could collide with some other `SomePackage` and we can safely access functions and variables that have intentionally been exposed by the package.
 
 We also `#include`d `ge_tts/ge_tts`, which is where `ge_tts_package` and `ge_tts_require` are defined.
 
@@ -80,27 +90,27 @@ The astute reader will have noticed that in the above example we first `#include
 
 Individual packages should *not* ever `#include` code from another file. A package that references another package can be written like:
 
-File: `my_prefix/international/some_package.ttslua`
+File: `my_prefix/international/SomePackage.ttslua`
 ```lua
-ge_tts_package('my_prefix/international/some_package', function()
+ge_tts_package('my_prefix/international/SomePackage', function()
 	local TableUtils = ge_tts_require('ge_tts/TableUtils') -- ge_tts comes with its own "standard library" including table helper functions
 	
-	local english_some_package = ge_tts_require('my_prefix/some_package')
+	local EnglishSomePackage = ge_tts_require('my_prefix/SomePackage')
 
-	local some_package = TableUtils.copy(english_some_package)
+	local SomePackage = TableUtils.copy(EnglishSomePackage)
 	
-	function some_package.sayGutenTag()
+	function SomePackage.sayGutenTag()
 		print('Guten tag!')
 	end
 	
-	return some_package
+	return SomePackage
 end)
 ```
 
 The example above demonstrates a few key concepts.
 
-- We've required `my_prefix/some_package` and given it the name `english_some_package`
-- We've created our own local `some_package` which copies `english_some_package` and then exposes `sayGutenTag()` (in addition to `sayHi()`).
+- We've required `my_prefix/SomePackage` and given it the name `EnglishSomePackage`
+- We've created our own local `SomePackage` which copies `EnglishSomePackage` and then exposes `sayGutenTag()` (in addition to `sayHi()`).
 - We're using `TableUtils` which come with `ge_tts`.
 
 Now our updated Global script could look like
@@ -110,28 +120,28 @@ File: Global script (`Global.-1.ttslua`)
 #include ge_tts/ge_tts -- Should always come first
 #include ge_tts/core
 
-#include my_prefix/international/some_package
-#include my_prefix/some_package
+#include my_prefix/international/SomePackage
+#include my_prefix/SomePackage
 
-local some_package = ge_tts_require('my_prefix/some_package')
-local international_some_package = ge_tts_require('my_prefix/international/some_package')
+local SomePackage = ge_tts_require('my_prefix/SomePackage')
+local InternationalSomePackage = ge_tts_require('my_prefix/international/SomePackage')
 
-some_package.sayHi() -- Will print 'Hi!'
+SomePackage.sayHi() -- Will print 'Hi!'
 
-international_some_package.sayGutenTage() -- Will print 'Guten tag!'
-international_some_package.sayHi() -- Will also print 'Hi!'
+InternationalSomePackage.sayGutenTag() -- Will print 'Guten tag!'
+InternationalSomePackage.sayHi() -- Will also print 'Hi!'
 ```
 
-In this example we're safely using two packages which internally call themselves `some_package` and we're not running into any name collisions!
+In this example we're safely using two packages which internally call themselves `SomePackage` and we're not running into any name collisions!
 
 We've `#include`d four files:
 
 * `ge_tts/ge_tts` - Necessary to write and include ge_tts packages.
 * `ge_tts/core` - This is a convenience file, it is *not* a package. It includes several other files which may be useful
-* `my_prefix/international/some_package` - Our new package with `sayGutenTag()`
-* `my_prefix/some_package` - Our original package with `sayHi()`
+* `my_prefix/international/SomePackage` - Our new package with `sayGutenTag()`
+* `my_prefix/SomePackage` - Our original package with `sayHi()`
 
-You may have picked up on the fact that `my_prefix/international/some_package` depends on `my_prefix/some_package`, yet we've included `my_prefix/international/some_package` _first!_
+You may have picked up on the fact that `my_prefix/international/SomePackage` depends on `my_prefix/SomePackage`, yet we've included `my_prefix/international/SomePackage` _first!_
 
 Because ge_tts packages are lazy evaluated (when they're first `ge_tts_require`d), you can safely include the files in any order you want!
 
