@@ -1,4 +1,4 @@
-function init()
+local function __init()
     local entryPoints = {}
     local packages = {}
 
@@ -69,4 +69,4 @@ function init()
     end
 end
 
-init()
+__init()

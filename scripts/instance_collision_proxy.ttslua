@@ -1,4 +1,4 @@
-function init()
+local function __init()
     ---@type ge_tts__TableUtils
     local TableUtils = ge_tts_require('ge_tts/TableUtils')
 
@@ -18,4 +18,4 @@ function init()
     Wait.frames(function() ready = true end, 1)
 end
 
-init()
+__init()

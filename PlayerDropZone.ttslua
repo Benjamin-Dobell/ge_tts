@@ -20,7 +20,7 @@ ge_tts_package('ge_tts/PlayerDropZone', function()
 
             if PlayerDropZone.isSavedState(positionOrData) then
                 local data = positionOrData
-                owner = data.ownerColor and Player[data.ownerColor]
+                owner = Player[data.ownerColor]
             end
 
             function self.getOwner()
@@ -33,7 +33,7 @@ ge_tts_package('ge_tts/PlayerDropZone', function()
                 local data = superSave()
 
                 return TableUtils.merge({
-                    ownerColor = owner and owner.color or nil
+                    ownerColor = owner.color
                 })
             end
 

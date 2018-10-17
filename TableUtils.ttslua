@@ -126,7 +126,7 @@ ge_tts_package('ge_tts/TableUtils', function()
     end
 
     TableUtils.overwrite = function(tab, ...)
-        local otherTables = {...}
+        local otherTables = { ... }
 
         for _, t in ipairs(otherTables) do
             local contiguous = false
@@ -146,7 +146,7 @@ ge_tts_package('ge_tts/TableUtils', function()
 
     TableUtils.merge = function(...)
         local joined = {}
-        TableUtils.overwrite(joined, table.unpack({ ...}))
+        TableUtils.overwrite(joined, table.unpack({ ... }))
         return joined
     end
 
