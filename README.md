@@ -157,11 +157,9 @@ You're welcome to follow this convention, but you're not obligated to.
 
 ### Base64
 
-Dependencies: _none_
+Dependencies: **core**
 
 A package for encoding and decoding Base64 binary data.
-
-**NOTE**: This package will likely be subject to refactoring as it was intially based on third-party (public domain) code and doesn't really follow ge_tts conventions properly.
 
 ### ContainerEventsFix
 
