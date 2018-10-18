@@ -23,11 +23,11 @@ ge_tts_package('ge_tts/EventManager', function()
         local handlers = {}
         eventHandlers[event] = handlers
 
-        Logger.log('EventManager now listening for ' .. event, Logger.DEBUG)
+        Logger.log('EventManager now listening for ' .. event, Logger.VERBOSE)
 
         if previousGlobalHandler then
             table.insert(handlers, previousGlobalHandler)
-            Logger.log('Pre-existing global ' .. event .. ' handler preserved as the first handler', Logger.DEBUG)
+            Logger.log('Pre-existing global ' .. event .. ' handler preserved as the first handler', Logger.VERBOSE)
         end
 
         return handlers
