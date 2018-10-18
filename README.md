@@ -75,7 +75,7 @@ print('SomePackage version = ' .. MyNameForSomePackage.VERSION)
 MyNameForSomePackage.localSayHi()
 localSayHi()
 
--- This following also intentionally won't work, because SomePackage isn't defined publicly
+-- The following also intentionally won't work, because SomePackage isn't defined in this scope.
 
 SomePackage.sayHi()
 ```
@@ -224,7 +224,7 @@ A `DropZone` that is associated with a particular TTS player, specifically insta
 
 ### RemoteLogger
 
-Dependencies: **core**
+Dependencies: `Logger`
 
 A `Logger` that rather printing to TTS' console, will `POST` web requests to a URL that you provide when instantiating the `RemoteLogger`.
 
