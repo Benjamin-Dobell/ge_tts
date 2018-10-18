@@ -125,7 +125,7 @@ ge_tts_package('ge_tts/TableUtils', function()
         return copied
     end
 
-    TableUtils.overwrite = function(tab, ...)
+    TableUtils.inject = function(tab, ...)
         local otherTables = { ... }
 
         for _, t in ipairs(otherTables) do
@@ -145,9 +145,9 @@ ge_tts_package('ge_tts/TableUtils', function()
     end
 
     TableUtils.merge = function(...)
-        local joined = {}
-        TableUtils.overwrite(joined, table.unpack({ ... }))
-        return joined
+        local merged = {}
+        TableUtils.inject(merged, table.unpack({ ... }))
+        return merged
     end
 
     TableUtils.count = function(tab)
