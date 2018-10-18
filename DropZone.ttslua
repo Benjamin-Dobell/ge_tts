@@ -155,6 +155,17 @@ ge_tts_package('ge_tts/DropZone', function()
                 table.insert(occupyingObjects, object)
             end
 
+            --- Called when a TTS object is picked up from this DropZone.
+            ---@param colorName string @Color of the TTS player that dropped the TTS object.
+            ---@param object userdata @tts__Object - The object that was picked up.
+            function self.onPickUp(colorName, object)
+                local index = table.find(occupyingObjects, object)
+
+                if index then
+                    table.remove(occupyingObjects, index)
+                end
+            end
+
             function self.save()
                 return {
                     __savedState = true,
@@ -194,7 +205,7 @@ ge_tts_package('ge_tts/DropZone', function()
             if objectZones then
                 table.insert(objectZones, dropZone)
             else
-                objectDropZonesMap[object] = { dropZone}
+                objectDropZonesMap[object] = { dropZone }
             end
 
             dropZone.onEnter(object)
@@ -244,6 +255,30 @@ ge_tts_package('ge_tts/DropZone', function()
                 )
 
                 nearestDropZone.onDrop(colorName, object)
+            end
+        end
+    end)
+
+    EventManager.addHandler('onObjectPickUp', function(colorName, object)
+        local objectZones = objectDropZonesMap[object]
+
+        if objectZones then
+            for _, dropZone in ipairs(objectZones) do
+                Logger.log(
+                        object.tag .. ' (' .. tostring(object.getGUID()) .. ') picked up within Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
+                                .. ')',
+                        Logger.DEBUG
+                )
+                if TableUtils.find(dropZone.getOccupyingObjects(), object) then
+                    Logger.log(
+                            object.tag .. ' (' .. tostring(object.getGUID()) .. ') picked up from Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
+                                    .. ')',
+                            Logger.DEBUG
+                    )
+
+                    dropZone.onPickUp(colorName, object)
+                    break
+                end
             end
         end
     end)
