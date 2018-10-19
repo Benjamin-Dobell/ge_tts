@@ -6,7 +6,6 @@ ge_tts_package('ge_tts/RemoteLogger', function()
     local Logger = ge_tts_require('ge_tts/Logger')
 
     local MAX_RETRIES = 5
-    local MAX_MESSAGES_PER_REQUEST = 20 -- TTS doesn't give us much control over web requests. Content is URI encoded, and Unity has URI length constraints.
 
     ---@class ge_tts__RemoteLogger
     local RemoteLogger = {}
@@ -42,17 +41,16 @@ ge_tts_package('ge_tts/RemoteLogger', function()
                     if retry <= MAX_RETRIES then
                         local messages = {}
 
-                        postingCount = math.min(MAX_MESSAGES_PER_REQUEST, #queuedMessages)
-
-                        for i=1, postingCount do
-                            table.insert(messages, queuedMessages[i])
-                        end
-
                         local content = JSON.encode({
-                            messages=messages
+                            messages=queuedMessages
                         })
 
-                        WebRequest.post(url, {json=content}, function(request)
+                        postingCount = #queuedMessages
+
+                        -- NOTE: We're completely abusing the semantics of the HTTP PUT verb. We absolutely should be POSTing, but TTS's WebRequest APIs are
+                        -- without a doubt the worst attempt at writing a HTTP client that I've ever encountered. For some reason we can only POST URL encoded
+                        -- forms (which quickly run into URI length constraints, hence is unusable) where as we can PUT an arbitrary string, so we make do.
+                        WebRequest.put(url, content, function(request)
                             if request.is_error then
                                 postingCount = 0
                                 Wait.time(pumpQueue, retry * retry * 0.1)
