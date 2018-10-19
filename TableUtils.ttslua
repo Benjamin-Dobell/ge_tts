@@ -150,6 +150,16 @@ ge_tts_package('ge_tts/TableUtils', function()
         return merged
     end
 
+    TableUtils.keys = function(tab, func)
+        local keys = {}
+
+        for k, _ in pairs(tab) do
+            table.insert(keys, k)
+        end
+
+        return keys
+    end
+
     TableUtils.count = function(tab)
         local count = 0
 
