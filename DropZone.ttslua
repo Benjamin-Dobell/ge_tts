@@ -127,7 +127,7 @@ ge_tts_package('ge_tts/DropZone', function()
             --- Called when a TTS object leaves this DropZone.
             ---@param object userdata @tts__Object
             function self.onLeave(object)
-                local index = table.find(occupyingObjects, object)
+                local index = TableUtils.find(occupyingObjects, object)
 
                 if index then
                     table.remove(occupyingObjects, index)
@@ -159,7 +159,7 @@ ge_tts_package('ge_tts/DropZone', function()
             ---@param colorName string @Color of the TTS player that dropped the TTS object.
             ---@param object userdata @tts__Object - The object that was picked up.
             function self.onPickUp(colorName, object)
-                local index = table.find(occupyingObjects, object)
+                local index = TableUtils.find(occupyingObjects, object)
 
                 if index then
                     table.remove(occupyingObjects, index)
