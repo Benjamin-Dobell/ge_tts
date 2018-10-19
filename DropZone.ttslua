@@ -166,6 +166,13 @@ ge_tts_package('ge_tts/DropZone', function()
                 end
             end
 
+            --- Used programatically when object should be made an occupant, but it wasn't dropped by a player.
+            ---@param object userdata @tts__Object - The object that was dropped.
+            function self.insertOccupyingObject(object)
+                object.scale(occupantScale / object.getScale()[1])
+                table.insert(occupyingObjects, object)
+            end
+
             function self.save()
                 return {
                     __savedState = true,
@@ -194,6 +201,48 @@ ge_tts_package('ge_tts/DropZone', function()
     function DropZone.isSavedState(value)
         return type(value) == 'table' and value.__savedState
     end
+
+    EventManager.addHandler('onObjectEnterContainer', function(container, object)
+        local objectZones = objectDropZonesMap[object]
+
+        if objectZones then
+            for _, dropZone in ipairs(objectZones) do
+                if TableUtils.find(dropZone.getOccupyingObjects(), object) and not TableUtils.find(dropZone.getOccupyingObjects(), container) then
+                    Logger.log(
+                            object.tag .. ' (' .. tostring(object.getGUID()) .. '), occupying Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
+                                    .. ')' .. ' entered ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ') which will now be marked as occupying.',
+                            Logger.DEBUG
+                    )
+
+                    dropZone.insertOccupyingObject(container)
+                    break
+                end
+            end
+        end
+    end)
+
+    EventManager.addHandler('onObjectLeaveContainer', function(container, object)
+        local objectPosition = object.getPosition()
+        local containerPosition = container.getPosition()
+
+        if #container.getObjects() == 0 and objectPosition[2] <= containerPosition[2] and objectPosition[1] == containerPosition[1] and objectPosition[3] == containerPosition[3] then
+            local objectZones = objectDropZonesMap[container]
+
+            if objectZones then
+                for _, dropZone in ipairs(objectZones) do
+                    if TableUtils.find(dropZone.getOccupyingObjects(), container) and not TableUtils.find(dropZone.getOccupyingObjects(), object) then
+                        Logger.log(
+                                object.tag .. ' (' .. tostring(object.getGUID()) .. ') is now occupying Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
+                                        .. ')' .. ' as it was the bottom ' .. object.tag .. ' in now empty ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ').',
+                                Logger.DEBUG
+                        )
+                        dropZone.insertOccupyingObject(object)
+                        break
+                    end
+                end
+            end
+        end
+    end)
 
     EventManager.addHandler('onObjectEnterScriptingZone', function(scriptingZone, object)
         local dropZone = scriptingZoneDropZoneMap[scriptingZone]
@@ -264,11 +313,6 @@ ge_tts_package('ge_tts/DropZone', function()
 
         if objectZones then
             for _, dropZone in ipairs(objectZones) do
-                Logger.log(
-                        object.tag .. ' (' .. tostring(object.getGUID()) .. ') picked up within Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
-                                .. ')',
-                        Logger.DEBUG
-                )
                 if TableUtils.find(dropZone.getOccupyingObjects(), object) then
                     Logger.log(
                             object.tag .. ' (' .. tostring(object.getGUID()) .. ') picked up from Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
