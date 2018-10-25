@@ -230,6 +230,11 @@ ge_tts_package('ge_tts/DropZone', function()
 
             function self.destruct()
                 scriptingZoneDropZoneMap[scriptingZone] = nil
+
+                for object, _ in ipairs(objectDropZonesMap) do
+                    removeObjectDropZone(object, self)
+                end
+
                 scriptingZone.destruct()
             end
 
