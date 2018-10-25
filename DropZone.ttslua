@@ -78,7 +78,7 @@ ge_tts_package('ge_tts/DropZone', function()
         ---@param positionOrData number[]|table @2D position, or saved data table
         ---@param size number[] @2D size
         ---@param rotation number @rotation around Y-axis, in degrees
-        ---@param occupantScale number @occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved
+        ---@param occupantScale number|nil @Optional - occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.
         __call = function(_, positionOrData, size, rotation, occupantScale)
             ---@type ge_tts__DropZone
             local self = {}
@@ -130,7 +130,7 @@ ge_tts_package('ge_tts/DropZone', function()
                 return rotation
             end
 
-            ---@return number @occupant's desired X-axis scale
+            ---@return number|nil @occupant's desired X-axis scale
             function self.getOccupantScale()
                 return occupantScale
             end
@@ -177,7 +177,9 @@ ge_tts_package('ge_tts/DropZone', function()
                 object.setPositionSmooth({position[1], object.getPosition()[2], position[2]})
                 object.setRotationSmooth({0, rotation, facingRotation})
 
-                object.scale(occupantScale / object.getScale()[1])
+                if occupantScale then
+                    object.scale(occupantScale / object.getScale()[1])
+                end
 
                 if not TableUtils.find(droppedObjects, object) then
                     table.insert(droppedObjects, object)
@@ -198,7 +200,9 @@ ge_tts_package('ge_tts/DropZone', function()
             --- Used programatically when object should be made an occupant, but it wasn't dropped by a player.
             ---@param object userdata @tts__Object - The object that was dropped.
             function self.insertDroppedObject(object)
-                object.scale(occupantScale / object.getScale()[1])
+                if occupantScale then
+                    object.scale(occupantScale / object.getScale()[1])
+                end
 
                 if not TableUtils.find(droppedObjects, object) then
                     table.insert(droppedObjects, object)
