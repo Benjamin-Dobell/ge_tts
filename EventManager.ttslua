@@ -47,7 +47,7 @@ ge_tts_package('ge_tts/EventManager', function()
     end
 
     ---@param event string @Event name
-    ---@param handler fun(...) @A previously registered handler that you which to remove.
+    ---@param handler fun(...) @A previously registered handler that you wish to remove.
     function EventManager.removeHandler(event, handler)
         local handlers = eventHandlers[event]
         local handlerIndex = handlers and TableUtils.find(handlers, handler)

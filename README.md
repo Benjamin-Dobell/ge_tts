@@ -12,7 +12,7 @@ Tabletop Simulator does not support traditional Lua modules/packages. All Lua co
 
 Luckily there's an official [Atom plugin](https://github.com/Berserk-Games/atom-tabletopsimulator-lua) that supports an additional `#include` "keyword". However, it's not a traditional `#include`/`require` that developers may be used to. It just does direct text replacement, substituting out the `#include <path>` with the contents of the file found at `<path>`.
 
-In the simple case, direct text replacement works well enough. However, as your project grows you'll likely run into name collisions, or rather lack of namespaces. This is because we're simply doing direct text replacement, all the code even `local function` will end up in the one file and variables and function names may start to collide with each other. This particularly problematic when using third-party libraries.
+In the simple case, direct text replacement works well enough. However, as your project grows you'll likely run into name collisions, or rather lack of namespaces. This is because we're simply doing direct text replacement, all the code even `local function` will end up in the one file and variables and function names may start to collide with each other. This is particularly problematic when using third-party libraries.
 
 ge_tts offers a solution for this problem in the form of `ge_tts_package` and `ge_tts_require`.
 

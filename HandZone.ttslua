@@ -58,6 +58,8 @@ ge_tts_package('ge_tts/HandZone', function()
         return transforms
     end
 
+    ---@param handZone ge_tts__HandZone
+    ---@return number|nil @integer|nil
     function getHandIndex(handZone)
         local zonePosition = handZone.getScriptingZone().getPosition()
 
@@ -71,6 +73,9 @@ ge_tts_package('ge_tts/HandZone', function()
         return distance_2 < 0.0001 and handIndex or nil
     end
 
+    ---@param player userdata @tts__Player
+    ---@param handIndex number @integer
+    ---@return number[] @3D vector
     function getDealOrigin(player, handIndex)
         local handObjects = player.getHandObjects(handIndex)
 
@@ -83,6 +88,9 @@ ge_tts_package('ge_tts/HandZone', function()
         end
     end
 
+    ---@param player userdata @tts__Player
+    ---@param handIndex number @integer
+    ---@return number[] @3D vector
     function getDealOffset(player, handIndex)
         local right = player.getHandTransform(handIndex).right
         return {0.5 * right[1], 0.5, 0.5 * right[3]}
@@ -168,7 +176,7 @@ ge_tts_package('ge_tts/HandZone', function()
             --- Can be called to dynamically drop (deal) a TTS object into this HandZone. Only works for containers or objects with `use_hands` enabled.
             ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
             ---@param object userdata @tts__Object - The object that will be dropped.
-            function self.drop(colorName, object, count)
+            function self.drop(colorName, object)
                 local isContainer = TableUtils.find(CONTAINER_TYPES, object.tag)
 
                 if not isContainer and not object.use_hands then

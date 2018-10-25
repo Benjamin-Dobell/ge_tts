@@ -1,5 +1,5 @@
 -- Base64 implementation originally based on https://github.com/iskolbin/lbase64 (public domain),
--- but modified for simplicity, TTS and to take/return tables rather than strings.
+-- but modified for simplicity, TTS and to work with number[] buffers, rather than strings.
 
 ge_tts_package('ge_tts/Base64', function()
     ---@type ge_tts__TableUtils
