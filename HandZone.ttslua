@@ -47,33 +47,6 @@ ge_tts_package('ge_tts/HandZone', function()
     end
 
     ---@param player userdata @tts__Player
-    ---@return table[]
-    function getPlayerHandTransforms(player)
-        local transforms = {}
-
-        for handIndex = 1, player.GetHandCount() do
-            table.insert(transforms, player.getHandTransform(handIndex))
-        end
-
-        return transforms
-    end
-
-    ---@param handZone ge_tts__HandZone
-    ---@return number|nil @integer|nil
-    function getHandIndex(handZone)
-        local zonePosition = handZone.getScriptingZone().getPosition()
-
-        local distance_2, handIndex = table.unpack(TableUtils.reduce(getPlayerHandTransforms(handZone.getOwner()), { math.huge, nil}, function(pair, transform, index)
-            local handPosition = transform.position
-            local delta = TableUtils.map(handPosition, function(v, i) return v - zonePosition[i] end)
-            local dist_2 = delta[1] * delta[1] + delta[2] * delta[2]
-            return dist_2 < pair[1] and {dist_2, index} or pair
-        end))
-
-        return distance_2 < 0.0001 and handIndex or nil
-    end
-
-    ---@param player userdata @tts__Player
     ---@param handIndex number @integer
     ---@return number[] @3D vector
     function getDealOrigin(player, handIndex)
@@ -101,7 +74,8 @@ ge_tts_package('ge_tts/HandZone', function()
 
     setmetatable(HandZone, {
         ---@param ownerOrData userdata|table @tts__Player|table - TTS player, or saved state table
-        __call = function(_, ownerOrData)
+        ---@param handIndex number @TTS player hand index, defaults to 1.
+        __call = function(_, ownerOrData, handIndex)
             ---@type ge_tts__HandZone
             local self = {}
 
@@ -121,13 +95,15 @@ ge_tts_package('ge_tts/HandZone', function()
                 local data = ownerOrData
 
                 owner = Player[data.ownerColor]
+                handIndex = data.handIndex
                 scriptingZone = getObjectFromGUID(data.guid)
 
                 scriptingZoneHandZoneMap[scriptingZone] = self
             else
                 owner = ownerOrData
+                handIndex = handIndex or 1
 
-                local handTransform = owner.getHandTransform()
+                local handTransform = owner.getHandTransform(handIndex)
 
                 scriptingZone = spawn(handTransform.position, handTransform.rotation, handTransform.scale, function()
                     scriptingZoneHandZoneMap[scriptingZone] = self
@@ -139,6 +115,11 @@ ge_tts_package('ge_tts/HandZone', function()
                 return owner
             end
 
+            ---@return number
+            function self.getHandIndex()
+                return handIndex
+            end
+
             ---@return userdata @tts__ScriptingZone
             function self.getScriptingZone()
                 return scriptingZone
@@ -147,8 +128,6 @@ ge_tts_package('ge_tts/HandZone', function()
             --- Called when a TTS object enters this HandZone.
             ---@param object userdata @tts__Object
             function self.onEnter(object)
-                local handIndex = getHandIndex(self)
-
                 -- TODO: Track dropped objects and if already dropped don't run the following.
                 if TableUtils.find(owner.getHandObjects(handIndex), object) then
                     self.onDrop(owner.color, object)
@@ -184,36 +163,30 @@ ge_tts_package('ge_tts/HandZone', function()
                     return
                 end
 
-                local handIndex = getHandIndex(self)
+                if isContainer then
+                    -- The deal API doesn't do what we want, so we need to do our best to mimic it with takeObject
+                    local zoneRotation = scriptingZone.getRotation()
 
-                if handIndex then
-                    if isContainer then
-                        -- The deal API doesn't do what we want, so we need to do our best to mimic it with takeObject
-                        local zoneRotation = scriptingZone.getRotation()
+                    local position = getDealOrigin(owner, handIndex)
+                    local offset = getDealOffset(owner, handIndex)
+                    local rotation = {zoneRotation[1], zoneRotation[2] + 180, zoneRotation[3]}
 
-                        local position = getDealOrigin(owner, handIndex)
-                        local offset = getDealOffset(owner, handIndex)
-                        local rotation = {zoneRotation[1], zoneRotation[2] + 180, zoneRotation[3]}
+                    for i = object.GetQuantity(), 1, -1 do
+                        position = TableUtils.map(position, function(v, i) return v + offset[i] end)
 
-                        for i = object.GetQuantity(), 1, -1 do
-                            position = TableUtils.map(position, function(v, i) return v + offset[i] end)
-
-                            object.takeObject({
-                                index = index,
-                                position = position,
-                                rotation = rotation,
-                                smooth = true,
-                                callback_function = function(takenObject)
-                                    self.onDrop(colorName, takenObject, true)
-                                end,
-                            })
-                        end
-                    else
-                        object.deal(1, owner.color, handIndex)
-                        self.onDrop(colorName, object, true)
+                        object.takeObject({
+                            index = index,
+                            position = position,
+                            rotation = rotation,
+                            smooth = true,
+                            callback_function = function(takenObject)
+                                self.onDrop(colorName, takenObject, true)
+                            end,
+                        })
                     end
                 else
-                    Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') could not be dealt to Hand Zone (' .. tostring(scriptingZone.getGUID()) .. ') as the corresponding TTS hand index could not be determined', Logger.ERROR)
+                    object.deal(1, owner.color, handIndex)
+                    self.onDrop(colorName, object, true)
                 end
             end
 
@@ -221,6 +194,7 @@ ge_tts_package('ge_tts/HandZone', function()
                 return {
                     __savedState = true,
                     ownerColor = owner.color,
+                    handIndex = handIndex,
                     guid = scriptingZone.getGUID(),
                 }
             end
