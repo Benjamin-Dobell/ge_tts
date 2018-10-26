@@ -238,6 +238,18 @@ Part of **core**.
 
 Several convenience methods to be used in conjunction with tables.
 
+### Vector2
+
+Part of **core**.
+
+2D vector implementation.
+
+### Vector3
+
+Part of **core**.
+
+3D vector implementation.
+
 ## Other files
 
 ### ge_tts

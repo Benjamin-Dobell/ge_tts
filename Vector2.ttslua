@@ -1,0 +1,196 @@
+ge_tts_package('ge_tts/Vector2', function()
+    --- A 2D vector with x, y and z fields.
+    ---@class ge_tts__CharVec2
+    ---@field x number
+    ---@field y number
+
+    -- NOTE: EmmyLua doesn't seem to understand non-string field indexes. However, defining a type/class is still useful for documentation purposes.
+    --- A 2D vector with [1], [2] and [3] indexed fields.
+    ---@class ge_tts__NumVec2
+    ---@field 1 number
+    ---@field 2 number
+
+    ---@class ge_tts__Vector2 :  ge_ge_tts__CharVec2 @, ge_tts__NumVec2 - EmmyLua does not support multiple inheritance-like semantics
+    local Vector2 = {}
+
+    ---@param vector ge_tts__Vector2
+    ---@param index any
+    local function numberedIndex(vector, index)
+        if type(index) == 'number' then
+            if index == 1 then
+                return vector.x
+            elseif index == 2 then
+                return vector.y
+            end
+
+            return nil
+        end
+    end
+
+    setmetatable(Vector2, {
+        ---@param sourceXOrVector ge_tts__CharVec2|ge_tts__NumVec2|number|nil
+        ---@param sourceY number|nil
+        __call = function(_, sourceXOrVector, sourceY)
+            local self = {x = 0, y = 0}
+
+            setmetatable(self, {
+                __index = numberedIndex,
+                __tostring = function(_)
+                    return self.toString()
+                end,
+            })
+
+            if sourceXOrVector then
+                if type(sourceXOrVector) == 'table' then
+                    self.x = sourceXOrVector.x or sourceXOrVector[1] or self.x
+                    self.y = sourceXOrVector.y or sourceXOrVector[2] or self.y
+                else
+                    self.x = sourceXOrVector
+                    self.y = sourceY
+                end
+            end
+
+            function self.toString()
+                return '{x = ' .. self.x .. ', y = ' .. self.y .. '}'
+            end
+
+            ---@return number
+            function self.lengthSquared()
+                return Vector2.lengthSquared(self)
+            end
+
+            ---@return number
+            function self.length()
+                return Vector2.length(self)
+            end
+
+            ---Add a vector to self.
+            ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+            ---@return ge_tts__Vector2 @self
+            function self.add(v)
+                self.x = self.x + (v.x or v[1])
+                self.y = self.y + (v.y or v[2])
+                return self
+            end
+
+            ---Subtract a vector from self.
+            ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+            ---@return ge_tts__Vector2 @self
+            function self.sub(v)
+                self.x = self.x - (v.x or v[1])
+                self.y = self.y - (v.y or v[2])
+                return self
+            end
+
+            ---@param factor number
+            ---@return ge_tts__Vector2 @self
+            function self.scale(factor)
+                self.x = self.x * factor
+                self.y = self.y * factor
+                return self
+            end
+
+            ---@return ge_tts__Vector2 @self
+            function self.normalize()
+                return self.scale(1 / self.length())
+            end
+
+            return self
+        end,
+    })
+
+    ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return number
+    function Vector2.lengthSquared(v)
+        local x = v.x or v[1]
+        local y = v.y or v[2]
+        return x * x + y * y
+    end
+
+    ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return number
+    function Vector2.length(v)
+        return math.sqrt(Vector2.lengthSquared(v))
+    end
+
+    ---@param v1 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return ge_tts__Vector2
+    function Vector2.add(v1, v2)
+        return Vector2(v1).add(v2)
+    end
+
+    ---@param v1 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return ge_tts__Vector2
+    function Vector2.sub(v1, v2)
+        return Vector2(v1).sub(v2)
+    end
+
+    ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+    ---@param factor number
+    ---@return ge_tts__Vector2
+    function Vector2.scale(v, factor)
+        return Vector2(v).scale(factor)
+    end
+
+    ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return ge_tts__Vector2
+    function Vector2.normalize(v)
+        return Vector2(v).normalize()
+    end
+
+    ---@param v1 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return number
+    function Vector2.cross(v1, v2)
+        local x1 = v1.x or v1[1]
+        local y1 = v1.y or v1[2]
+
+        local x2 = v2.x or v2[1]
+        local y2 = v2.y or v2[2]
+
+        return x1 * y2 - y1 * x2
+    end
+
+    ---@param v1 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return number
+    function Vector2.dot(v1, v2)
+        local x1 = v1.x or v1[1]
+        local y1 = v1.y or v1[2]
+
+        local x2 = v2.x or v2[1]
+        local y2 = v2.y or v2[2]
+
+        return x1 * x2 + y1 * y2
+    end
+
+    ---@param v1 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return number
+    function Vector2.distanceSquared(v1, v2)
+        local x1 = v1.x or v1[1]
+        local y1 = v1.y or v1[2]
+
+        local x2 = v2.x or v2[1]
+        local y2 = v2.y or v2[2]
+
+        return Vector2.lengthSquared({x = x2 - x1, y = y2 - y1})
+    end
+
+    ---@param v1 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+    ---@return number
+    function Vector2.distance(v1, v2)
+        return math.sqrt(Vector2.distanceSquared(v1, v2))
+    end
+
+    ---@param v3 ge_tts__Vec3
+    ---@return number
+    function Vector2.fromXZ(v3)
+        return Vector2(v3.x or v3[1], v3.z or v3[3])
+    end
+
+    return Vector2
+end)
