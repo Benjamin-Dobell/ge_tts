@@ -234,7 +234,11 @@ A `DropZone` that is associated with a particular TTS player, specifically insta
 
 Dependencies: `Logger`
 
-A `Logger` that rather printing to TTS' console, will `POST` web requests to a URL that you provide when instantiating the `RemoteLogger`.
+A `Logger` that rather printing to TTS' console, will HTTP `PUT` a JSON object with `messages` (array of strings) to a URL that you provide when instantiating the `RemoteLogger`.
+
+Using HTTP `PUT` instead of `POST` is pretty severe abuse of HTTP semantics, however we don't have a choice as TTS' HTTP functionality is severely lacking and cannot `POST` JSON.
+
+**WARNING**: The `Content-Type` of the request is `octet-stream` instead of the correct type `application/json`. As mentioned, TTS' HTTP client is extremely poor and does not allow us to set headers.
 
 We don't presently provide a corresponding server, but it's pretty trivial to create your own in Python, Ruby, Node.js etc.
 
