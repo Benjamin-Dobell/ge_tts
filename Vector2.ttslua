@@ -50,8 +50,14 @@ ge_tts_package('ge_tts/Vector2', function()
                 end
             end
 
+            ---@return string
             function self.toString()
                 return '{x = ' .. self.x .. ', y = ' .. self.y .. '}'
+            end
+
+            ---@return ge_tts__NumVec2
+            function self.toData()
+                return {x = self.x, y = self.y}
             end
 
             ---@return number
