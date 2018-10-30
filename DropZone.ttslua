@@ -2,132 +2,30 @@ ge_tts_package('ge_tts/DropZone', function()
     ---@type ge_tts__TableUtils
     local TableUtils = ge_tts_require('ge_tts/TableUtils')
 
-    ---@type ge_tts__EventManager
-    local EventManager = ge_tts_require('ge_tts/EventManager')
+    ---@type ge_tts__Vector3
+    local Vector3 = ge_tts_require('ge_tts/Vector3')
 
-    ---@type ge_tts__Logger
-    local Logger = ge_tts_require('ge_tts/Logger')
+    ---@type ge_tts__Zone
+    local Zone = ge_tts_require('ge_tts/Zone')
 
-    local DROP_ZONE_Y = 0.96
+    local MAX_DROP_VELOCITY_SQUARED = 5 * 5 -- 5 in/sec
 
-    local MAX_DROP_VELOCITY_2 = 5 * 5 -- 5 in/sec
-
-    ---@type table<userdata, userdata> @table<tts__ScriptingZone, ge_tts__DropZone>
-    local scriptingZoneDropZoneMap = {}
-
-    ---@type table<userdata, userdata[]> @table<tts__Object, ge_tts__DropZone[]>
-    local objectDropZonesMap = {}
-
-    local function addObjectDropZone(object, dropZone)
-        local objectZones = objectDropZonesMap[object]
-
-        if objectZones then
-            table.insert(objectZones, dropZone)
-        else
-            objectDropZonesMap[object] = { dropZone }
-        end
-    end
-
-    local function removeObjectDropZone(object, dropZone)
-        local objectZones = objectDropZonesMap[object]
-
-        if objectZones then
-            local dropZoneIndex = TableUtils.find(objectZones, dropZone)
-
-            if dropZoneIndex then
-                table.remove(objectZones, dropZoneIndex)
-
-                if #objectZones == 0 then
-                    objectDropZonesMap[object] = nil
-                end
-            end
-        end
-    end
-
-    ---@param position number[] @2D X,Z position
-    ---@param size number[] @2D X,Z size
-    ---@param rotation number @rotation around Y-axis in degrees
-    ---@param callback fun(object:userdata) @function(object:tts__ScriptingZone) - TTS object spawned callback
-    local function spawn(position, size, rotation, callback)
-        local json = {
-            Name = "ScriptingTrigger",
-            Transform = {
-                posX = position[1],
-                posY = 2.5 + DROP_ZONE_Y,
-                posZ = position[2],
-                rotX = 0.0,
-                rotY = rotation,
-                rotZ = 0.0,
-                scaleX = size[1],
-                scaleY = 5,
-                scaleZ = size[2]
-            },
-            Locked = true,
-            GUID = "000000"
-        }
-        return spawnObjectJSON({
-            callback_function=callback,
-            json=JSON.encode(json)
-        })
-    end
-
-    ---@class ge_tts__DropZone
+    ---@class ge_tts__DropZone : ge_tts__Zone
     local DropZone = {}
 
-    setmetatable(DropZone, {
-        ---@param positionOrData number[]|table @2D position, or saved data table
-        ---@param size number[] @2D size
-        ---@param rotation number @rotation around Y-axis, in degrees
+    setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
+        ---@param zonePositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
+        ---@param zoneRotation ge_tts__CharVec3|ge_tts__NumVec3
+        ---@param zoneScale ge_tts__CharVec3|ge_tts__NumVec3
         ---@param occupantScale number|nil @Optional - occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.
-        __call = function(_, positionOrData, size, rotation, occupantScale)
+        __call = function(_, zonePositionOrData, zoneRotation, zoneScale, occupantScale)
             ---@type ge_tts__DropZone
-            local self = {}
+            local self = Zone(zonePositionOrData, zoneRotation, zoneScale)
 
-            setmetatable(self, {
-                __tostring = function(_)
-                    return self.toString()
-                end
-            })
+            if DropZone.isSavedState(zonePositionOrData) then
+                local data = zonePositionOrData
 
-            local position
-
-            local scriptingZone
-            local droppedObjects
-
-            if DropZone.isSavedState(positionOrData) then
-                local data = positionOrData
-
-                position = data.position
-                size = data.size
-                rotation = data.rotation
                 occupantScale = data.occupantScale
-                scriptingZone = getObjectFromGUID(data.guid)
-                droppedObjects = TableUtils.map(data.droppedObjectGuids, function(guid) return getObjectFromGUID(guid) end)
-
-                scriptingZoneDropZoneMap[scriptingZone] = self
-            else
-                position = positionOrData
-
-                spawn(position, size, rotation, function(spawnedScriptingZone)
-                    scriptingZone = spawnedScriptingZone
-                    scriptingZoneDropZoneMap[scriptingZone] = self
-                end)
-                droppedObjects = {}
-            end
-
-            ---@return number[] @2D X,Z position
-            function self.getPosition()
-                return position
-            end
-
-            ---@return number[] @2D X,Z size
-            function self.getSize()
-                return size
-            end
-
-            ---@return number @rotation around Y-axis, in degrees
-            function self.getRotation()
-                return rotation
             end
 
             ---@return number|nil @occupant's desired X-axis scale
@@ -135,247 +33,65 @@ ge_tts_package('ge_tts/DropZone', function()
                 return occupantScale
             end
 
-            ---@return userdata @tts__ScriptingZone - associated TTS scripting zone
-            function self.getScriptingZone()
-                return scriptingZone
-            end
-
-            ---@return userdata[] @tts__Object[] - TTS objects that have been dropped in the zone
-            function self.getDroppedObjects()
-                return droppedObjects
-            end
-
-            --- Called when a TTS object enters this DropZone.
-            ---@param object userdata @tts__Object
-            function self.onEnter(object)
-            end
-
-            --- Called when a TTS object leaves this DropZone.
-            ---@param object userdata @tts__Object
-            function self.onLeave(object)
-                local index = TableUtils.find(droppedObjects, object)
-
-                if index then
-                    table.remove(droppedObjects, index)
-                end
-            end
+            local superOnDrop = self.onDrop
 
             --- Called when a TTS object is dropped within this DropZone.
             ---@param colorName string @Color of the TTS player that dropped the TTS object.
             ---@param object userdata @tts__Object - The object that was dropped.
             ---@param dynamicallyDropped boolean - true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
             function self.onDrop(colorName, object, dynamicallyDropped)
-                local objectRotation = object.getRotation()
-                local facingRotation = 0
+                if dynamicallyDropped or Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
+                    superOnDrop(colorName, object, false)
 
-                if objectRotation[3] > 90 then
-                    facingRotation = 180
-                elseif objectRotation[3] < -90 then
-                    facingRotation = -180
-                end
+                    local objectRotation = object.getRotation()
+                    local facingRotation = 0
 
-                object.setPositionSmooth({position[1], object.getPosition()[2], position[2]})
-                object.setRotationSmooth({0, rotation, facingRotation})
+                    if objectRotation[3] > 90 then
+                        facingRotation = 180
+                    elseif objectRotation[3] < -90 then
+                        facingRotation = -180
+                    end
 
-                if occupantScale then
-                    object.scale(occupantScale / object.getScale()[1])
-                end
+                    local position = self.getPosition()
+                    local rotation = self.getRotation()
 
-                if not TableUtils.find(droppedObjects, object) then
-                    table.insert(droppedObjects, object)
-                end
-            end
+                    object.setPositionSmooth({ position[1], object.getPosition()[2], position[3] })
+                    object.setRotationSmooth({ 0, rotation.y, facingRotation })
 
-            --- Called when a TTS object is picked up from this DropZone.
-            ---@param colorName string @Color of the TTS player that dropped the TTS object.
-            ---@param object userdata @tts__Object - The object that was picked up.
-            function self.onPickUp(colorName, object)
-                local index = TableUtils.find(droppedObjects, object)
-
-                if index then
-                    table.remove(droppedObjects, index)
+                    if occupantScale then
+                        object.scale(occupantScale / object.getScale()[1])
+                    end
                 end
             end
 
-            --- Used programatically when `object` should be made a direct occupant (considred dropped), but it wasn't dropped by a player.
+            local superInsertOccupyingObject = self.insertOccupyingObject
+
+            --- Used programmatically when `object` should be made a direct occupant, but not dropped by a player.
             ---@param object userdata @tts__Object - The object that was dropped.
-            function self.insertDroppedObject(object)
+            function self.insertOccupyingObject(object)
                 if occupantScale then
                     object.scale(occupantScale / object.getScale()[1])
                 end
 
-                if not TableUtils.find(droppedObjects, object) then
-                    table.insert(droppedObjects, object)
-                end
+                superInsertOccupyingObject(object)
             end
 
-            --- Can be called to dynamically drop a TTS object in this DropZone.
-            ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
-            ---@param object userdata @tts__Object - The object that will be dropped.
-            function self.drop(colorName, object)
-                self.onDrop(colorName, object, true)
-            end
+            local superSave = self.save
 
             function self.save()
-                return {
-                    __savedState = true,
-                    guid = scriptingZone.getGUID(),
-                    position = position,
-                    size = size,
-                    rotation = rotation,
+                return TableUtils.merge(superSave(), {
                     occupantScale = occupantScale,
-                    droppedObjectGuids = TableUtils.map(droppedObjects, function(object) return object.getGUID() end)
-                }
-            end
-
-            function self.destruct()
-                scriptingZoneDropZoneMap[scriptingZone] = nil
-
-                for object, _ in ipairs(objectDropZonesMap) do
-                    removeObjectDropZone(object, self)
-                end
-
-                scriptingZone.destruct()
+                })
             end
 
             function self.toString()
-                return 'DropZone (' .. tostring(scriptingZone.getGUID()) .. ')'
+                return 'DropZone (' .. tostring(self.getScriptingZone().getGUID()) .. ')'
             end
 
             return self
         end,
-    })
-
-    function DropZone.isSavedState(value)
-        return type(value) == 'table' and value.__savedState
-    end
-
-    ---Returns a list of DropZones that `object` is inside.
-    ---Returned DropZones are zones that the `object` is presently inside of, and *not* strictly zones in which `object` has been dropped, it may still be in
-    ---the players hand, or simply passing through these zones as a result of `object` movement.
-    ---@param object userdata @tts__Object
-    ---@return prototype_inertia__DropZone[]
-    function DropZone.getObjectDropZones(object)
-        return objectDropZonesMap[object] or {}
-    end
-
-    EventManager.addHandler('onObjectEnterContainer', function(container, object)
-        for _, dropZone in ipairs(DropZone.getObjectDropZones(object)) do
-            if TableUtils.find(dropZone.getDroppedObjects(), object) and not TableUtils.find(dropZone.getDroppedObjects(), container) then
-                Logger.log(
-                        object.tag .. ' (' .. tostring(object.getGUID()) .. '), previously dropped in Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
-                                .. '),' .. ' entered ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ') which will now be marked as dropped in the same zone.',
-                        Logger.DEBUG
-                )
-
-                dropZone.insertDroppedObject(container)
-                break
-            end
-        end
-    end)
-
-    EventManager.addHandler('onObjectLeaveContainer', function(container, object)
-        local objectPosition = object.getPosition()
-        local containerPosition = container.getPosition()
-
-        if #container.getObjects() == 0 and objectPosition[2] <= containerPosition[2] and objectPosition[1] == containerPosition[1] and objectPosition[3] == containerPosition[3] then
-            for _, dropZone in ipairs(DropZone.getObjectDropZones(object)) do
-                if TableUtils.find(dropZone.getDroppedObjects(), container) and not TableUtils.find(dropZone.getDroppedObjects(), object) then
-                    Logger.log(
-                            object.tag .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
-                                    .. ')' .. ' as it was the bottom ' .. object.tag .. ' in now empty ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ').',
-                            Logger.DEBUG
-                    )
-                    dropZone.insertDroppedObject(object)
-                    break
-                end
-            end
-        end
-    end)
-
-    EventManager.addHandler('onObjectEnterScriptingZone', function(scriptingZone, object)
-        local dropZone = scriptingZoneDropZoneMap[scriptingZone]
-
-        if dropZone then
-            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered Drop Zone (' .. tostring(scriptingZone.getGUID()) .. ')', Logger.DEBUG)
-            addObjectDropZone(object, dropZone)
-            dropZone.onEnter(object)
-        end
-    end)
-
-    EventManager.addHandler('onObjectLeaveScriptingZone', function(scriptingZone, object)
-        local dropZone = scriptingZoneDropZoneMap[scriptingZone]
-
-        if dropZone then
-            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') left Drop Zone (' .. tostring(scriptingZone.getGUID()) .. ')', Logger.DEBUG)
-            removeObjectDropZone(object, dropZone)
-            dropZone.onLeave(object)
-        end
-    end)
-
-    EventManager.addHandler('onObjectDrop', function(colorName, object)
-        local velocity = object.getVelocity()
-        local velocity_2 = velocity[1] * velocity[1] + velocity[2] * velocity[2] + velocity[3] * velocity[3]
-
-        if velocity_2 < MAX_DROP_VELOCITY_2 then
-            local objectZones = objectDropZonesMap[object]
-
-            if objectZones then
-                local objectPosition = object.getPosition()
-
-                local nearestDropZone = TableUtils.reduce(objectZones, {math.huge, nil}, function(pair, dropZone)
-                    local zonePosition = dropZone.getPosition()
-                    local delta = {zonePosition[1] - objectPosition[1], zonePosition[2] - objectPosition[3]}
-                    local dist_2 = delta[1] * delta[1] + delta[2] * delta[2]
-                    return dist_2 < pair[1] and {dist_2, dropZone} or pair
-                end)[2]
-
-                Logger.log(
-                    object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in Drop Zone (' .. tostring(nearestDropZone.getScriptingZone().getGUID())
-                            .. ')',
-                    Logger.DEBUG
-                )
-
-                nearestDropZone.onDrop(colorName, object, false)
-            end
-        end
-    end)
-
-    EventManager.addHandler('onObjectPickUp', function(colorName, object)
-        local objectZones = objectDropZonesMap[object]
-
-        if objectZones then
-            for _, dropZone in ipairs(objectZones) do
-                if TableUtils.find(dropZone.getDroppedObjects(), object) then
-                    Logger.log(
-                            object.tag .. ' (' .. tostring(object.getGUID()) .. ') picked up from Drop Zone (' .. tostring(dropZone.getScriptingZone().getGUID())
-                                    .. ')',
-                            Logger.DEBUG
-                    )
-
-                    dropZone.onPickUp(colorName, object)
-                    break
-                end
-            end
-        end
-    end)
-
-    EventManager.addHandler('onObjectDestroy', function(object)
-        local dropZones = objectDropZonesMap[object]
-
-        if dropZones then
-            for _, dropZone in ipairs(dropZones) do
-                Logger.log(
-                    object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from Drop Zone (' .. dropZone.getScriptingZone().getGUID()
-                            .. ') as it\'s being destroyed',
-                    Logger.DEBUG
-                )
-                dropZone.onLeave(object)
-            end
-
-            objectDropZonesMap[object] = nil
-        end
-    end)
+        __index = Zone,
+    }))
 
     return DropZone
 end)

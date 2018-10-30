@@ -9,17 +9,18 @@ ge_tts_package('ge_tts/PlayerDropZone', function()
     local PlayerDropZone = {}
 
     setmetatable(PlayerDropZone, TableUtils.merge(getmetatable(DropZone), {
-        ---@param positionOrData number[]|table @2D position, or saved data table
-        ---@param size number[] @2D size
-        ---@param rotation number @rotation around Y-axis, in degrees
-        ---@param occupantScale number|nil @Occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.
+        ---@param zonePositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
+        ---@param zoneRotation ge_tts__CharVec3|ge_tts__NumVec3
+        ---@param zoneScale ge_tts__CharVec3|ge_tts__NumVec3
+        ---@param occupantScale number|nil @Optional - occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.
         ---@param owner userdata @tts__Player - TTS player that owns this PlayerDropZone
-        __call = function(_, positionOrData, size, rotation, occupantScale, owner)
-            ---@type ge_tts__PlayerDropZone
-            local self = DropZone(positionOrData, size, rotation, occupantScale)
+        __call = function(_, zonePositionOrData, zoneRotation, zoneScale, occupantScale, owner)
+            ---@type ge_tts__DropZone
+            local self = DropZone(zonePositionOrData, zoneRotation, zoneScale, occupantScale)
 
-            if PlayerDropZone.isSavedState(positionOrData) then
-                local data = positionOrData
+            if PlayerDropZone.isSavedState(zonePositionOrData) then
+                local data = zonePositionOrData
+
                 owner = Player[data.ownerColor]
             end
 
@@ -30,9 +31,7 @@ ge_tts_package('ge_tts/PlayerDropZone', function()
             local superSave = self.save
 
             function self.save()
-                local data = superSave()
-
-                return TableUtils.merge({
+                return TableUtils.merge(superSave(), {
                     ownerColor = owner.color
                 })
             end

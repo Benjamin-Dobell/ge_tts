@@ -190,9 +190,15 @@ Then in your Global script you can then simply require `ContainerEventsFix`.
 
 ### DropZone
 
-Dependencies: **core**
+Dependencies: `Zone`
 
-It's common for card games to have dedicated regions on the table/board where cards should be placed. TTS snap points _can_ be utilized for this task, but `DropZone` is a more flexible and extensible solution.
+A `Zone` that acts as flexible, extensible and scriptable replacement TTS snap points. When an object is dropped in `DropZone` the object will be smoothly animated into the center of the zone (and rotated accordingly).
+
+`DropZone` also have an optional `occupantScale` which specifies how dropped objects should be scaled (along the X-axis) when they're dropped in the DropZone, aspect ratio is always preserved. Automatic scaling can be used to provide visual queues about important objects, or rather objects placed in important locations/zones.
+
+To extend `DropZone`'s functionality you can "sub-class" `DropZone` and override the `onEnter`, `onLeave`, `onDrop` and `onPickup` functions as desired.
+
+ `DropZone` is itself a sub-class of `Zone`, so for example of how you can extend a "class" please refer to `DropZone.ttslua` (or `HandZone.ttslua`).
 
 ### EventManager
 
@@ -204,11 +210,13 @@ TTS has several events which are called as global functions on a script. It's fa
 
 ### HandZone
 
-Dependencies: **core**
+Dependencies: `Zone`
 
-A base class that you can use for tracking when cards enter and leave a player's hand. To use this package you'd create your own package/"class" where you extend `HandZone` and override the `onEnter`, `onLeave` and `onDrop` functions. 
+A `Zone` that belongs to a player (owner) and corresponds with one of their hands (most games just have the one hand). When instantiated `HandZone` will automatically size itself to encompass the associated TTS hand zone so that you can programatically track cards that are in the players hand.
 
-Please refer to the source code of `PlayerDropZone` for example of how you can extend a "class".
+Typically, to make use this package you'd create your own package/"class" where you extend `HandZone` and override the `onEnter`, `onLeave`, `onDrop` and `onPickup` functions as desired.
+
+`HandZone` is itself a sub-class of `Zone`, so for example of how you can extend a "class" please refer to `HandZone.ttslua` (or `DropZone.ttslua`).
 
 ### Logger
 
@@ -249,6 +257,14 @@ Part of **core**.
 Part of **core**.
 
 3D vector implementation.
+
+### Zone
+
+Dependencies: **core**
+
+A wrapper around a TTS scripting zone (`ScriptingTrigger`) that tracks dropped and picked up objects. Objects that have been dropped in the `Zone` are deemed to be occupying and can be retrieved with `getOccupyingObjects()`.
+
+Typically, you'll want to use a `DropZone`, `PlayerDropZone` or `HandZone` rather than `Zone`. However, you may sub-class `Zone` if you wish.
 
 ## Other files
 

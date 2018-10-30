@@ -1,54 +1,21 @@
 ge_tts_package('ge_tts/HandZone', function()
-    ---@type ge_tts__EventManager
-    local EventManager = ge_tts_require('ge_tts/EventManager')
-
-    ---@type ge_tts__Logger
-    local Logger = ge_tts_require('ge_tts/Logger')
-
     ---@type ge_tts__TableUtils
     local TableUtils = ge_tts_require('ge_tts/TableUtils')
+
+    ---@type ge_tts__Vector3
+    local Vector3 = ge_tts_require('ge_tts/Vector3')
+
+    ---@type ge_tts__Zone
+    local Zone = ge_tts_require('ge_tts/Zone')
 
     local CONTAINER_TYPES = {
         'Deck',
         'Bag'
     }
 
-    ---@type table<userdata, ge_tts__HandZone> @table<tts__ScriptingZone, ge_tts__HandZone>
-    local scriptingZoneHandZoneMap = {}
-
-    ---@type table<userdata, ge_tts__HandZone> @table<tts__Object, ge_tts__HandZone>
-    local objectHandZonesMap = {}
-
-    ---@param position number[] @2D X,Z position
-    ---@param size number[] @2D X,Z size
-    ---@param rotation number @rotation around Y-axis in degrees
-    ---@param callback fun(object:userdata) @function(object:tts__ScriptingZone) - TTS object spawned callback
-    local function spawn(position, rotation, scale, callback)
-        local json = {
-            Name = "ScriptingTrigger",
-            Transform = {
-                posX = position[1],
-                posY = position[2],
-                posZ = position[3],
-                rotX = rotation[1],
-                rotY = rotation[2],
-                rotZ = rotation[3],
-                scaleX = scale[1],
-                scaleY = scale[2],
-                scaleZ = scale[3]
-            },
-            Locked = true,
-            GUID = "000000"
-        }
-        return spawnObjectJSON({
-            callback_function=callback,
-            json=JSON.encode(json)
-        })
-    end
-
     ---@param player userdata @tts__Player
     ---@param handIndex number @integer
-    ---@return number[] @3D vector
+    ---@return ge_tts__Vector3
     function getDealOrigin(player, handIndex)
         local handObjects = player.getHandObjects(handIndex)
 
@@ -57,57 +24,45 @@ ge_tts_package('ge_tts/HandZone', function()
             return lastObject.getPosition()
         else
             local position = player.getHandTransform(handIndex).position
-            return {position[1], position[2] + 2, position[3]}
+            return Vector3(position.x, position.y + 2, position.z)
         end
     end
 
     ---@param player userdata @tts__Player
     ---@param handIndex number @integer
-    ---@return number[] @3D vector
+    ---@return ge_tts__Vector3
     function getDealOffset(player, handIndex)
         local right = player.getHandTransform(handIndex).right
-        return {0.5 * right[1], 0.5, 0.5 * right[3]}
+        return Vector3(0.5 * right.x, 0.5, 0.5 * right.z)
     end
 
-    ---@class ge_tts__HandZone
+    ---@param owner userdata @tts__Player
+    ---@param handIndex number
+    ---@return table<string, any>
+    function zoneParameters(owner, handIndex)
+        local handTransform = owner.getHandTransform(handIndex)
+        return {handTransform.position, handTransform.rotation, handTransform.scale}
+    end
+
+    ---@class ge_tts__HandZone : ge_tts__Zone
     local HandZone = {}
 
-    setmetatable(HandZone, {
+    setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         ---@param ownerOrData userdata|table @tts__Player|table - TTS player, or saved state table
         ---@param handIndex number @TTS player hand index, defaults to 1.
         __call = function(_, ownerOrData, handIndex)
             ---@type ge_tts__HandZone
-            local self = {}
+            local self = HandZone.isSavedState(ownerOrData) and Zone(ownerOrData) or Zone(table.unpack(zoneParameters(ownerOrData, handIndex)))
 
-            setmetatable(self, {
-                __tostring = function(_)
-                    return self.toString()
-                end
-            })
-
-            ---@type userdata @tts__Player
             local owner
-
-            ---@type userdata @tts__ScriptingZone
-            local scriptingZone
 
             if HandZone.isSavedState(ownerOrData) then
                 local data = ownerOrData
 
                 owner = Player[data.ownerColor]
                 handIndex = data.handIndex
-                scriptingZone = getObjectFromGUID(data.guid)
-
-                scriptingZoneHandZoneMap[scriptingZone] = self
             else
                 owner = ownerOrData
-                handIndex = handIndex or 1
-
-                local handTransform = owner.getHandTransform(handIndex)
-
-                scriptingZone = spawn(handTransform.position, handTransform.rotation, handTransform.scale, function()
-                    scriptingZoneHandZoneMap[scriptingZone] = self
-                end)
             end
 
             ---@return userdata @tts__Player
@@ -120,37 +75,19 @@ ge_tts_package('ge_tts/HandZone', function()
                 return handIndex
             end
 
-            ---@return userdata @tts__ScriptingZone
-            function self.getScriptingZone()
-                return scriptingZone
-            end
+            local superOnEnter = self.onEnter
 
             --- Called when a TTS object enters this HandZone.
             ---@param object userdata @tts__Object
             function self.onEnter(object)
-                -- TODO: Track dropped objects and if already dropped don't run the following.
-                if TableUtils.find(owner.getHandObjects(handIndex), object) then
+                superOnEnter(object)
+
+                if not TableUtils.find(self.getOccupyingObjects(), object) and TableUtils.find(owner.getHandObjects(handIndex), object) then
                     self.onDrop(owner.color, object)
                 end
             end
 
-            --- Called when a TTS object leaves this HandZone.
-            ---@param object userdata @tts__Object
-            function self.onLeave(object)
-            end
-
-            --- Called when a TTS object is dropped within this HandZone.
-            ---@param colorName string @Color of the TTS player that dropped the TTS object.
-            ---@param object userdata @tts__Object - The object that was dropped.
-            ---@param dynamicallyDropped boolean - true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
-            function self.onDrop(colorName, object, dynamicallyDropped)
-            end
-
-            --- Called when a TTS object is picked up from this HandZone.
-            ---@param colorName string @Color of the TTS player that dropped the TTS object.
-            ---@param object userdata @tts__Object - The object that was picked up.
-            function self.onPickUp(colorName, object)
-            end
+            local superDrop = self.drop
 
             --- Can be called to dynamically drop (deal) a TTS object into this HandZone. Only works for containers or objects with `use_hands` enabled.
             ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
@@ -159,145 +96,52 @@ ge_tts_package('ge_tts/HandZone', function()
                 local isContainer = TableUtils.find(CONTAINER_TYPES, object.tag)
 
                 if not isContainer and not object.use_hands then
-                    Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') does not have hand usage enabled and was unable to be dropped in Hand Zone (' .. tostring(scriptingZone.getGUID()) .. ')', Logger.WARNING)
+                    Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') does not have hand usage enabled and was unable to be dropped in Hand Zone (' .. tostring(self.getScriptingZone().getGUID()) .. ')', Logger.WARNING)
                     return
                 end
 
                 if isContainer then
                     -- The deal API doesn't do what we want, so we need to do our best to mimic it with takeObject
-                    local zoneRotation = scriptingZone.getRotation()
+                    local zoneRotation = self.getScriptingZone().getRotation()
 
-                    local position = getDealOrigin(owner, handIndex)
+                    local origin = getDealOrigin(owner, handIndex)
                     local offset = getDealOffset(owner, handIndex)
-                    local rotation = {zoneRotation[1], zoneRotation[2] + 180, zoneRotation[3]}
+                    local rotation = Vector3(zoneRotation.x, zoneRotation.y + 180, zoneRotation.z)
 
                     for i = object.GetQuantity(), 1, -1 do
-                        position = TableUtils.map(position, function(v, i) return v + offset[i] end)
-
                         object.takeObject({
                             index = index,
-                            position = position,
+                            position = Vector3.scale(offset, i).add(origin),
                             rotation = rotation,
                             smooth = true,
                             callback_function = function(takenObject)
-                                self.onDrop(colorName, takenObject, true)
+                                superDrop(colorName, takenObject)
                             end,
                         })
                     end
                 else
                     object.deal(1, owner.color, handIndex)
-                    self.onDrop(colorName, object, true)
+                    superDrop(colorName, object)
                 end
             end
 
+            local superSave = self.save
+
             function self.save()
-                return {
-                    __savedState = true,
+                return TableUtils.merge(superSave(), {
                     ownerColor = owner.color,
                     handIndex = handIndex,
-                    guid = scriptingZone.getGUID(),
-                }
-            end
-
-            function self.destruct()
-                scriptingZoneHandZoneMap[scriptingZone] = nil
-                scriptingZone.destruct()
+                })
             end
 
             function self.toString()
-                return 'HandZone (' .. tostring(scriptingZone.getGUID()) .. ')'
+                return 'HandZone (' .. tostring(self.getScriptingZone().getGUID()) .. ')'
             end
 
             return self
         end,
-    })
-
-    function HandZone.isSavedState(value)
-        return type(value) == 'table' and value.__savedState
-    end
-
-    EventManager.addHandler('onObjectEnterScriptingZone', function(scriptingZone, object)
-        local handZone = scriptingZoneHandZoneMap[scriptingZone]
-
-        if handZone then
-            local objectZones = objectHandZonesMap[object]
-
-            if objectZones then
-                table.insert(objectZones, handZone)
-            else
-                objectHandZonesMap[object] = { handZone }
-            end
-
-            handZone.onEnter(object)
-        end
-    end)
-
-    EventManager.addHandler('onObjectLeaveScriptingZone', function(scriptingZone, object)
-        local handZone = scriptingZoneHandZoneMap[scriptingZone]
-
-        if handZone then
-            local objectZones = objectHandZonesMap[object]
-
-            if objectZones then
-                objectZones = TableUtils.reject(objectZones, function(z)
-                    return handZone == z
-                end)
-
-                objectHandZonesMap[object] = #objectZones > 0 and objectZones or nil
-
-                handZone.onLeave(object)
-            end
-        end
-    end)
-
-    EventManager.addHandler('onObjectDrop', function(colorName, object)
-        local objectZones = objectHandZonesMap[object]
-
-        if objectZones then
-            local objectPosition = object.getPosition()
-
-            -- Note: We're *assuming* that if an object is in several hand zones simultaneously, that TTS will "drop" the object in the closer zone.
-            ---@type ge_tts__HandZone
-            local nearestHandZone = TableUtils.reduce(objectZones, {math.huge, nil}, function(pair, dropZone)
-                local zonePosition = dropZone.getScriptingZone().getPosition()
-                local delta = {zonePosition[1] - objectPosition[1], zonePosition[3] - objectPosition[3]}
-                local dist_2 = delta[1] * delta[1] + delta[2] * delta[2]
-                return dist_2 < pair[1] and {dist_2, dropZone} or pair
-            end)[2]
-
-            nearestHandZone.onDrop(colorName, object, false)
-        end
-    end)
-
-
-    EventManager.addHandler('onObjectPickUp', function(colorName, object)
-        local objectZones = objectHandZonesMap[object]
-
-        if objectZones then
-            local objectPosition = object.getPosition()
-
-            -- TODO: Don't assume nearest. We should track objects in hand zones like we do with drop zones.
-            -- Note: We're *assuming* that if an object is in several hand zones simultaneously, that it was picked up from the closer zone.
-            ---@type ge_tts__HandZone
-            local nearestHandZone = TableUtils.reduce(objectZones, {math.huge, nil}, function(pair, dropZone)
-                local zonePosition = dropZone.getScriptingZone().getPosition()
-                local delta = {zonePosition[1] - objectPosition[1], zonePosition[3] - objectPosition[3]}
-                local dist_2 = delta[1] * delta[1] + delta[2] * delta[2]
-                return dist_2 < pair[1] and {dist_2, dropZone} or pair
-            end)[2]
-
-            nearestHandZone.onPickUp(colorName, object)
-        end
-    end)
-
-    EventManager.addHandler('onObjectDestroy', function(object)
-        local handZone = objectHandZonesMap[object]
-
-        if handZone then
-            handZone.onLeave(object)
-            objectHandZonesMap[object] = nil
-        end
-    end)
+        __index = Zone,
+    }))
 
     return HandZone
 end)
