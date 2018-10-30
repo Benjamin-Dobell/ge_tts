@@ -24,14 +24,18 @@ ge_tts_package('ge_tts/Logger', function()
 
             local logLevel = Logger.INFO
 
+            ---@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
             function self.getLogLevel()
                 return logLevel
             end
 
+            ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
             function self.setLogLevel(level)
                 logLevel = level
             end
 
+            ---@param message string
+            ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
             function self.log(message, level)
                 if level <= logLevel then
                     print(levelPrefixes[level] .. message)
@@ -45,22 +49,27 @@ ge_tts_package('ge_tts/Logger', function()
     local defaultLogger = Logger()
     local defaultLogLevel = Logger.DEBUG
 
+    ---@param logger ge_tts__Logger
     function Logger.setDefaultLogger(logger)
         defaultLogger = logger
     end
 
-    function Logger.getDefaultLogger(logger)
+    function Logger.getDefaultLogger()
         return defaultLogger
     end
 
+    ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
     function Logger.setDefaultLogLevel(level)
         defaultLogLevel = level
     end
 
-    function Logger.getDefaultLogLevel(logger)
+    ---@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+    function Logger.getDefaultLogLevel()
         return defaultLogLevel
     end
 
+    ---@param message string
+    ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
     function Logger.log(message, level)
         level = level or defaultLogLevel
         defaultLogger.log(message, level)
