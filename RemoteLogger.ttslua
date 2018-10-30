@@ -70,6 +70,8 @@ ge_tts_package('ge_tts/RemoteLogger', function()
                         end)
                     else
                         error("Failed to send remote log messages.")
+                        postingCount = 0
+                        retry = 0
                     end
                 end
             end
