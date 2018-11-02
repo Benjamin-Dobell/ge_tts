@@ -208,6 +208,12 @@ TTS has several events which are called as global functions on a script. It's fa
 
 `EventManager` allows several pieces of code to subscribe to the one event. If you have already written global event handler functions you must move their definition _above_ all `ge_tts_require` in the same script otherwise they will interfere with `EventManager`.
 
+### Graph
+
+Dependencies: **core**
+
+A package with functions useful for working with node hierarchies e.g. TTS UI ("XML") tables.
+
 ### HandZone
 
 Dependencies: `Zone`

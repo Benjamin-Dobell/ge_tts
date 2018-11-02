@@ -1,0 +1,107 @@
+ge_tts_package('ge_tts/Graph', function()
+    ---@type ge_tts__TableUtils
+    local TableUtils = ge_tts_require('ge_tts/TableUtils')
+
+    ---@type ge_tts__Graph
+    local Graph = {}
+
+    ---@param node table @TTS "xml" table
+    ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
+    ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
+    local function breadthVisitCoroutine(node, getChildren, visitCallback)
+        return coroutine.create(function()
+            local result = table.pack(visitCallback(node))
+
+            if #result > 0 then
+                return table.unpack(result)
+            end
+
+            result = nil
+
+            local children = getChildren(node)
+
+            if children then
+                local visitDescendantCoroutines = TableUtils.map(node.children, function(child)
+                    return breadthVisitCoroutine(child, getChildren, visitCallback)
+                end)
+
+                local stopped
+
+                repeat
+                    coroutine.yield()
+
+                    stopped = true
+
+                    for _, visitDescendant in ipairs(visitDescendantCoroutines) do
+                        if coroutine.status(visitDescendant) == 'suspended' then
+                            result = table.pack(coroutine.resume(visitDescendant))
+
+                            if #result > 1 then
+                                return table.unpack(result, 2)
+                            end
+
+                            result = nil
+                            stopped = false
+                        end
+                    end
+                until stopped
+            end
+        end)
+    end
+
+    --- Performs preorder traversal of a TTS xml table hierarchy.
+    ---@param node table @TTS "xml" table
+    ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
+    ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
+    ---@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
+    Graph.traverse = function(node, getChildren, visitCallback)
+        local result = table.pack(visitCallback(node))
+
+        if #result > 1 then
+            return table.unpack(result, 2)
+        end
+
+        local children = getChildren(node)
+
+        if children then
+            for _, child in ipairs(children) do
+                result = table.pack(Graph.traverse(child, getChildren, visitCallback))
+
+                if #result > 1 then
+                    return table.unpack(result, 2)
+                end
+            end
+        end
+    end
+
+    --- Performs breadth first traversal of a TTS xml table hierarchy.
+    ---@param node table @TTS "xml" table
+    ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
+    ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
+    ---@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
+    Graph.breadthTraverse = function(root, getChildren, visitCallback)
+        local breadthVisit = breadthVisitCoroutine(root, getChildren, visitCallback)
+
+        repeat
+            local result = table.pack(coroutine.resume(breadthVisit))
+
+            if #result > 1 then
+                return table.unpack(result, 2)
+            end
+        until coroutine.status(breadthVisit) ~= 'suspended'
+    end
+
+    --- Performs breadth first search of a TTS xml table hierarchy, returning the first node for which callback returns true.
+    ---@param node table @TTS "xml" table
+    ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, may be length zero.
+    ---@param visitCallback fun(node:table) @Condition callback
+    Graph.find = function(root, getChildren, visitCallback)
+        return Graph.breadthTraverse(root, getChildren, function(node)
+            if visitCallback(node) then
+                return node
+            end
+        end)
+    end
+
+    return Graph
+end)
