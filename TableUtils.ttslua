@@ -115,11 +115,11 @@ ge_tts_package('ge_tts/TableUtils', function()
         return nil, nil
     end
 
-    TableUtils.copy = function(tab)
+    TableUtils.copy = function(tab, recursive)
         local copied = {}
 
         for k, v in pairs(tab) do
-            copied[k] = v
+            copied[k] = (recursive and type(v) == 'table' and TableUtils.copy(v, true)) or v
         end
 
         return copied
