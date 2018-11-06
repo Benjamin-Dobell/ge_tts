@@ -1,21 +1,26 @@
 local function __init()
-    ---@type ge_tts__TableUtils
-    local TableUtils = ge_tts_require('ge_tts/TableUtils')
-
     ---@type ge_tts__EventManager
     local EventManager = ge_tts_require('ge_tts/EventManager')
 
-    local ready = false
+    ---@type ge_tts__TableUtils
+    local TableUtils = ge_tts_require('ge_tts/TableUtils')
+
+    local awaitingFirstUpdate = true
 
     EventManager.addHandler('onCollisionEnter', function(collisionInfo)
-        if ready then
+        -- If we don't wait for onUpdate, Global.call raises a null reference exception (inside TTS/Moonsharp)
+        if not awaitingFirstUpdate then
             local globalCollisionInfo = TableUtils.merge({object = self}, collisionInfo)
             Global.call('onCollisionEnter', globalCollisionInfo)
         end
     end)
 
-    -- Just good ol' TTS being TTS...
-    Wait.frames(function() ready = true end, 1)
+    local function onUpdate()
+        awaitingFirstUpdate = false
+        EventManager.removeHandler('onUpdate', onUpdate)
+    end
+
+    EventManager.addHandler('onUpdate', onUpdate)
 end
 
 __init()
