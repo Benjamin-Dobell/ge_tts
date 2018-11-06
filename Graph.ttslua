@@ -5,7 +5,7 @@ ge_tts_package('ge_tts/Graph', function()
     ---@type ge_tts__Graph
     local Graph = {}
 
-    ---@param node table @TTS "xml" table
+    ---@param node table
     ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
     ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
     local function breadthVisitCoroutine(node, getChildren, visitCallback)
@@ -49,8 +49,8 @@ ge_tts_package('ge_tts/Graph', function()
         end)
     end
 
-    --- Performs preorder traversal of a TTS xml table hierarchy.
-    ---@param node table @TTS "xml" table
+    --- Performs preorder traversal over a node hierarchy starting at `node`. If `visitCallback` returns a value, traversal stops and the value is returned.
+    ---@param node table
     ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
     ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
     ---@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
@@ -74,8 +74,8 @@ ge_tts_package('ge_tts/Graph', function()
         end
     end
 
-    --- Performs breadth first traversal of a TTS xml table hierarchy.
-    ---@param node table @TTS "xml" table
+    --- Performs breadth first traversal over a node hierarchy starting at `node`. If `visitCallback` returns a value, traversal stops and the value is returned.
+    ---@param node table
     ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
     ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
     ---@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
@@ -91,8 +91,8 @@ ge_tts_package('ge_tts/Graph', function()
         until coroutine.status(breadthVisit) ~= 'suspended'
     end
 
-    --- Performs breadth first search of a TTS xml table hierarchy, returning the first node for which callback returns true.
-    ---@param node table @TTS "xml" table
+    --- Perform breadth first search over a node hierarchy starting at `node`, and returning the first node for which `visitCallback` returns true.
+    ---@param node table
     ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, may be length zero.
     ---@param visitCallback fun(node:table) @Condition callback
     Graph.find = function(root, getChildren, visitCallback)
