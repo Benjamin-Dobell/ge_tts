@@ -15,9 +15,17 @@ ge_tts_package('ge_tts/EventManager', function()
             local args = {...}
             local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
 
+            local finalResult
+
             for _, handler in ipairs(handlers) do
-                handler(table.unpack(args))
+                local result = handler(table.unpack(args))
+
+                if result then
+                    finalResult = result
+                end
             end
+
+            return finalResult
         end
 
         local handlers = {}

@@ -204,9 +204,9 @@ ge_tts_package('ge_tts/Zone', function()
                 return {
                     __savedState = true,
                     guid = scriptingZone.getGUID(),
-                    position = position,
-                    rotation = rotation,
-                    scale = scale,
+                    position = position.toData(),
+                    rotation = rotation.toData(),
+                    scale = scale.toData(),
                     occupyingObjectsGuids = TableUtils.map(occupyingObjects, function(object) return object.getGUID() end)
                 }
             end
