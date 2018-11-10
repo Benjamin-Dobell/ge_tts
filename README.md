@@ -192,7 +192,7 @@ Then in your Global script you can then simply require `ContainerEventsFix`.
 
 Dependencies: `Zone`
 
-A `Zone` that acts as flexible, extensible and scriptable replacement TTS snap points. When an object is dropped in `DropZone` the object will be smoothly animated into the center of the zone (and rotated accordingly).
+A `Zone` that acts as flexible, extensible and scriptable replacement for TTS snap points. When an object is dropped in `DropZone` the object will be smoothly animated into the center of the zone (and rotated accordingly).
 
 `DropZone` also have an optional `occupantScale` which specifies how dropped objects should be scaled (along the X-axis) when they're dropped in the DropZone, aspect ratio is always preserved. Automatic scaling can be used to provide visual queues about important objects, or rather objects placed in important locations/zones.
 
@@ -240,7 +240,7 @@ A `DropZone` that is associated with a particular TTS player, specifically insta
 
 Dependencies: `Logger`
 
-A `Logger` that rather printing to TTS' console, will HTTP `PUT` a JSON object with `messages` (array of strings) to a URL that you provide when instantiating the `RemoteLogger`.
+A `Logger` that rather than printing to TTS' console, will HTTP `PUT` a JSON object with `messages` (array of strings) to a URL that you provide when instantiating the `RemoteLogger`.
 
 Using HTTP `PUT` instead of `POST` is pretty severe abuse of HTTP semantics, however we don't have a choice as TTS' HTTP functionality is severely lacking and cannot `POST` JSON.
 
