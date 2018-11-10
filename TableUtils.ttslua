@@ -1,17 +1,23 @@
+-- This module operates on tables that contain only positive integer keys (array), as well as tables which contain *no* positive integer keys. Behavior is
+-- undefined for tables that contain both.
 ge_tts_package('ge_tts/TableUtils', function()
     ---@type ge_tts__TableUtils
     local TableUtils = {}
 
+    --- Returns true if `tab` contains an entry at index 1. That being the case, this module will assume `tab` only contains positive integer keys.
+    ---@param tab table
+    TableUtils.isArray = function(tab)
+        return tab[1] ~= nil
+    end
+
     TableUtils.map = function(tab, func)
         local mapped = {}
-        local contiguous = false
 
-        for i, v in ipairs(tab) do
-            contiguous = true
-            mapped[i] = func(v, i)
-        end
-
-        if not contiguous then
+        if TableUtils.isArray(tab) then
+            for i, v in ipairs(tab) do
+                mapped[i] = func(v, i)
+            end
+        else
             for k, v in pairs(tab) do
                 mapped[k] = func(v, k)
             end
@@ -32,14 +38,12 @@ ge_tts_package('ge_tts/TableUtils', function()
 
     TableUtils.remap = function(tab, func)
         local remapped = {}
-        local contiguous = false
 
-        for i, v in ipairs(tab) do
-            contiguous = true
-            remapped[func(v, i)] = v
-        end
-
-        if not contiguous then
+        if TableUtils.isArray(tab) then
+            for i, v in ipairs(tab) do
+                remapped[func(v, i)] = v
+            end
+        else
             for k, v in pairs(tab) do
                 remapped[func(v, k)] = v
             end
@@ -51,19 +55,15 @@ ge_tts_package('ge_tts/TableUtils', function()
     TableUtils.select = function(tab, func)
         local selected = {}
 
-        local contiguous = false
-        local index = 1
-
-        for i, v in ipairs(tab) do
-            contiguous = true
-
-            if func(v, i) then
-                selected[index] = v
-                index = index + 1
+        if TableUtils.isArray(tab) then
+            local index = 1
+            for i, v in ipairs(tab) do
+                if func(v, i) then
+                    selected[index] = v
+                    index = index + 1
+                end
             end
-        end
-
-        if not contiguous then
+        else
             for k, v in pairs(tab) do
                 if func(v, k) then
                     selected[k] = v
@@ -96,9 +96,17 @@ ge_tts_package('ge_tts/TableUtils', function()
     end
 
     TableUtils.find = function(tab, value)
-        for k, v in pairs(tab) do
-            if v == value then
-                return k
+        if TableUtils.isArray(tab) then
+            for i, v in ipairs(tab) do
+                if v == value then
+                    return i
+                end
+            end
+        else
+            for k, v in pairs(tab) do
+                if v == value then
+                    return k
+                end
             end
         end
 
@@ -106,9 +114,17 @@ ge_tts_package('ge_tts/TableUtils', function()
     end
 
     TableUtils.detect = function(tab, func)
-        for k, v in pairs(tab) do
-            if func(v, k) then
-                return v, k
+        if TableUtils.isArray(tab) then
+            for i, v in ipairs(tab) do
+                if func(v, i) then
+                    return v, i
+                end
+            end
+        else
+            for k, v in pairs(tab) do
+                if func(v, k) then
+                    return v, k
+                end
             end
         end
 
@@ -129,14 +145,11 @@ ge_tts_package('ge_tts/TableUtils', function()
         local otherTables = { ... }
 
         for _, t in ipairs(otherTables) do
-            local contiguous = false
-
-            for _, v in ipairs(t) do
-                contiguous = true
-                table.insert(tab, v)
-            end
-
-            if not contiguous then
+            if TableUtils.isArray(tab) then
+                for _, v in ipairs(t) do
+                    table.insert(tab, v)
+                end
+            else
                 for k, v in pairs(t) do
                     tab[k] = v
                 end
@@ -187,13 +200,25 @@ ge_tts_package('ge_tts/TableUtils', function()
         local indentation = string.rep('  ', depth)
         local string = '{'
 
-        for k, v in pairs(tab) do
-            string = string .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
+        if TableUtils.isArray(tab) then
+            for i, v in ipairs(tab) do
+                string = string .. '\n' .. indentation .. '[' .. i .. '] = '
 
-            if recursive and type(v) == 'table' then
-                string = string .. TableUtils.dump(v, true, depth + 1) .. ','
-            else
-                string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
+                if recursive and type(v) == 'table' then
+                    string = string .. TableUtils.dump(v, true, depth + 1) .. ','
+                else
+                    string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
+                end
+            end
+        else
+            for k, v in pairs(tab) do
+                string = string .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
+
+                if recursive and type(v) == 'table' then
+                    string = string .. TableUtils.dump(v, true, depth + 1) .. ','
+                else
+                    string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
+                end
             end
         end
 
