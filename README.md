@@ -188,6 +188,12 @@ Specifically `onObjectEnterContainer` is only fired for one card, when two cards
 
 Then in your Global script you can then simply require `ContainerEventsFix`.
 
+### Coroutine
+
+Dependencies: **core**
+
+Convenience functions for working with co-routines that are, for example, to be executed every X frames, or every X seconds.
+
 ### DropZone
 
 Dependencies: `Zone`
