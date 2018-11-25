@@ -109,18 +109,23 @@ ge_tts_package('ge_tts/Zone', function()
                 scriptingZone = getObjectFromGUID(data.guid)
                 occupyingObjects = TableUtils.map(data.occupyingObjectsGuids, function(guid) return getObjectFromGUID(guid) end)
 
-                scriptingZoneZoneMap[scriptingZone] = self
+                -- May be nil if onSave was called before we finished spawning
+                if scriptingZone then
+                    scriptingZoneZoneMap[scriptingZone] = self
+                end
             else
                 position = Vector3(zonePositionOrData)
                 rotation = Vector3(zoneRotation)
                 scale = Vector3(zoneScale)
 
+                occupyingObjects = {}
+            end
+
+            if not scriptingZone then
                 spawn(position, rotation, scale, function(spawnedScriptingZone)
                     scriptingZone = spawnedScriptingZone
                     scriptingZoneZoneMap[scriptingZone] = self
                 end)
-
-                occupyingObjects = {}
             end
 
             ---@return ge_tts__Vector3
@@ -203,7 +208,7 @@ ge_tts_package('ge_tts/Zone', function()
             function self.save()
                 return {
                     __savedState = true,
-                    guid = scriptingZone.getGUID(),
+                    guid = scriptingZone and scriptingZone.getGUID(),
                     position = position.toData(),
                     rotation = rotation.toData(),
                     scale = scale.toData(),
