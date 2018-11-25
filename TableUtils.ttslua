@@ -163,7 +163,7 @@ ge_tts_package('ge_tts/TableUtils', function()
         return merged
     end
 
-    TableUtils.keys = function(tab, func)
+    TableUtils.keys = function(tab)
         local keys = {}
 
         for k, _ in pairs(tab) do
