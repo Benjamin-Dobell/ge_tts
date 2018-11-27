@@ -62,7 +62,7 @@ ge_tts_package('ge_tts/Vector3', function()
                 return '{x = ' .. self.x .. ', y = ' .. self.y .. ', z = ' .. self.z .. '}'
             end
 
-            ---@return ge_tts__NumVec3
+            ---@return ge_tts__CharVec3
             function self.toData()
                 return {x = self.x, y = self.y, z = self.z}
             end
