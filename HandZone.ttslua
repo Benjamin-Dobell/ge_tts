@@ -108,9 +108,8 @@ ge_tts_package('ge_tts/HandZone', function()
                     local offset = getDealOffset(owner, handIndex)
                     local rotation = Vector3(zoneRotation.x, zoneRotation.y + 180, zoneRotation.z)
 
-                    for i = object.GetQuantity(), 1, -1 do
+                    for i = 1, object.GetQuantity() do
                         object.takeObject({
-                            index = index,
                             position = Vector3.scale(offset, i).add(origin),
                             rotation = rotation,
                             smooth = true,
