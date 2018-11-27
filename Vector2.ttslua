@@ -192,7 +192,7 @@ ge_tts_package('ge_tts/Vector2', function()
         return math.sqrt(Vector2.distanceSquared(v1, v2))
     end
 
-    ---@param v3 ge_tts__Vec3
+    ---@param v3 ge_tts__CharVec3|ge_tts__NumVec3
     ---@return number
     function Vector2.fromXZ(v3)
         return Vector2(v3.x or v3[1], v3.z or v3[3])

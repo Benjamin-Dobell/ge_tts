@@ -43,9 +43,9 @@ ge_tts_package('ge_tts/Zone', function()
         end
     end
 
-    ---@param position ge_tts__Vec3
-    ---@param rotation ge_tts__Vec3
-    ---@param scale ge_tts__Vec3
+    ---@param position ge_tts__CharVec3|ge_tts__NumVec3
+    ---@param rotation ge_tts__CharVec3|ge_tts__NumVec3
+    ---@param scale ge_tts__CharVec3|ge_tts__NumVec3
     ---@param callback fun(object:userdata) @function(object:tts__ScriptingZone) - TTS object spawned callback
     local function spawn(position, rotation, scale, callback)
         local json = {
