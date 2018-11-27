@@ -204,7 +204,7 @@ A `Zone` that acts as flexible, extensible and scriptable replacement for TTS sn
 
 To extend `DropZone`'s functionality you can "sub-class" `DropZone` and override the `onEnter`, `onLeave`, `onDrop` and `onPickup` functions as desired.
 
- `DropZone` is itself a sub-class of `Zone`, so for example of how you can extend a "class" please refer to `DropZone.ttslua` (or `HandZone.ttslua`).
+ `DropZone` is itself a sub-class of `Zone`, so for an example of how you can extend a "class" please refer to `DropZone.ttslua` (or `HandZone.ttslua`).
 
 ### EventManager
 
@@ -226,9 +226,9 @@ Dependencies: `Zone`
 
 A `Zone` that belongs to a player (owner) and corresponds with one of their hands (most games just have the one hand). When instantiated `HandZone` will automatically size itself to encompass the associated TTS hand zone so that you can programatically track cards that are in the players hand.
 
-Typically, to make use this package you'd create your own package/"class" where you extend `HandZone` and override the `onEnter`, `onLeave`, `onDrop` and `onPickup` functions as desired.
+Typically, to make use of this package you'd create your own package/"class" where you extend `HandZone` and override the `onEnter`, `onLeave`, `onDrop` and `onPickup` functions as desired.
 
-`HandZone` is itself a sub-class of `Zone`, so for example of how you can extend a "class" please refer to `HandZone.ttslua` (or `DropZone.ttslua`).
+`HandZone` is itself a sub-class of `Zone`, so for an example of how you can extend a "class" please refer to `HandZone.ttslua` (or `DropZone.ttslua`).
 
 ### Logger
 
