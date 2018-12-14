@@ -1,4 +1,4 @@
-local function __init()
+(function()
     ---@type ge_tts__EventManager
     local EventManager = ge_tts_require('ge_tts/EventManager')
 
@@ -21,6 +21,4 @@ local function __init()
     end
 
     EventManager.addHandler('onUpdate', onUpdate)
-end
-
-__init()
+end)();

@@ -1,4 +1,4 @@
-local function __init()
+(function()
     local entryPoints = {}
     local packages = {}
 
@@ -67,6 +67,4 @@ local function __init()
     function ge_tts_loaded_packages()
         return packages
     end
-end
-
-__init()
+end)();
