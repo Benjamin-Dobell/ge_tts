@@ -1,10 +1,10 @@
--- This module operates on tables that contain only positive integer keys (array), as well as tables which contain *no* positive integer keys. Behavior is
--- undefined for tables that contain both.
+-- This module operates on tables that contain only positive consecutive integer keys starting at 1 (i.e. a plain array), as well as tables which contain no
+-- array component. Behavior is undefined for tables that contain a key for [1] as well as non-consecutive integer or non-integer keys.
 ge_tts_package('ge_tts/TableUtils', function()
     ---@type ge_tts__TableUtils
     local TableUtils = {}
 
-    --- Returns true if `tab` contains an entry at index 1. That being the case, this module will assume `tab` only contains positive integer keys.
+    --- Returns true if `tab` contains an entry at index 1. That being the case, this module will assume `tab` only contains sequential positive integer keys.
     ---@param tab table
     TableUtils.isArray = function(tab)
         return tab[1] ~= nil

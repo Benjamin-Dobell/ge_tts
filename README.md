@@ -262,6 +262,8 @@ Part of **core**.
 
 Several convenience methods to be used in conjunction with tables.
 
+**Warning**: For both performance and semantic reasons, this module will only operate on tables that are either _arrays_ or _hashes/maps_, but not tables that are _both_ simultaneously. Behavior is undefined for tables that contain a key for [1] _as well as_ non-consecutive integer, or non-integer, keys.
+
 ### Vector2
 
 Part of **core**.
