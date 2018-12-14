@@ -2,7 +2,7 @@ ge_tts_package('ge_tts/Graph', function()
     ---@type ge_tts__TableUtils
     local TableUtils = ge_tts_require('ge_tts/TableUtils')
 
-    ---@type ge_tts__Graph
+    ---@module ge_tts__Graph
     local Graph = {}
 
     ---@param node table

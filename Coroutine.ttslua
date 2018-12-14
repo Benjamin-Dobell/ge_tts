@@ -1,5 +1,5 @@
 ge_tts_package('ge_tts/Coroutine', function()
-    ---@type ge_tts__Coroutine
+    ---@module ge_tts__Coroutine
     local Coroutine = {}
 
     --- Yields from the current coroutine, which will later be resumed once a condition is met.

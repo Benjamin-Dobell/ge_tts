@@ -41,7 +41,7 @@ ge_tts_package('ge_tts/EventManager', function()
         return handlers
     end
 
-    ---@type ge_tts__EventManager
+    ---@module ge_tts__EventManager
     local EventManager = {}
 
     ---@param event string @Event name

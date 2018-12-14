@@ -5,7 +5,7 @@ ge_tts_package('ge_tts/Base64', function()
     ---@type ge_tts__TableUtils
     local TableUtils = ge_tts_require('ge_tts/TableUtils')
 
-    ---@type ge_tts__Base64
+    ---@module ge_tts__Base64
     local Base64 = {}
 
     local extract = bit32.extract
