@@ -1,94 +1,92 @@
-ge_tts_package('ge_tts/RemoteLogger', function()
-    ---@type ge_tts__TableUtils
-    local TableUtils = ge_tts_require('ge_tts/TableUtils')
+---@type ge_tts__TableUtils
+local TableUtils = require('ge_tts/TableUtils')
 
-    ---@type ge_tts__Logger
-    local Logger = ge_tts_require('ge_tts/Logger')
+---@type ge_tts__Logger
+local Logger = require('ge_tts/Logger')
 
-    local MAX_RETRIES = 5
+local MAX_RETRIES = 5
 
-    ---@class ge_tts__RemoteLogger
-    local RemoteLogger = {}
+---@class ge_tts__RemoteLogger
+local RemoteLogger = {}
 
-    ---@type table<number, string>
-    local levelPrefixes = {
-        [Logger.ERROR] = 'ERROR: ',
-        [Logger.WARNING] = 'WARNING: ',
-        [Logger.INFO] = 'INFO: ',
-        [Logger.DEBUG] = 'DEBUG: ',
-        [Logger.VERBOSE] = 'VERBOSE: ',
-    }
+---@type table<number, string>
+local levelPrefixes = {
+    [Logger.ERROR] = 'ERROR: ',
+    [Logger.WARNING] = 'WARNING: ',
+    [Logger.INFO] = 'INFO: ',
+    [Logger.DEBUG] = 'DEBUG: ',
+    [Logger.VERBOSE] = 'VERBOSE: ',
+}
 
-    -- RemoteLogger guarantees message order and batches messages rather than instantly sending an individual request per message, which may arrive out of
-    -- order. Failed request will be retried.
-    --
-    -- Note: The retry mechanism may cause duplicate messages to be logged depending on server implementation. Specifically there's an edge-case if the server
-    -- receives a request, logs the messages, but the connection drops before we receive a 200 status code. Generally this won't occur, however if it's a major
-    -- concern then the server could first respond 200, wait for TCP confirmation, *then* log the messages received in the request.
-    setmetatable(RemoteLogger, TableUtils.merge(getmetatable(Logger), {
-        ---@param url string
-        __call = function(_, url)
-            local self = Logger()
+-- RemoteLogger guarantees message order and batches messages rather than instantly sending an individual request per message, which may arrive out of
+-- order. Failed request will be retried.
+--
+-- Note: The retry mechanism may cause duplicate messages to be logged depending on server implementation. Specifically there's an edge-case if the server
+-- receives a request, logs the messages, but the connection drops before we receive a 200 status code. Generally this won't occur, however if it's a major
+-- concern then the server could first respond 200, wait for TCP confirmation, *then* log the messages received in the request.
+setmetatable(RemoteLogger, TableUtils.merge(getmetatable(Logger), {
+    ---@param url string
+    __call = function(_, url)
+        local self = Logger()
 
-            ---@type string[]
-            local queuedMessages = {}
+        ---@type string[]
+        local queuedMessages = {}
 
-            local postingCount = 0
-            local retry = 0
+        local postingCount = 0
+        local retry = 0
 
-            local function pumpQueue()
-                if postingCount == 0 and #queuedMessages > 0 then
-                    retry = retry + 1
+        local function pumpQueue()
+            if postingCount == 0 and #queuedMessages > 0 then
+                retry = retry + 1
 
-                    if retry <= MAX_RETRIES then
-                        local content = JSON.encode({
-                            messages=queuedMessages
-                        })
+                if retry <= MAX_RETRIES then
+                    local content = JSON.encode({
+                        messages=queuedMessages
+                    })
 
-                        postingCount = #queuedMessages
+                    postingCount = #queuedMessages
 
-                        -- NOTE: We're completely abusing the semantics of the HTTP PUT verb. We absolutely should be POSTing, but TTS's WebRequest APIs are
-                        -- without a doubt the worst attempt at writing a HTTP client that I've ever encountered. For some reason we can only POST URL encoded
-                        -- forms (which quickly run into URI length constraints, hence is unusable) where as we can PUT an arbitrary string, so we make do.
-                        WebRequest.put(url, content, function(request)
-                            if request.is_error then
-                                postingCount = 0
-                                Wait.time(pumpQueue, retry * retry * 0.1)
-                            elseif request.is_done then
-                                local unpostedMessages = {}
+                    -- NOTE: We're completely abusing the semantics of the HTTP PUT verb. We absolutely should be POSTing, but TTS's WebRequest APIs are
+                    -- without a doubt the worst attempt at writing a HTTP client that I've ever encountered. For some reason we can only POST URL encoded
+                    -- forms (which quickly run into URI length constraints, hence is unusable) where as we can PUT an arbitrary string, so we make do.
+                    WebRequest.put(url, content, function(request)
+                        if request.is_error then
+                            postingCount = 0
+                            Wait.time(pumpQueue, retry * retry * 0.1)
+                        elseif request.is_done then
+                            local unpostedMessages = {}
 
-                                for i=postingCount + 1, #queuedMessages do
-                                    table.insert(unpostedMessages, queuedMessages[i])
-                                end
-
-                                queuedMessages = unpostedMessages
-                                postingCount = 0
-                                retry = 0
-
-                                pumpQueue()
+                            for i=postingCount + 1, #queuedMessages do
+                                table.insert(unpostedMessages, queuedMessages[i])
                             end
-                        end)
-                    else
-                        error("Failed to send remote log messages.")
-                        postingCount = 0
-                        retry = 0
-                    end
+
+                            queuedMessages = unpostedMessages
+                            postingCount = 0
+                            retry = 0
+
+                            pumpQueue()
+                        end
+                    end)
+                else
+                    error("Failed to send remote log messages.")
+                    postingCount = 0
+                    retry = 0
                 end
             end
+        end
 
-            ---@param message string
-            ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-            function self.log(message, level)
-                if level <= self.getLogLevel() then
-                    table.insert(queuedMessages, levelPrefixes[level] .. message)
-                    pumpQueue()
-                end
+        ---@param message string
+        ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+        function self.log(message, level)
+            if level <= self.getLogLevel() then
+                table.insert(queuedMessages, levelPrefixes[level] .. message)
+                pumpQueue()
             end
+        end
 
-            return self
-        end,
-        __index = Logger,
-    }))
+        return self
+    end,
+    __index = Logger,
+}))
 
-    return RemoteLogger
-end)
+return RemoteLogger

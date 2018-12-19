@@ -1,79 +1,77 @@
-ge_tts_package('ge_tts/Logger', function()
-    ---@class ge_tts__Logger
-    local Logger = {}
+---@class ge_tts__Logger
+local Logger = {}
 
-    Logger.ERROR = 1
-    Logger.WARNING = 2
-    Logger.INFO = 3
-    Logger.DEBUG = 4
-    Logger.VERBOSE = 5
+Logger.ERROR = 1
+Logger.WARNING = 2
+Logger.INFO = 3
+Logger.DEBUG = 4
+Logger.VERBOSE = 5
 
-    ---@type table<number, string>
-    local levelPrefixes = {
-        [Logger.ERROR] = 'ERROR: ',
-        [Logger.WARNING] = 'WARNING: ',
-        [Logger.INFO] = '',
-        [Logger.DEBUG] = '',
-        [Logger.VERBOSE] = '',
-    }
+---@type table<number, string>
+local levelPrefixes = {
+    [Logger.ERROR] = 'ERROR: ',
+    [Logger.WARNING] = 'WARNING: ',
+    [Logger.INFO] = '',
+    [Logger.DEBUG] = '',
+    [Logger.VERBOSE] = '',
+}
 
-    setmetatable(Logger, {
-        __call = function()
-            ---@type ge_tts__Logger
-            local self = {}
+setmetatable(Logger, {
+    __call = function()
+        ---@type ge_tts__Logger
+        local self = {}
 
-            local logLevel = Logger.INFO
+        local logLevel = Logger.INFO
 
-            ---@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-            function self.getLogLevel()
-                return logLevel
-            end
-
-            ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-            function self.setLogLevel(level)
-                logLevel = level
-            end
-
-            ---@param message string
-            ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-            function self.log(message, level)
-                if level <= logLevel then
-                    print(levelPrefixes[level] .. message)
-                end
-            end
-
-            return self
+        ---@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+        function self.getLogLevel()
+            return logLevel
         end
-    })
 
-    local defaultLogger = Logger()
-    local defaultLogLevel = Logger.DEBUG
+        ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+        function self.setLogLevel(level)
+            logLevel = level
+        end
 
-    ---@param logger ge_tts__Logger
-    function Logger.setDefaultLogger(logger)
-        defaultLogger = logger
+        ---@param message string
+        ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+        function self.log(message, level)
+            if level <= logLevel then
+                print(levelPrefixes[level] .. message)
+            end
+        end
+
+        return self
     end
+})
 
-    function Logger.getDefaultLogger()
-        return defaultLogger
-    end
+local defaultLogger = Logger()
+local defaultLogLevel = Logger.DEBUG
 
-    ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-    function Logger.setDefaultLogLevel(level)
-        defaultLogLevel = level
-    end
+---@param logger ge_tts__Logger
+function Logger.setDefaultLogger(logger)
+    defaultLogger = logger
+end
 
-    ---@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-    function Logger.getDefaultLogLevel()
-        return defaultLogLevel
-    end
+function Logger.getDefaultLogger()
+    return defaultLogger
+end
 
-    ---@param message string
-    ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-    function Logger.log(message, level)
-        level = level or defaultLogLevel
-        defaultLogger.log(message, level)
-    end
+---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+function Logger.setDefaultLogLevel(level)
+    defaultLogLevel = level
+end
 
-    return Logger
-end)
+---@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+function Logger.getDefaultLogLevel()
+    return defaultLogLevel
+end
+
+---@param message string
+---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+function Logger.log(message, level)
+    level = level or defaultLogLevel
+    defaultLogger.log(message, level)
+end
+
+return Logger

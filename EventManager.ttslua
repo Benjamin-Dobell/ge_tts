@@ -1,69 +1,67 @@
-ge_tts_package('ge_tts/EventManager', function()
-    ---@type ge_tts__TableUtils
-    local TableUtils = ge_tts_require('ge_tts/TableUtils')
+---@type ge_tts__TableUtils
+local TableUtils = require('ge_tts/TableUtils')
 
-    ---@type ge_tts__Logger
-    local Logger = ge_tts_require('ge_tts/Logger')
+---@type ge_tts__Logger
+local Logger = require('ge_tts/Logger')
 
-    local eventHandlers = {}
+local eventHandlers = {}
 
-    ---@param event string
-    local function listen(event)
-        local previousGlobalHandler = _G[event]
+---@param event string
+local function listen(event)
+    local previousGlobalHandler = _G[event]
 
-        _G[event] = function(...)
-            local args = {...}
-            local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
+    _G[event] = function(...)
+        local args = {...}
+        local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
 
-            local finalResult
+        local finalResult
 
-            for _, handler in ipairs(handlers) do
-                local result = handler(table.unpack(args))
+        for _, handler in ipairs(handlers) do
+            local result = handler(table.unpack(args))
 
-                if result then
-                    finalResult = result
-                end
+            if result then
+                finalResult = result
             end
-
-            return finalResult
         end
 
-        local handlers = {}
-        eventHandlers[event] = handlers
-
-        Logger.log('EventManager now listening for ' .. event, Logger.VERBOSE)
-
-        if previousGlobalHandler then
-            table.insert(handlers, previousGlobalHandler)
-            Logger.log('Pre-existing global ' .. event .. ' handler preserved as the first handler', Logger.VERBOSE)
-        end
-
-        return handlers
+        return finalResult
     end
 
-    ---@module ge_tts__EventManager
-    local EventManager = {}
+    local handlers = {}
+    eventHandlers[event] = handlers
 
-    ---@param event string @Event name
-    ---@param handler fun(...) @Function that will be called when the event fires. Parameters vary depending on the event.
-    function EventManager.addHandler(event, handler)
-        local handlers = eventHandlers[event] or listen(event)
+    Logger.log('EventManager now listening for ' .. event, Logger.VERBOSE)
 
-        if not TableUtils.find(handlers, handler) then
-            table.insert(handlers, handler)
-        end
+    if previousGlobalHandler then
+        table.insert(handlers, previousGlobalHandler)
+        Logger.log('Pre-existing global ' .. event .. ' handler preserved as the first handler', Logger.VERBOSE)
     end
 
-    ---@param event string @Event name
-    ---@param handler fun(...) @A previously registered handler that you wish to remove.
-    function EventManager.removeHandler(event, handler)
-        local handlers = eventHandlers[event]
-        local handlerIndex = handlers and TableUtils.find(handlers, handler)
+    return handlers
+end
 
-        if handlerIndex then
-            table.remove(handlers, handlerIndex)
-        end
+---@module ge_tts__EventManager
+local EventManager = {}
+
+---@param event string @Event name
+---@param handler fun(...) @Function that will be called when the event fires. Parameters vary depending on the event.
+function EventManager.addHandler(event, handler)
+    local handlers = eventHandlers[event] or listen(event)
+
+    if not TableUtils.find(handlers, handler) then
+        table.insert(handlers, handler)
     end
+end
 
-    return EventManager
-end)
+---@param event string @Event name
+---@param handler fun(...) @A previously registered handler that you wish to remove.
+function EventManager.removeHandler(event, handler)
+    local handlers = eventHandlers[event]
+    local handlerIndex = handlers and TableUtils.find(handlers, handler)
+
+    if handlerIndex then
+        table.remove(handlers, handlerIndex)
+    end
+end
+
+return EventManager

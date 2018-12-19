@@ -1,97 +1,95 @@
-ge_tts_package('ge_tts/DropZone', function()
-    ---@type ge_tts__TableUtils
-    local TableUtils = ge_tts_require('ge_tts/TableUtils')
+---@type ge_tts__TableUtils
+local TableUtils = require('ge_tts/TableUtils')
 
-    ---@type ge_tts__Vector3
-    local Vector3 = ge_tts_require('ge_tts/Vector3')
+---@type ge_tts__Vector3
+local Vector3 = require('ge_tts/Vector3')
 
-    ---@type ge_tts__Zone
-    local Zone = ge_tts_require('ge_tts/Zone')
+---@type ge_tts__Zone
+local Zone = require('ge_tts/Zone')
 
-    local MAX_DROP_VELOCITY_SQUARED = 5 * 5 -- 5 in/sec
+local MAX_DROP_VELOCITY_SQUARED = 5 * 5 -- 5 in/sec
 
-    ---@class ge_tts__DropZone : ge_tts__Zone
-    local DropZone = {}
+---@class ge_tts__DropZone : ge_tts__Zone
+local DropZone = {}
 
-    setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
-        ---@param zonePositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
-        ---@param zoneRotation ge_tts__CharVec3|ge_tts__NumVec3
-        ---@param zoneScale ge_tts__CharVec3|ge_tts__NumVec3
-        ---@param occupantScale number|nil @Optional - occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.
-        __call = function(_, zonePositionOrData, zoneRotation, zoneScale, occupantScale)
-            ---@type ge_tts__DropZone
-            local self = Zone(zonePositionOrData, zoneRotation, zoneScale)
+setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
+    ---@param zonePositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
+    ---@param zoneRotation ge_tts__CharVec3|ge_tts__NumVec3
+    ---@param zoneScale ge_tts__CharVec3|ge_tts__NumVec3
+    ---@param occupantScale number|nil @Optional - occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.
+    __call = function(_, zonePositionOrData, zoneRotation, zoneScale, occupantScale)
+        ---@type ge_tts__DropZone
+        local self = Zone(zonePositionOrData, zoneRotation, zoneScale)
 
-            if DropZone.isSavedState(zonePositionOrData) then
-                local data = zonePositionOrData
+        if DropZone.isSavedState(zonePositionOrData) then
+            local data = zonePositionOrData
 
-                occupantScale = data.occupantScale
-            end
+            occupantScale = data.occupantScale
+        end
 
-            ---@return number|nil @occupant's desired X-axis scale
-            function self.getOccupantScale()
-                return occupantScale
-            end
+        ---@return number|nil @occupant's desired X-axis scale
+        function self.getOccupantScale()
+            return occupantScale
+        end
 
-            local superOnDrop = self.onDrop
+        local superOnDrop = self.onDrop
 
-            --- Called when a TTS object is dropped within this DropZone.
-            ---@param colorName string @Color of the TTS player that dropped the TTS object.
-            ---@param object userdata @tts__Object - The object that was dropped.
-            ---@param dynamicallyDropped boolean - true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
-            function self.onDrop(colorName, object, dynamicallyDropped)
-                if dynamicallyDropped or Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
-                    superOnDrop(colorName, object, false)
+        --- Called when a TTS object is dropped within this DropZone.
+        ---@param colorName string @Color of the TTS player that dropped the TTS object.
+        ---@param object userdata @tts__Object - The object that was dropped.
+        ---@param dynamicallyDropped boolean - true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
+        function self.onDrop(colorName, object, dynamicallyDropped)
+            if dynamicallyDropped or Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
+                superOnDrop(colorName, object, false)
 
-                    local objectRotation = object.getRotation()
-                    local facingRotation = 0
+                local objectRotation = object.getRotation()
+                local facingRotation = 0
 
-                    if objectRotation[3] > 90 then
-                        facingRotation = 180
-                    elseif objectRotation[3] < -90 then
-                        facingRotation = -180
-                    end
-
-                    local position = self.getPosition()
-                    local rotation = self.getRotation()
-
-                    object.setPositionSmooth({ position[1], object.getPosition()[2], position[3] })
-                    object.setRotationSmooth({ 0, rotation.y, facingRotation })
-
-                    if occupantScale then
-                        object.scale(occupantScale / object.getScale()[1])
-                    end
+                if objectRotation[3] > 90 then
+                    facingRotation = 180
+                elseif objectRotation[3] < -90 then
+                    facingRotation = -180
                 end
-            end
 
-            local superInsertOccupyingObject = self.insertOccupyingObject
+                local position = self.getPosition()
+                local rotation = self.getRotation()
 
-            --- Used programmatically when `object` should be made a direct occupant, but not dropped by a player.
-            ---@param object userdata @tts__Object - The object that was dropped.
-            function self.insertOccupyingObject(object)
+                object.setPositionSmooth({ position[1], object.getPosition()[2], position[3] })
+                object.setRotationSmooth({ 0, rotation.y, facingRotation })
+
                 if occupantScale then
                     object.scale(occupantScale / object.getScale()[1])
                 end
+            end
+        end
 
-                superInsertOccupyingObject(object)
+        local superInsertOccupyingObject = self.insertOccupyingObject
+
+        --- Used programmatically when `object` should be made a direct occupant, but not dropped by a player.
+        ---@param object userdata @tts__Object - The object that was dropped.
+        function self.insertOccupyingObject(object)
+            if occupantScale then
+                object.scale(occupantScale / object.getScale()[1])
             end
 
-            local superSave = self.save
+            superInsertOccupyingObject(object)
+        end
 
-            function self.save()
-                return TableUtils.merge(superSave(), {
-                    occupantScale = occupantScale,
-                })
-            end
+        local superSave = self.save
 
-            function self.toString()
-                return 'DropZone (' .. tostring(self.getScriptingZone().getGUID()) .. ')'
-            end
+        function self.save()
+            return TableUtils.merge(superSave(), {
+                occupantScale = occupantScale,
+            })
+        end
 
-            return self
-        end,
-        __index = Zone,
-    }))
+        function self.toString()
+            return 'DropZone (' .. tostring(self.getScriptingZone().getGUID()) .. ')'
+        end
 
-    return DropZone
-end)
+        return self
+    end,
+    __index = Zone,
+}))
+
+return DropZone

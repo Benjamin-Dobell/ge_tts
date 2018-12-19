@@ -1,231 +1,230 @@
 -- This module operates on tables that contain only positive consecutive integer keys starting at 1 (i.e. a plain array), as well as tables which contain no
 -- array component. Behavior is undefined for tables that contain a key for [1] as well as non-consecutive integer or non-integer keys.
-ge_tts_package('ge_tts/TableUtils', function()
-    ---@module ge_tts__TableUtils
-    local TableUtils = {}
 
-    --- Returns true if `tab` contains an entry at index 1. That being the case, this module will assume `tab` only contains sequential positive integer keys.
-    ---@param tab table
-    TableUtils.isArray = function(tab)
-        return tab[1] ~= nil
-    end
+---@module ge_tts__TableUtils
+local TableUtils = {}
 
-    TableUtils.map = function(tab, func)
-        local mapped = {}
+--- Returns true if `tab` contains an entry at index 1. That being the case, this module will assume `tab` only contains sequential positive integer keys.
+---@param tab table
+TableUtils.isArray = function(tab)
+    return tab[1] ~= nil
+end
 
-        if TableUtils.isArray(tab) then
-            for i, v in ipairs(tab) do
-                mapped[i] = func(v, i)
-            end
-        else
-            for k, v in pairs(tab) do
-                mapped[k] = func(v, k)
-            end
+TableUtils.map = function(tab, func)
+    local mapped = {}
+
+    if TableUtils.isArray(tab) then
+        for i, v in ipairs(tab) do
+            mapped[i] = func(v, i)
         end
-
-        return mapped
-    end
-
-    TableUtils.invert = function(tab)
-        local inverted = {}
-
+    else
         for k, v in pairs(tab) do
-          inverted[v] = k
+            mapped[k] = func(v, k)
         end
-
-        return inverted
     end
 
-    TableUtils.remap = function(tab, func)
-        local remapped = {}
+    return mapped
+end
 
-        if TableUtils.isArray(tab) then
-            for i, v in ipairs(tab) do
-                remapped[func(v, i)] = v
-            end
-        else
-            for k, v in pairs(tab) do
-                remapped[func(v, k)] = v
-            end
-        end
+TableUtils.invert = function(tab)
+    local inverted = {}
 
-        return remapped
+    for k, v in pairs(tab) do
+      inverted[v] = k
     end
 
-    TableUtils.select = function(tab, func)
-        local selected = {}
+    return inverted
+end
 
-        if TableUtils.isArray(tab) then
-            local index = 1
-            for i, v in ipairs(tab) do
-                if func(v, i) then
-                    selected[index] = v
-                    index = index + 1
-                end
-            end
-        else
-            for k, v in pairs(tab) do
-                if func(v, k) then
-                    selected[k] = v
-                end
-            end
+TableUtils.remap = function(tab, func)
+    local remapped = {}
+
+    if TableUtils.isArray(tab) then
+        for i, v in ipairs(tab) do
+            remapped[func(v, i)] = v
         end
-
-        return selected
-    end
-
-    TableUtils.reject = function(tab, func)
-        return TableUtils.select(tab, function(v, k) return not func(v, k) end)
-    end
-
-    TableUtils.reduce = function(tab, initialOrFunc, funcOrNil)
-        local memo = funcOrNil and initialOrFunc or next(tab)
-        local func = funcOrNil or initialOrFunc
-
-        local initialK = nil
-
-        if not funcOrNil then
-            initialK = memo
-        end
-
-        for k, v in next, tab, initialK do
-            memo = func(memo, v, k)
-        end
-
-        return memo
-    end
-
-    TableUtils.find = function(tab, value)
-        if TableUtils.isArray(tab) then
-            for i, v in ipairs(tab) do
-                if v == value then
-                    return i
-                end
-            end
-        else
-            for k, v in pairs(tab) do
-                if v == value then
-                    return k
-                end
-            end
-        end
-
-        return nil
-    end
-
-    TableUtils.detect = function(tab, func)
-        if TableUtils.isArray(tab) then
-            for i, v in ipairs(tab) do
-                if func(v, i) then
-                    return v, i
-                end
-            end
-        else
-            for k, v in pairs(tab) do
-                if func(v, k) then
-                    return v, k
-                end
-            end
-        end
-
-        return nil, nil
-    end
-
-    TableUtils.copy = function(tab, recursive)
-        local copied = {}
-
+    else
         for k, v in pairs(tab) do
-            copied[k] = (recursive and type(v) == 'table' and TableUtils.copy(v, true)) or v
+            remapped[func(v, k)] = v
         end
-
-        return copied
     end
 
-    TableUtils.inject = function(tab, ...)
-        local otherTables = { ... }
+    return remapped
+end
 
-        for _, t in ipairs(otherTables) do
-            if TableUtils.isArray(tab) then
-                for _, v in ipairs(t) do
-                    table.insert(tab, v)
-                end
+TableUtils.select = function(tab, func)
+    local selected = {}
+
+    if TableUtils.isArray(tab) then
+        local index = 1
+        for i, v in ipairs(tab) do
+            if func(v, i) then
+                selected[index] = v
+                index = index + 1
+            end
+        end
+    else
+        for k, v in pairs(tab) do
+            if func(v, k) then
+                selected[k] = v
+            end
+        end
+    end
+
+    return selected
+end
+
+TableUtils.reject = function(tab, func)
+    return TableUtils.select(tab, function(v, k) return not func(v, k) end)
+end
+
+TableUtils.reduce = function(tab, initialOrFunc, funcOrNil)
+    local memo = funcOrNil and initialOrFunc or next(tab)
+    local func = funcOrNil or initialOrFunc
+
+    local initialK = nil
+
+    if not funcOrNil then
+        initialK = memo
+    end
+
+    for k, v in next, tab, initialK do
+        memo = func(memo, v, k)
+    end
+
+    return memo
+end
+
+TableUtils.find = function(tab, value)
+    if TableUtils.isArray(tab) then
+        for i, v in ipairs(tab) do
+            if v == value then
+                return i
+            end
+        end
+    else
+        for k, v in pairs(tab) do
+            if v == value then
+                return k
+            end
+        end
+    end
+
+    return nil
+end
+
+TableUtils.detect = function(tab, func)
+    if TableUtils.isArray(tab) then
+        for i, v in ipairs(tab) do
+            if func(v, i) then
+                return v, i
+            end
+        end
+    else
+        for k, v in pairs(tab) do
+            if func(v, k) then
+                return v, k
+            end
+        end
+    end
+
+    return nil, nil
+end
+
+TableUtils.copy = function(tab, recursive)
+    local copied = {}
+
+    for k, v in pairs(tab) do
+        copied[k] = (recursive and type(v) == 'table' and TableUtils.copy(v, true)) or v
+    end
+
+    return copied
+end
+
+TableUtils.inject = function(tab, ...)
+    local otherTables = { ... }
+
+    for _, t in ipairs(otherTables) do
+        if TableUtils.isArray(tab) then
+            for _, v in ipairs(t) do
+                table.insert(tab, v)
+            end
+        else
+            for k, v in pairs(t) do
+                tab[k] = v
+            end
+        end
+    end
+end
+
+TableUtils.merge = function(...)
+    local merged = {}
+    TableUtils.inject(merged, table.unpack({ ... }))
+    return merged
+end
+
+TableUtils.keys = function(tab)
+    local keys = {}
+
+    for k, _ in pairs(tab) do
+        table.insert(keys, k)
+    end
+
+    return keys
+end
+
+TableUtils.count = function(tab)
+    local count = 0
+
+    for _, _ in pairs(tab) do
+        count = count + 1
+    end
+
+    return count
+end
+
+local TYPE_STRINGIFIERS = {
+    ['nil'] = function(v) return 'nil' end,
+    boolean = function(v) return tostring(v) end,
+    number = function(v) return tostring(v) end,
+    string = function(v) return "'" .. v .. "'" end,
+    userdata = function(v) return 'userdata' end,
+    ['function'] = function(v) return 'function' end,
+    thread = function(v) return 'thread' end,
+    table = function(v) return tostring(v) end,
+}
+
+TableUtils.dump = function(tab, recursive, depth)
+    depth = depth or 1
+
+    local indentation = string.rep('  ', depth)
+    local string = '{'
+
+    if TableUtils.isArray(tab) then
+        for i, v in ipairs(tab) do
+            string = string .. '\n' .. indentation .. '[' .. i .. '] = '
+
+            if recursive and type(v) == 'table' then
+                string = string .. TableUtils.dump(v, true, depth + 1) .. ','
             else
-                for k, v in pairs(t) do
-                    tab[k] = v
-                end
+                string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
+            end
+        end
+    else
+        for k, v in pairs(tab) do
+            string = string .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
+
+            if recursive and type(v) == 'table' then
+                string = string .. TableUtils.dump(v, true, depth + 1) .. ','
+            else
+                string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
             end
         end
     end
 
-    TableUtils.merge = function(...)
-        local merged = {}
-        TableUtils.inject(merged, table.unpack({ ... }))
-        return merged
-    end
+    string = string .. '\n' .. string.rep('  ', depth - 1) .. '}'
 
-    TableUtils.keys = function(tab)
-        local keys = {}
+    return string
+end
 
-        for k, _ in pairs(tab) do
-            table.insert(keys, k)
-        end
-
-        return keys
-    end
-
-    TableUtils.count = function(tab)
-        local count = 0
-
-        for _, _ in pairs(tab) do
-            count = count + 1
-        end
-
-        return count
-    end
-
-    local TYPE_STRINGIFIERS = {
-        ['nil'] = function(v) return 'nil' end,
-        boolean = function(v) return tostring(v) end,
-        number = function(v) return tostring(v) end,
-        string = function(v) return "'" .. v .. "'" end,
-        userdata = function(v) return 'userdata' end,
-        ['function'] = function(v) return 'function' end,
-        thread = function(v) return 'thread' end,
-        table = function(v) return tostring(v) end,
-    }
-
-    TableUtils.dump = function(tab, recursive, depth)
-        depth = depth or 1
-
-        local indentation = string.rep('  ', depth)
-        local string = '{'
-
-        if TableUtils.isArray(tab) then
-            for i, v in ipairs(tab) do
-                string = string .. '\n' .. indentation .. '[' .. i .. '] = '
-
-                if recursive and type(v) == 'table' then
-                    string = string .. TableUtils.dump(v, true, depth + 1) .. ','
-                else
-                    string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
-                end
-            end
-        else
-            for k, v in pairs(tab) do
-                string = string .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
-
-                if recursive and type(v) == 'table' then
-                    string = string .. TableUtils.dump(v, true, depth + 1) .. ','
-                else
-                    string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
-                end
-            end
-        end
-
-        string = string .. '\n' .. string.rep('  ', depth - 1) .. '}'
-
-        return string
-    end
-
-    return TableUtils
-end)
+return TableUtils

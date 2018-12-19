@@ -1,213 +1,211 @@
-ge_tts_package('ge_tts/Vector3', function()
-    --- A 3D vector with x, y and z fields.
-    ---@class ge_tts__CharVec3
-    ---@field x number
-    ---@field y number
-    ---@field z number
+--- A 3D vector with x, y and z fields.
+---@class ge_tts__CharVec3
+---@field x number
+---@field y number
+---@field z number
 
-    -- NOTE: EmmyLua doesn't seem to understand non-string field indexes. However, defining a type/class is still useful for documentation purposes.
-    --- A 3D vector with [1], [2] and [3] indexed fields.
-    ---@class ge_tts__NumVec3
-    ---@field 1 number
-    ---@field 2 number
-    ---@field 3 number
+-- NOTE: EmmyLua doesn't seem to understand non-string field indexes. However, defining a type/class is still useful for documentation purposes.
+--- A 3D vector with [1], [2] and [3] indexed fields.
+---@class ge_tts__NumVec3
+---@field 1 number
+---@field 2 number
+---@field 3 number
 
-    ---@class ge_tts__Vector3 : ge_ge_tts__CharVec3 @, ge_tts__NumVec3 - Unfortunately EmmyLua doesn't support type unions or multiple inheritance
-    local Vector3 = {}
+---@class ge_tts__Vector3 : ge_ge_tts__CharVec3 @, ge_tts__NumVec3 - Unfortunately EmmyLua doesn't support type unions or multiple inheritance
+local Vector3 = {}
 
-    ---@param vector ge_tts__Vector3
-    ---@param index any
-    local function numberedIndex(vector, index)
-        if type(index) == 'number' then
-            if index == 1 then
-                return vector.x
-            elseif index == 2 then
-                return vector.y
-            elseif index == 3 then
-                return vector.z
-            end
-
-            return nil
+---@param vector ge_tts__Vector3
+---@param index any
+local function numberedIndex(vector, index)
+    if type(index) == 'number' then
+        if index == 1 then
+            return vector.x
+        elseif index == 2 then
+            return vector.y
+        elseif index == 3 then
+            return vector.z
         end
+
+        return nil
     end
+end
 
-    setmetatable(Vector3, {
-        ---@param sourceXOrVector ge_tts__CharVec3|ge_tts__NumVec3|nil
-        ---@param sourceY number|nil
-        ---@param sourceZ number|nil
-        __call = function(_, sourceXOrVector, sourceY, sourceZ)
-            local self = {x = 0, y = 0, z = 0}
+setmetatable(Vector3, {
+    ---@param sourceXOrVector ge_tts__CharVec3|ge_tts__NumVec3|nil
+    ---@param sourceY number|nil
+    ---@param sourceZ number|nil
+    __call = function(_, sourceXOrVector, sourceY, sourceZ)
+        local self = {x = 0, y = 0, z = 0}
 
-            setmetatable(self, {
-                __index = numberedIndex,
-                __tostring = function(_)
-                    return self.toString()
-                end,
-            })
+        setmetatable(self, {
+            __index = numberedIndex,
+            __tostring = function(_)
+                return self.toString()
+            end,
+        })
 
-            if sourceXOrVector then
-                if type(sourceXOrVector) == 'table' then
-                    self.x = sourceXOrVector.x or sourceXOrVector[1] or self.x
-                    self.y = sourceXOrVector.y or sourceXOrVector[2] or self.y
-                    self.z = sourceXOrVector.z or sourceXOrVector[3] or self.z
-                else
-                    self.x = sourceXOrVector
-                    self.y = sourceY
-                    self.z = sourceZ
-                end
+        if sourceXOrVector then
+            if type(sourceXOrVector) == 'table' then
+                self.x = sourceXOrVector.x or sourceXOrVector[1] or self.x
+                self.y = sourceXOrVector.y or sourceXOrVector[2] or self.y
+                self.z = sourceXOrVector.z or sourceXOrVector[3] or self.z
+            else
+                self.x = sourceXOrVector
+                self.y = sourceY
+                self.z = sourceZ
             end
+        end
 
-            ---@return string
-            function self.toString()
-                return '{x = ' .. self.x .. ', y = ' .. self.y .. ', z = ' .. self.z .. '}'
-            end
+        ---@return string
+        function self.toString()
+            return '{x = ' .. self.x .. ', y = ' .. self.y .. ', z = ' .. self.z .. '}'
+        end
 
-            ---@return ge_tts__CharVec3
-            function self.toData()
-                return {x = self.x, y = self.y, z = self.z}
-            end
+        ---@return ge_tts__CharVec3
+        function self.toData()
+            return {x = self.x, y = self.y, z = self.z}
+        end
 
-            ---@return number
-            function self.lengthSquared()
-                return Vector3.lengthSquared(self)
-            end
+        ---@return number
+        function self.lengthSquared()
+            return Vector3.lengthSquared(self)
+        end
 
-            ---@return number
-            function self.length()
-                return Vector3.length(self)
-            end
+        ---@return number
+        function self.length()
+            return Vector3.length(self)
+        end
 
-            ---Add a vector to self.
-            ---@param v ge_tts__CharVec3|ge_tts__NumVec3
-            ---@return ge_tts__Vector3 @self
-            function self.add(v)
-                self.x = self.x + (v.x or v[1])
-                self.y = self.y + (v.y or v[2])
-                self.z = self.z + (v.z or v[3])
-                return self
-            end
-
-            ---Subtract a vector from self.
-            ---@param v ge_tts__CharVec3|ge_tts__NumVec3
-            ---@return ge_tts__Vector3 @self
-            function self.sub(v)
-                self.x = self.x - (v.x or v[1])
-                self.y = self.y - (v.y or v[2])
-                self.z = self.z - (v.z or v[3])
-                return self
-            end
-
-            ---@param factor number
-            ---@return ge_tts__Vector3 @self
-            function self.scale(factor)
-                self.x = self.x * factor
-                self.y = self.y * factor
-                self.z = self.z * factor
-                return self
-            end
-
-            ---@return ge_tts__Vector3 @self
-            function self.normalize()
-                return self.scale(1 / self.length())
-            end
-
+        ---Add a vector to self.
+        ---@param v ge_tts__CharVec3|ge_tts__NumVec3
+        ---@return ge_tts__Vector3 @self
+        function self.add(v)
+            self.x = self.x + (v.x or v[1])
+            self.y = self.y + (v.y or v[2])
+            self.z = self.z + (v.z or v[3])
             return self
-        end,
-    })
+        end
 
-    ---@param v ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return number
-    function Vector3.lengthSquared(v)
-        local x = v.x or v[1]
-        local y = v.y or v[2]
-        local z = v.z or v[3]
-        return x * x + y * y + z * z
-    end
+        ---Subtract a vector from self.
+        ---@param v ge_tts__CharVec3|ge_tts__NumVec3
+        ---@return ge_tts__Vector3 @self
+        function self.sub(v)
+            self.x = self.x - (v.x or v[1])
+            self.y = self.y - (v.y or v[2])
+            self.z = self.z - (v.z or v[3])
+            return self
+        end
 
-    ---@param v ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return number
-    function Vector3.length(v)
-        return math.sqrt(Vector3.lengthSquared(v))
-    end
+        ---@param factor number
+        ---@return ge_tts__Vector3 @self
+        function self.scale(factor)
+            self.x = self.x * factor
+            self.y = self.y * factor
+            self.z = self.z * factor
+            return self
+        end
 
-    ---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return ge_tts__Vector3
-    function Vector3.add(v1, v2)
-        return Vector3(v1).add(v2)
-    end
+        ---@return ge_tts__Vector3 @self
+        function self.normalize()
+            return self.scale(1 / self.length())
+        end
 
-    ---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return ge_tts__Vector3
-    function Vector3.sub(v1, v2)
-        return Vector3(v1).sub(v2)
-    end
+        return self
+    end,
+})
 
-    ---@param v ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param factor number
-    ---@return ge_tts__Vector3
-    function Vector3.scale(v, factor)
-        return Vector3(v).scale(factor)
-    end
+---@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@return number
+function Vector3.lengthSquared(v)
+    local x = v.x or v[1]
+    local y = v.y or v[2]
+    local z = v.z or v[3]
+    return x * x + y * y + z * z
+end
 
-    ---@param v ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return ge_tts__Vector3
-    function Vector3.normalize(v)
-        return Vector3(v).normalize()
-    end
+---@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@return number
+function Vector3.length(v)
+    return math.sqrt(Vector3.lengthSquared(v))
+end
 
-    ---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return ge_tts__Vector3
-    function Vector3.cross(v1, v2)
-        local x1 = v1.x or v1[1]
-        local y1 = v1.y or v1[2]
-        local z1 = v1.z or v1[3]
+---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@return ge_tts__Vector3
+function Vector3.add(v1, v2)
+    return Vector3(v1).add(v2)
+end
 
-        local x2 = v2.x or v2[1]
-        local y2 = v2.y or v2[2]
-        local z2 = v2.z or v2[3]
+---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@return ge_tts__Vector3
+function Vector3.sub(v1, v2)
+    return Vector3(v1).sub(v2)
+end
 
-        return Vector3(y1 * z2 - z1 * y2, z1 * x2 - x1 * z2, x1 * y2 - y1 * x2)
-    end
+---@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@param factor number
+---@return ge_tts__Vector3
+function Vector3.scale(v, factor)
+    return Vector3(v).scale(factor)
+end
 
-    ---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return number
-    function Vector3.dot(v1, v2)
-        local x1 = v1.x or v1[1]
-        local y1 = v1.y or v1[2]
-        local z1 = v1.z or v1[3]
+---@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@return ge_tts__Vector3
+function Vector3.normalize(v)
+    return Vector3(v).normalize()
+end
 
-        local x2 = v2.x or v2[1]
-        local y2 = v2.y or v2[2]
-        local z2 = v2.z or v2[3]
+---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@return ge_tts__Vector3
+function Vector3.cross(v1, v2)
+    local x1 = v1.x or v1[1]
+    local y1 = v1.y or v1[2]
+    local z1 = v1.z or v1[3]
 
-        return x1 * x2 + y1 * y2 + z1 * z2
-    end
+    local x2 = v2.x or v2[1]
+    local y2 = v2.y or v2[2]
+    local z2 = v2.z or v2[3]
 
-    ---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return number
-    function Vector3.distanceSquared(v1, v2)
-        local x1 = v1.x or v1[1]
-        local y1 = v1.y or v1[2]
-        local z1 = v1.z or v1[3]
+    return Vector3(y1 * z2 - z1 * y2, z1 * x2 - x1 * z2, x1 * y2 - y1 * x2)
+end
 
-        local x2 = v2.x or v2[1]
-        local y2 = v2.y or v2[2]
-        local z2 = v2.z or v2[3]
+---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@return number
+function Vector3.dot(v1, v2)
+    local x1 = v1.x or v1[1]
+    local y1 = v1.y or v1[2]
+    local z1 = v1.z or v1[3]
 
-        return Vector3.lengthSquared({x = x2 - x1, y = y2 - y1, z = z2 - z1})
-    end
+    local x2 = v2.x or v2[1]
+    local y2 = v2.y or v2[2]
+    local z2 = v2.z or v2[3]
 
-    ---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
-    ---@return number
-    function Vector3.distance(v1, v2)
-        return math.sqrt(Vector3.distanceSquared(v1, v2))
-    end
+    return x1 * x2 + y1 * y2 + z1 * z2
+end
 
-    return Vector3
-end)
+---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@return number
+function Vector3.distanceSquared(v1, v2)
+    local x1 = v1.x or v1[1]
+    local y1 = v1.y or v1[2]
+    local z1 = v1.z or v1[3]
+
+    local x2 = v2.x or v2[1]
+    local y2 = v2.y or v2[2]
+    local z2 = v2.z or v2[3]
+
+    return Vector3.lengthSquared({x = x2 - x1, y = y2 - y1, z = z2 - z1})
+end
+
+---@param v1 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@return number
+function Vector3.distance(v1, v2)
+    return math.sqrt(Vector3.distanceSquared(v1, v2))
+end
+
+return Vector3
