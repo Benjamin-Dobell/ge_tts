@@ -88,10 +88,18 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
 
         local superDrop = self.drop
 
-        --- Can be called to dynamically drop (deal) a TTS object into this HandZone. Only works for containers or objects with `use_hands` enabled.
+        --- Can be called to dynamically drop (deal) a TTS object into this HandZone. Works for containers or objects with `use_hands` enabled.
         ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object userdata @tts__Object - The object that will be dropped.
         function self.drop(colorName, object)
+            local isContainer = TableUtils.find(CONTAINER_TYPES, object.tag)
+            self.deal(colorName, object, isContainer and object.GetQuantity() or 1)
+        end
+
+        --- Same as onDrop except that we provide a count which is the maximum number of objects dealt from a container.
+        ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
+        ---@param object userdata @tts__Object - The object that will be dropped.
+        function self.deal(colorName, object, count)
             local isContainer = TableUtils.find(CONTAINER_TYPES, object.tag)
 
             if not isContainer and not object.use_hands then
@@ -107,7 +115,9 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
                 local offset = getDealOffset(owner, handIndex)
                 local rotation = Vector3(zoneRotation.x, zoneRotation.y + 180, zoneRotation.z)
 
-                for i = 1, object.GetQuantity() do
+                local quantity = math.min(count, object.GetQuantity())
+
+                for i = 1, quantity do
                     object.takeObject({
                         position = Vector3.scale(offset, i).add(origin),
                         rotation = rotation,
