@@ -42,7 +42,8 @@ EventManager.addHandler('onCollisionEnter', function(collisionInfo)
     local object = collisionInfo.object
     local collisionObject = collisionInfo.collision_object
 
-    if object.tag == 'Card' and collisionObject.tag == 'Card' then
+    -- Note: When you nudge ('N' on keyboard) collisionObject is nil for some reason...
+    if object.tag == 'Card' and collisionObject and collisionObject.tag == 'Card' then
         local cardCollisions = frameCardObjectCollisions[object] or {}
         table.insert(cardCollisions, collisionObject)
         frameCardObjectCollisions[object] = cardCollisions
