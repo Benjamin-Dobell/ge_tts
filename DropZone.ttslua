@@ -21,15 +21,28 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@type ge_tts__DropZone
         local self = Zone(zonePositionOrData, zoneRotation, zoneScale)
 
+        local rotationEnabled = true
+
         if DropZone.isSavedState(zonePositionOrData) then
             local data = zonePositionOrData
 
             occupantScale = data.occupantScale
+            rotationEnabled = data.rotationEnabled
         end
 
         ---@return number|nil @occupant's desired X-axis scale
         function self.getOccupantScale()
             return occupantScale
+        end
+
+        ---@return boolean
+        function self.getRotationEnabled()
+            return rotationEnabled
+        end
+
+        ---@param enabled boolean
+        function self.setRotationEnabled(enabled)
+            rotationEnabled = enabled
         end
 
         local superOnDrop = self.onDrop
@@ -55,7 +68,10 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                 local rotation = self.getRotation()
 
                 object.setPositionSmooth({ position[1], object.getPosition()[2], position[3] })
-                object.setRotationSmooth({ 0, rotation.y, facingRotation })
+
+                if rotationEnabled then
+                    object.setRotationSmooth({ 0, rotation.y, facingRotation })
+                end
 
                 if occupantScale then
                     object.scale(occupantScale / object.getScale()[1])
@@ -80,6 +96,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         function self.save()
             return TableUtils.merge(superSave(), {
                 occupantScale = occupantScale,
+                rotationEnabled = rotationEnabled,
             })
         end
 
