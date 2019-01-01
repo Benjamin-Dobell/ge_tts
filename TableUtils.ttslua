@@ -163,6 +163,18 @@ TableUtils.merge = function(...)
     return merged
 end
 
+TableUtils.flatten = function(tab)
+    local flattened = {}
+
+    for _, subTable in ipairs(tab) do
+        for _, v in ipairs(subTable) do
+            table.insert(flattened, v)
+        end
+    end
+
+    return flattened
+end
+
 TableUtils.keys = function(tab)
     local keys = {}
 
