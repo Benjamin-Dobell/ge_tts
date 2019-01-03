@@ -19,7 +19,7 @@ local objectZonesMap = {}
 local function addObjectZone(object, zone)
     local objectZones = objectZonesMap[object]
 
-    if objectZones then
+    if objectZones and not TableUtils.find(objectZones, zone) then
         table.insert(objectZones, zone)
     else
         objectZonesMap[object] = { zone }
@@ -266,15 +266,24 @@ EventManager.addHandler('onObjectLeaveContainer', function(container, object)
     local objectPosition = object.getPosition()
     local containerPosition = container.getPosition()
 
-    if #container.getObjects() == 0 and objectPosition[2] <= containerPosition[2] and objectPosition[1] == containerPosition[1] and objectPosition[3] == containerPosition[3] then
-        for _, zone in ipairs(Zone.getObjectZones(object)) do
-            if TableUtils.find(zone.getOccupyingObjects(), container) and not TableUtils.find(zone.getOccupyingObjects(), object) then
-                Logger.log(
-                        object.tag .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone) ' as it was the bottom ' ..
-                                object.tag .. ' in now empty ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ').',
+    if #container.getObjects() == 0
+        and objectPosition.y <= containerPosition.y
+        and objectPosition.x == containerPosition.x
+        and objectPosition.z == containerPosition.z
+    then
+        local zones = Zone.getObjectZones(container)
+
+        for _, zone in ipairs(zones) do
+            if TableUtils.find(zone.getOccupyingObjects(), container) then
+                if not TableUtils.find(zone.getOccupyingObjects(), object) then
+                    Logger.log(
+                        object.tag .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone) .. ' as it was the bottom ' ..
+                            object.tag .. ' in now empty ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ').',
                         Logger.DEBUG
-                )
-                zone.insertOccupyingObject(object)
+                    )
+                    zone.insertOccupyingObject(object)
+                end
+
                 break
             end
         end
