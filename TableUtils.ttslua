@@ -195,6 +195,32 @@ TableUtils.count = function(tab)
     return count
 end
 
+TableUtils.reverse = function(arr)
+    local reversed = {}
+
+    if TableUtils.isArray(arr) then
+        for i = #arr, 1, -1 do
+            table.insert(reversed, arr[i])
+        end
+    end
+
+    return reversed
+end
+
+TableUtils.range = function(arr, start, finish)
+    local range = {}
+
+    if TableUtils.isArray(arr) then
+        finish = finish and math.min(finish, #arr) or #arr
+
+        for i = start, finish do
+            table.insert(range, arr[i])
+        end
+    end
+
+    return range
+end
+
 local TYPE_STRINGIFIERS = {
     ['nil'] = function(v) return 'nil' end,
     boolean = function(v) return tostring(v) end,
