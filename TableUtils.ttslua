@@ -221,6 +221,18 @@ TableUtils.range = function(arr, start, finish)
     return range
 end
 
+TableUtils.unique = function(arr)
+    local unique = {}
+
+    for _, value in ipairs(arr) do
+        if not TableUtils.find(unique, value) then
+            table.insert(unique, value)
+        end
+    end
+
+    return unique
+end
+
 local TYPE_STRINGIFIERS = {
     ['nil'] = function(v) return 'nil' end,
     boolean = function(v) return tostring(v) end,
