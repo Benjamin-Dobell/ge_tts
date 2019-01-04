@@ -56,18 +56,20 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                 superOnDrop(colorName, object, false)
 
                 local objectRotation = object.getRotation()
-                local facingRotation = 0
+                local facingRotation = (objectRotation.z + 360) % 360
 
-                if objectRotation[3] > 90 then
+                if facingRotation >= 270 then
+                    facingRotation = 360
+                elseif facingRotation <= 90 then
+                    facingRotation = 0
+                else
                     facingRotation = 180
-                elseif objectRotation[3] < -90 then
-                    facingRotation = -180
                 end
 
                 local position = self.getPosition()
                 local rotation = self.getRotation()
 
-                object.setPositionSmooth({ position[1], object.getPosition()[2], position[3] })
+                object.setPositionSmooth({ position.x, object.getPosition().y, position.z })
 
                 if rotationEnabled then
                     object.setRotationSmooth({ 0, rotation.y, facingRotation })
