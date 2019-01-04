@@ -22,6 +22,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         local self = Zone(zonePositionOrData, zoneRotation, zoneScale)
 
         local rotationEnabled = true
+        local forceFaceUp = false
 
         if DropZone.isSavedState(zonePositionOrData) then
             local data = zonePositionOrData
@@ -45,6 +46,17 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             rotationEnabled = enabled
         end
 
+        ---@return boolean
+        function self.getForceFaceUp()
+            return forceFaceUp
+        end
+
+        ---@param enabled boolean
+        function self.setForceFaceUp(enabled)
+            forceFaceUp = enabled
+        end
+
+
         local superOnDrop = self.onDrop
 
         --- Called when a TTS object is dropped within this DropZone.
@@ -56,14 +68,20 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                 superOnDrop(colorName, object, false)
 
                 local objectRotation = object.getRotation()
-                local facingRotation = (objectRotation.z + 360) % 360
+                local facingRotation
 
-                if facingRotation >= 270 then
-                    facingRotation = 360
-                elseif facingRotation <= 90 then
+                if forceFaceUp then
                     facingRotation = 0
                 else
-                    facingRotation = 180
+                    facingRotation = (objectRotation.z + 360) % 360
+
+                    if facingRotation >= 270 then
+                        facingRotation = 360
+                    elseif facingRotation <= 90 then
+                        facingRotation = 0
+                    else
+                        facingRotation = 180
+                    end
                 end
 
                 local position = self.getPosition()
