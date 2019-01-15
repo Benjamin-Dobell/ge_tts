@@ -66,6 +66,12 @@ Typically, to make use of this package you'd create your own package/"class" whe
 
 `HandZone` is itself a sub-class of `Zone`, so for an example of how you can extend a "class" please refer to `HandZone.ttslua` (or `DropZone.ttslua`).
 
+### Http
+
+A simple (but functionally complete) HTTP client that works in conjunction with [tts-proxy](https://github.com/Benjamin-Dobell/tts-proxy).
+
+The Http module will automatically encode/decode JSON, otherwise you can provide a string and specify headers yourself. You may also provide an array of number, which represent bytes if the request body should be an octet-stream.
+
 ### InstanceCollisionProxy
 
 Dependencies: **core**

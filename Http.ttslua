@@ -1,0 +1,148 @@
+---@type ge_tts__Base64
+local Base64 = require('ge_tts/Base64')
+
+---@type ge_tts__TableUtils
+local TableUtils = require('ge_tts/TableUtils')
+
+local proxyUrl
+local decodeJsonContentType = 'application/json'
+
+---@module ge_tts__Http
+local Http = {}
+
+---@param url string
+function Http.setProxyUrl(url)
+    proxyUrl = url
+end
+
+---@return string|nil
+function Http.getProxyUrl()
+    return proxyUrl
+end
+
+---@param type string|nil
+function Http.setDecodeJsonContentType(type)
+    decodeJsonContentType = type
+end
+
+---@return string|nil
+function Http.getDecodeJsonContentType()
+    return decodeJsonContentType
+end
+
+---@param headers table
+---@param name string
+---@return string|nil, string|nil @value, headerName - `headerName` being the case-sensitive variant of `name` found within headers
+function Http.getHeader(headers, name)
+    name = name:lower()
+
+    return TableUtils.detect(headers, function(_, key)
+        return key:lower() == name
+    end)
+end
+
+---@param method string
+---@param url string
+---@param options table
+---@param callback fun(table, string) @function(response, error)
+function Http.request(method, url, options, callback)
+    assert(proxyUrl, 'Http must be configured with Http.setProxyUrl(\'YOUR_TTS_PROXY_URL\'). Please refer to https://gitlab.com/BenjaminDobell/tts-proxy for details.')
+
+    content = JSON.encode(TableUtils.merge(
+        {
+            headers={},
+        },
+        options,
+        {
+            method=method:upper(),
+            url=url,
+        }
+    ))
+
+    WebRequest.put(proxyUrl, content, function(request)
+        if request.is_error then
+            callback(nil, request.error)
+        elseif request.is_done then
+            response = JSON.decode(request.text)
+
+            if response.base64 then
+                response.base64 = nil
+                response.body = Base64.decode(response.body)
+            else
+                local contentType = Http.getHeader(response.headers, 'Content-Type')
+
+                if contentType and contentType:lower() == decodeJsonContentType then
+                    response.body = JSON.decode(response.body)
+                end
+            end
+
+            callback(response)
+        end
+    end)
+end
+
+---@param method string
+---@param url string
+---@param options table
+---@param callback fun(table, string) @function(response, error)
+function Http.submit(method, url, body, headers, callback)
+    headers = headers or {}
+
+    if type(body[1]) == 'number' then
+        headers = TableUtils.merge(headers, {base64=true})
+        body = Base64.encode(body)
+    elseif type(body) == 'table' then
+        local contentType, contentTypeHeader = Http.getHeader(headers, 'Content-Type')
+        contentTypeHeader = contentTypeHeader or 'Content-Type'
+
+        if not (contentType and contentType:endsWith('json')) then
+            headers = TableUtils.merge(headers, {[contentTypeHeader]='application/json'})
+        end
+
+        body = JSON.encode(body)
+    end
+
+    Http.request(method, url, {headers=headers, body=body}, callback)
+end
+
+---@param method string
+---@param url string
+---@param headers table|nil
+---@param callback fun(table, string) @function(response, error)
+function Http.delete(url, headers, callback)
+    Http.request('DELETE', url, {headers=headers}, callback)
+end
+
+---@param method string
+---@param url string
+---@param headers table
+---@param callback fun(table, string) @function(response, error)
+function Http.get(url, headers, callback)
+    Http.request('GET', url, {headers=headers}, callback)
+end
+
+---@param method string
+---@param url string
+---@param headers table|nil
+---@param callback fun(table, string) @function(response, error)
+function Http.patch(url, body, headers, callback)
+    Http.submit('PATCH', url, body, headers, callback)
+end
+
+---@param method string
+---@param url string
+---@param headers table|nil
+---@param callback fun(table, string) @function(response, error)
+function Http.post(url, body, headers, callback)
+    Http.submit('POST', url, body, headers, callback)
+end
+
+---@param method string
+---@param url string
+---@param headers table|nil
+---@param callback fun(table, string) @function(response, error)
+function Http.put(url, body, headers, callback)
+    Http.submit('PUT', url, body, headers, callback)
+end
+
+return Http
