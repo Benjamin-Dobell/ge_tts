@@ -244,37 +244,39 @@ local TYPE_STRINGIFIERS = {
     table = function(v) return tostring(v) end,
 }
 
-TableUtils.dump = function(tab, recursive, depth)
+function TableUtils.dump(tab, recursive, depth)
     depth = depth or 1
 
     local indentation = string.rep('  ', depth)
-    local string = '{'
+    local str = '{'
+    local ordered_keys = {}
 
-    if TableUtils.isArray(tab) then
-        for i, v in ipairs(tab) do
-            string = string .. '\n' .. indentation .. '[' .. i .. '] = '
+    for i, v in ipairs(tab) do
+        ordered_keys[i] = true
+        str = str .. '\n' .. indentation .. '[' .. i .. '] = '
 
-            if recursive and type(v) == 'table' then
-                string = string .. TableUtils.dump(v, true, depth + 1) .. ','
-            else
-                string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
-            end
+        if recursive and type(v) == 'table' then
+            str = str .. dump_table(v, true, depth + 1) .. ','
+        else
+            str = str .. TYPE_STRINGIFIERS[type(v)](v) .. ','
         end
-    else
-        for k, v in pairs(tab) do
-            string = string .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
+    end
+
+    for k, v in pairs(tab) do
+        if not ordered_keys[k] then
+            str = str .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
 
             if recursive and type(v) == 'table' then
-                string = string .. TableUtils.dump(v, true, depth + 1) .. ','
+                str = str .. dump_table(v, true, depth + 1) .. ','
             else
-                string = string .. TYPE_STRINGIFIERS[type(v)](v) .. ','
+                str = str .. TYPE_STRINGIFIERS[type(v)](v) .. ','
             end
         end
     end
 
-    string = string .. '\n' .. string.rep('  ', depth - 1) .. '}'
+    str = str .. '\n' .. string.rep('  ', depth - 1) .. '}'
 
-    return string
+    return str
 end
 
 return TableUtils
