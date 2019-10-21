@@ -1,0 +1,171 @@
+---@type ge_tts__TableUtils
+local TableUtils = require('ge_tts/TableUtils')
+
+---@type ge_tts__Vector3
+local Vector3 = require('ge_tts/Vector3')
+
+---@param position ge_tts__CharVec3|ge_tts__NumVec3
+---@param rotation ge_tts__CharVec3|ge_tts__NumVec3
+---@param scale ge_tts__CharVec3|ge_tts__NumVec3
+---@param options table
+---@param callback fun(object:userdata) @function(object:tts__ScriptingTrigger) - TTS object spawned callback
+local function spawn(position, rotation, scale, options, callback)
+    local json = TableUtils.merge({
+        Name = "ScriptingTrigger",
+        Transform = {
+            posX = position.x,
+            posY = position.y,
+            posZ = position.z,
+            rotX = rotation.x,
+            rotY = rotation.y,
+            rotZ = rotation.z,
+            scaleX = scale.x,
+            scaleY = scale.y,
+            scaleZ = scale.z,
+        },
+        Locked = true,
+        GUID = "000000"
+    }, options)
+
+    return spawnObjectJSON({
+        callback_function=callback,
+        json=JSON.encode(json)
+    })
+end
+
+---@type number
+local availableTriggerId = 1
+
+local function nextTriggerId()
+    local id = availableTriggerId
+    availableTriggerId = availableTriggerId + 1
+    return id
+end
+
+---@class ge_tts__Trigger
+local Trigger = {}
+
+setmetatable(Trigger, {
+    ---@param triggerPositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
+    ---@param triggerRotation ge_tts__CharVec3|ge_tts__NumVec3
+    ---@param triggerScale ge_tts__CharVec3|ge_tts__NumVec3
+    __call = function(class, ...)
+        local constructorArgs = { ... }
+        local triggerPositionOrData, triggerRotation, triggerScale = table.unpack(constructorArgs)
+
+        ---@type ge_tts__Trigger
+        local self = {}
+
+        setmetatable(self, {
+            __tostring = function(_)
+                return self.toString()
+            end
+        })
+
+        ---@type ge_tts__Vector3
+        local position
+        ---@type ge_tts__Vector3
+        local rotation
+        ---@type ge_tts__Vector3
+        local scale
+
+        ---@type userdata @tts__ScriptingTrigger
+        local scriptingTrigger
+
+        ---@type number
+        local triggerId
+
+        if Trigger.isSavedState(triggerPositionOrData) then
+            local data = triggerPositionOrData
+
+            position = Vector3(data.position)
+            rotation = Vector3(data.rotation)
+            scale = Vector3(data.scale)
+            scriptingTrigger = getObjectFromGUID(data.guid)
+            triggerId = data.triggerId
+
+            if availableTriggerId <= triggerId then
+                availableTriggerId = triggerId + 1
+            end
+        else
+            position = Vector3(triggerPositionOrData)
+            rotation = Vector3(triggerRotation)
+            scale = Vector3(triggerScale)
+            triggerId = nextTriggerId()
+        end
+
+        -- May be nil if onSave was called before we finished spawning
+        if not scriptingTrigger then
+            spawn(position, rotation, scale, class.spawnOptions(table.unpack(constructorArgs)), function(spawnedScriptingTrigger)
+                scriptingTrigger = spawnedScriptingTrigger
+                self.onSpawned()
+            end)
+        end
+
+        -- Callback for sub-classes to override.
+        function self.onSpawned()
+        end
+
+        ---@return ge_tts__Vector3
+        function self.getPosition()
+            return position
+        end
+
+        ---@return ge_tts__Vector3
+        function self.getRotation()
+            return rotation
+        end
+
+        ---@return ge_tts__Vector3
+        function self.getScale()
+            return scale
+        end
+
+        ---@return userdata @tts__ScriptingTrigger - associated TTS scripting trigger
+        function self.getScriptingTrigger()
+            return scriptingTrigger
+        end
+
+        ---@return number
+        function self.getTriggerId()
+            return triggerId
+        end
+
+        ---@return table
+        function self.save()
+            return {
+                __savedState = true,
+                guid = scriptingTrigger and scriptingTrigger.getGUID(),
+                position = position.toData(),
+                rotation = rotation.toData(),
+                scale = scale.toData(),
+                triggerId = triggerId,
+            }
+        end
+
+        function self.destruct()
+            scriptingTrigger.destruct()
+        end
+
+        ---@return string
+        function self.toString()
+            return 'Trigger #' .. triggerId .. '(' .. tostring(scriptingTrigger.getGUID()) .. ')'
+        end
+
+        return self
+    end,
+})
+
+---@param triggerPositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
+---@param triggerRotation ge_tts__CharVec3|ge_tts__NumVec3
+---@param triggerScale ge_tts__CharVec3|ge_tts__NumVec3
+---@param ... table @Whatever else sub-classes pass through.
+function Trigger.spawnOptions(...)
+    return {}
+end
+
+function Trigger.isSavedState(value)
+    return type(value) == 'table' and value.__savedState
+end
+
+return Trigger
