@@ -26,6 +26,8 @@ local function numberedIndex(vector, index)
     end
 end
 
+local RADIANS_RATIO = math.pi / 180
+
 setmetatable(Vector2, {
     ---@param sourceXOrVector ge_tts__CharVec2|ge_tts__NumVec2|number|nil
     ---@param sourceY number|nil
@@ -98,6 +100,16 @@ setmetatable(Vector2, {
         ---@return ge_tts__Vector2 @self
         function self.normalize()
             return self.scale(1 / self.length())
+        end
+
+        ---@param angle number @angle in degrees
+        ---@return ge_tts__Vector2 @self
+        function self.rotate(angle)
+            angle = angle * RADIANS_RATIO
+            local x = self.x
+            self.x = x * math.cos(angle) - self.y * math.sin(angle)
+            self.y = x * math.sin(angle) + self.y * math.cos(angle)
+            return self
         end
 
         return self
@@ -189,6 +201,18 @@ end
 ---@return number
 function Vector2.distance(v1, v2)
     return math.sqrt(Vector2.distanceSquared(v1, v2))
+end
+
+---@param v ge_tts__CharVec2|ge_tts__NumVec2
+---@param angle number @angle in degrees
+---@return ge_tts__Vector2
+function Vector2.rotate(v, angle)
+    angle = angle * RADIANS_RATIO
+
+    return Vector2(
+        v.x * math.cos(angle) - v.y * math.sin(angle),
+        v.x * math.sin(angle) + v.y * math.cos(angle)
+    )
 end
 
 ---@param v3 ge_tts__CharVec3|ge_tts__NumVec3

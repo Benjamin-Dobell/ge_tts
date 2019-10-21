@@ -30,6 +30,8 @@ local function numberedIndex(vector, index)
     end
 end
 
+local RADIANS_RATIO = math.pi / 180
+
 setmetatable(Vector3, {
     ---@param sourceXOrVector ge_tts__CharVec3|ge_tts__NumVec3|nil
     ---@param sourceY number|nil
@@ -108,6 +110,35 @@ setmetatable(Vector3, {
         ---@return ge_tts__Vector3 @self
         function self.normalize()
             return self.scale(1 / self.length())
+        end
+
+        ---@param angle number @angle in degrees
+        ---@return ge_tts__Vector3 @self
+        function self.rotateX(angle)
+            angle = angle * RADIANS_RATIO
+            local y = self.y
+            self.y = y * math.cos(angle) - self.z * math.sin(angle)
+            self.z = y * math.sin(angle) + self.z * math.cos(angle)
+        end
+
+        ---@param angle number @angle in degrees
+        ---@return ge_tts__Vector3 @self
+        function self.rotateY(angle)
+            angle = angle * RADIANS_RATIO
+            local x = self.x
+            self.x = self.z * math.sin(angle) + x * math.cos(angle)
+            self.z = self.z * math.cos(angle) - x * math.sin(angle)
+            return self
+        end
+
+        ---@param angle number @angle in degrees
+        ---@return ge_tts__Vector3 @self
+        function self.rotateZ(angle)
+            angle = angle * RADIANS_RATIO
+            local x = self.x
+            self.x = x * math.cos(angle) - self.y * math.sin(angle)
+            self.y = x * math.sin(angle) + self.y * math.cos(angle)
+            return self
         end
 
         return self
@@ -206,6 +237,45 @@ end
 ---@return number
 function Vector3.distance(v1, v2)
     return math.sqrt(Vector3.distanceSquared(v1, v2))
+end
+
+---@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@param angle number @angle in degrees
+---@return ge_tts__Vector3
+function Vector3.rotateX(v, angle)
+    angle = angle * RADIANS_RATIO
+
+    return Vector3(
+        v.x,
+        v.y * math.cos(angle) - v.z * math.sin(angle),
+        v.y * math.sin(angle) + v.z * math.cos(angle)
+    )
+end
+
+---@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@param angle number @angle in degrees
+---@return ge_tts__Vector3
+function Vector3.rotateY(v, angle)
+    angle = angle * RADIANS_RATIO
+
+    return Vector3(
+        v.z * math.sin(angle) + v.x * math.cos(angle),
+        v.y,
+        v.z * math.cos(angle) - v.x * math.sin(angle)
+    )
+end
+
+---@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@param angle number @angle in degrees
+---@return ge_tts__Vector3
+function Vector3.rotateZ(v, angle)
+    angle = angle * RADIANS_RATIO
+
+    return Vector3(
+        v.x * math.cos(angle) - v.y * math.sin(angle),
+        v.x * math.sin(angle) + v.y * math.cos(angle),
+        v.z
+    )
 end
 
 return Vector3
