@@ -170,7 +170,7 @@ setmetatable(Zone, {
         --- Called when a TTS object is dropped within this Zone.
         ---@param colorName string @Color of the TTS player that dropped the TTS object.
         ---@param object userdata @tts__Object - The object that was dropped.
-        ---@param dynamicallyDropped boolean - true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
+        ---@param dynamicallyDropped boolean @true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
         function self.onDrop(colorName, object, dynamicallyDropped)
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)

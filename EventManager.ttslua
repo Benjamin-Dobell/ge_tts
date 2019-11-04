@@ -65,7 +65,7 @@ function EventManager.removeHandler(event, handler)
 end
 
 ---@param event string @Event name
----@param ... @Event arguments.
+---@param ... any @Event arguments.
 function EventManager.triggerEvent(event, ...)
     _G[event](table.unpack({ ... }))
 end

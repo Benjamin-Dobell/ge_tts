@@ -118,11 +118,13 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
                 local quantity = math.min(count, object.GetQuantity())
 
                 for i = 1, quantity do
+                    -- TODO: Hmmm, can't remember. Is there a reason why we don't just takeObject in place then call deal on the object that was taken?
                     object.takeObject({
                         position = Vector3.scale(offset, i).add(origin),
                         rotation = rotation,
                         smooth = true,
                         callback_function = function(takenObject)
+                            -- TODO: This won't be called until the movement finishes, do we care?
                             superDrop(colorName, takenObject)
                         end,
                     })

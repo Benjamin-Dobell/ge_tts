@@ -62,7 +62,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         --- Called when a TTS object is dropped within this DropZone.
         ---@param colorName string @Color of the TTS player that dropped the TTS object.
         ---@param object userdata @tts__Object - The object that was dropped.
-        ---@param dynamicallyDropped boolean - true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
+        ---@param dynamicallyDropped boolean @true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
         function self.onDrop(colorName, object, dynamicallyDropped)
             if dynamicallyDropped or Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
                 superOnDrop(colorName, object, false)
