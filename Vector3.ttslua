@@ -126,6 +126,7 @@ setmetatable(Vector3, {
             local y = self.y
             self.y = y * math.cos(angle) - self.z * math.sin(angle)
             self.z = y * math.sin(angle) + self.z * math.cos(angle)
+            return self
         end
 
         ---@param angle number @angle in degrees
