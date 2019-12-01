@@ -98,12 +98,19 @@ setmetatable(Vector3, {
             return self
         end
 
-        ---@param factor number
+        ---@param factor number|ge_tts__CharVec3|ge_tts__NumVec3
         ---@return ge_tts__Vector3 @self
         function self.scale(factor)
-            self.x = self.x * factor
-            self.y = self.y * factor
-            self.z = self.z * factor
+            if (type(factor) == 'number') then
+                self.x = self.x * factor
+                self.y = self.y * factor
+                self.z = self.z * factor
+            else
+                self.x = self.x * (factor.x or factor[1])
+                self.y = self.y * (factor.y or factor[2])
+                self.z = self.z * (factor.z or factor[3])
+            end
+
             return self
         end
 
@@ -175,7 +182,7 @@ function Vector3.sub(v1, v2)
 end
 
 ---@param v ge_tts__CharVec3|ge_tts__NumVec3
----@param factor number
+---@param factor number|ge_tts__CharVec3|ge_tts__NumVec3
 ---@return ge_tts__Vector3
 function Vector3.scale(v, factor)
     return Vector3(v).scale(factor)
