@@ -256,7 +256,7 @@ function TableUtils.dump(tab, recursive, depth)
         str = str .. '\n' .. indentation .. '[' .. i .. '] = '
 
         if recursive and type(v) == 'table' then
-            str = str .. dump_table(v, true, depth + 1) .. ','
+            str = str .. TableUtils.dump(v, true, depth + 1) .. ','
         else
             str = str .. TYPE_STRINGIFIERS[type(v)](v) .. ','
         end
@@ -267,7 +267,7 @@ function TableUtils.dump(tab, recursive, depth)
             str = str .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
 
             if recursive and type(v) == 'table' then
-                str = str .. dump_table(v, true, depth + 1) .. ','
+                str = str .. TableUtils.dump(v, true, depth + 1) .. ','
             else
                 str = str .. TYPE_STRINGIFIERS[type(v)](v) .. ','
             end
