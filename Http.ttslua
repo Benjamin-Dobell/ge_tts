@@ -83,7 +83,8 @@ end
 
 ---@param method string
 ---@param url string
----@param options table
+---@param body number[]|table|string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
+---@param headers table<string, string>|nil
 ---@param callback fun(table, string) @function(response, error)
 function Http.submit(method, url, body, headers, callback)
     headers = headers or {}
@@ -105,17 +106,15 @@ function Http.submit(method, url, body, headers, callback)
     Http.request(method, url, {headers=headers, body=body}, callback)
 end
 
----@param method string
 ---@param url string
----@param headers table|nil
+---@param headers table<string, string>|nil
 ---@param callback fun(table, string) @function(response, error)
 function Http.delete(url, headers, callback)
     Http.request('DELETE', url, {headers=headers}, callback)
 end
 
----@param method string
 ---@param url string
----@param headers table
+---@param headers table<string, string>|nil
 ---@param callback fun(table, string) @function(response, error)
 function Http.get(url, headers, callback)
     Http.request('GET', url, {headers=headers}, callback)
@@ -123,7 +122,7 @@ end
 
 ---@param method string
 ---@param url string
----@param headers table|nil
+---@param headers table<string, string>|nil
 ---@param callback fun(table, string) @function(response, error)
 function Http.patch(url, body, headers, callback)
     Http.submit('PATCH', url, body, headers, callback)
@@ -131,7 +130,7 @@ end
 
 ---@param method string
 ---@param url string
----@param headers table|nil
+---@param headers table<string, string>|nil
 ---@param callback fun(table, string) @function(response, error)
 function Http.post(url, body, headers, callback)
     Http.submit('POST', url, body, headers, callback)
@@ -139,7 +138,7 @@ end
 
 ---@param method string
 ---@param url string
----@param headers table|nil
+---@param headers table<string, string>|nil
 ---@param callback fun(table, string) @function(response, error)
 function Http.put(url, body, headers, callback)
     Http.submit('PUT', url, body, headers, callback)

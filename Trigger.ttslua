@@ -46,12 +46,14 @@ end
 local Trigger = {}
 
 setmetatable(Trigger, {
+    ---@overload fun(data: table, ...: any)
+    ---@overload fun(triggerPositionOrData: ge_tts__CharVec3|ge_tts__NumVec3, triggerRotation: ge_tts__CharVec3|ge_tts__NumVec3, triggerScale: ge_tts__CharVec3|ge_tts__NumVec3, ...: any)
     ---@param triggerPositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
     ---@param triggerRotation ge_tts__CharVec3|ge_tts__NumVec3
     ---@param triggerScale ge_tts__CharVec3|ge_tts__NumVec3
-    __call = function(class, ...)
-        local constructorArgs = { ... }
-        local triggerPositionOrData, triggerRotation, triggerScale = table.unpack(constructorArgs)
+    ---@vararg any
+    __call = function(class, triggerPositionOrData, triggerRotation, triggerScale, ...)
+        local subclassSpawnOptions = { ... }
 
         ---@type ge_tts__Trigger
         local self = {}
@@ -96,7 +98,7 @@ setmetatable(Trigger, {
 
         -- May be nil if onSave was called before we finished spawning
         if not scriptingTrigger then
-            spawn(position, rotation, scale, class.spawnOptions(table.unpack(constructorArgs)), function(spawnedScriptingTrigger)
+            spawn(position, rotation, scale, class.spawnOptions(table.unpack(subclassSpawnOptions)), function(spawnedScriptingTrigger)
                 scriptingTrigger = spawnedScriptingTrigger
                 self.onSpawned()
             end)
@@ -156,10 +158,8 @@ setmetatable(Trigger, {
     end,
 })
 
----@param triggerPositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
----@param triggerRotation ge_tts__CharVec3|ge_tts__NumVec3
----@param triggerScale ge_tts__CharVec3|ge_tts__NumVec3
----@param ... table @Whatever else sub-classes pass through.
+---@vararg any
+---@return table<string, any>
 function Trigger.spawnOptions(...)
     return {}
 end

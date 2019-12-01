@@ -74,7 +74,7 @@ Graph.traverse = function(node, getChildren, visitCallback)
 end
 
 --- Performs breadth first traversal over a node hierarchy starting at `node`. If `visitCallback` returns a value, traversal stops and the value is returned.
----@param node table
+---@param root table
 ---@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
 ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
 ---@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.

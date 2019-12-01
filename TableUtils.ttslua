@@ -82,7 +82,7 @@ TableUtils.reduce = function(tab, initialOrFunc, funcOrNil)
     local memo = funcOrNil and initialOrFunc or next(tab)
     local func = funcOrNil or initialOrFunc
 
-    local initialK = nil
+    local initialK
 
     if not funcOrNil then
         initialK = memo
@@ -234,13 +234,13 @@ TableUtils.unique = function(arr)
 end
 
 local TYPE_STRINGIFIERS = {
-    ['nil'] = function(v) return 'nil' end,
+    ['nil'] = function(_) return 'nil' end,
     boolean = function(v) return tostring(v) end,
     number = function(v) return tostring(v) end,
     string = function(v) return "'" .. v .. "'" end,
-    userdata = function(v) return 'userdata' end,
-    ['function'] = function(v) return 'function' end,
-    thread = function(v) return 'thread' end,
+    userdata = function(_) return 'userdata' end,
+    ['function'] = function(_) return 'function' end,
+    thread = function(_) return 'thread' end,
     table = function(v) return tostring(v) end,
 }
 
