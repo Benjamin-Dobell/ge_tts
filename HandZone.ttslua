@@ -15,7 +15,7 @@ local CONTAINER_TYPES = {
 ---@param player userdata @tts__Player
 ---@param handIndex number @integer
 ---@return ge_tts__Vector3
-function getDealOrigin(player, handIndex)
+local function getDealOrigin(player, handIndex)
     local handObjects = player.getHandObjects(handIndex)
 
     if #handObjects > 0 then
@@ -30,7 +30,7 @@ end
 ---@param player userdata @tts__Player
 ---@param handIndex number @integer
 ---@return ge_tts__Vector3
-function getDealOffset(player, handIndex)
+local function getDealOffset(player, handIndex)
     local right = player.getHandTransform(handIndex).right
     return Vector3(0.5 * right.x, 0.5, 0.5 * right.z)
 end
@@ -38,7 +38,7 @@ end
 ---@param owner userdata @tts__Player
 ---@param handIndex number
 ---@return table<string, any>
-function zoneParameters(owner, handIndex)
+local function zoneParameters(owner, handIndex)
     local handTransform = owner.getHandTransform(handIndex)
     return {handTransform.position, handTransform.rotation, handTransform.scale}
 end
