@@ -18,6 +18,12 @@ _However_, at present there is not yet a Tabletop Simulator plugin available for
 
 ## Modules
 
+These modules are written as standard Lua modules. In order to use these modules you must [require](https://www.lua.org/pil/8.1.html) them.
+
+_However_, Tabletop Simulator is sandboxed and `require()` cannot access a user's file system. Even if it could, you want your scripts to be included in your mod save file.
+
+As such, you'll need to run [luabundler](https://github.com/Benjamin-Dobell/luabundler), which simply takes a bunch of standard Lua modules and bundles them up into one large file. You can then either copy and paste the contents of resultant singular Lua file into TTS, or ideally include it in your scripts with Atom's [#include](https://github.com/Berserk-Games/atom-tabletopsimulator-lua/wiki/%23include) functionality.
+
 ### Base64
 
 A package for encoding and decoding Base64 binary data.
@@ -52,7 +58,7 @@ To extend `DropZone`'s functionality you can "sub-class" `DropZone` and override
 
 TTS has several events which are called as global functions on a script. It's fairly common to have several objects or unrelated pieces of code that are interested in these events.
 
-`EventManager` allows several pieces of code to subscribe to the one event. If you have already written global event handler functions you must move their definition _above_ all `ge_tts_require` in the same script otherwise they will interfere with `EventManager`.
+`EventManager` allows several pieces of code to subscribe to the one event. If you have already written global event handler functions you must move their definition _above_ any `require()` of ge_tts modules in the same script, otherwise your exising handlers will interfere with `EventManager.
 
 ### Graph
 
