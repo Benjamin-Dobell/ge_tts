@@ -1,7 +1,4 @@
----@type ge_tts__TableUtils
 local TableUtils = require('ge_tts/TableUtils')
-
----@type ge_tts__Logger
 local Logger = require('ge_tts/Logger')
 
 local eventHandlers = {}
@@ -11,13 +8,13 @@ local function listen(event)
     local previousGlobalHandler = _G[event]
 
     _G[event] = function(...)
-        local args = {...}
         local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
 
+        ---@type any
         local finalResult
 
         for _, handler in ipairs(handlers) do
-            local result = handler(table.unpack(args))
+            local result = handler(...)
 
             if result then
                 finalResult = result
@@ -40,12 +37,16 @@ local function listen(event)
     return handlers
 end
 
----@module ge_tts__EventManager
+local SAVE_MANAGER_EVENTS = {'onSave', 'onLoad'}
+
+---@class ge_tts__EventManager
 local EventManager = {}
 
 ---@param event string @Event name
----@param handler fun(...) @Function that will be called when the event fires. Parameters vary depending on the event.
+---@param handler function @Function that will be called when the event fires. Parameters vary depending on the event.
 function EventManager.addHandler(event, handler)
+    assert(not TableUtils.find(SAVE_MANAGER_EVENTS, event), 'EventManager cannot handle ' .. event .. '. Please use SaveManager instead.')
+
     local handlers = eventHandlers[event] or listen(event)
 
     if not TableUtils.find(handlers, handler) then
@@ -54,8 +55,10 @@ function EventManager.addHandler(event, handler)
 end
 
 ---@param event string @Event name
----@param handler fun(...) @A previously registered handler that you wish to remove.
+---@param handler function @A previously registered handler that you wish to remove.
 function EventManager.removeHandler(event, handler)
+    assert(not TableUtils.find(SAVE_MANAGER_EVENTS, event), 'EventManager cannot handle ' .. event .. '. Please use SaveManager instead.')
+
     local handlers = eventHandlers[event]
     local handlerIndex = handlers and TableUtils.find(handlers, handler)
 
@@ -67,7 +70,7 @@ end
 ---@param event string @Event name
 ---@vararg any
 function EventManager.triggerEvent(event, ...)
-    _G[event](table.unpack({ ... }))
+    _G[event](...)
 end
 
 return EventManager

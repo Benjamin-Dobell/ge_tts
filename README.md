@@ -58,7 +58,7 @@ To extend `DropZone`'s functionality you can "sub-class" `DropZone` and override
 
 TTS has several events which are called as global functions on a script. It's fairly common to have several objects or unrelated pieces of code that are interested in these events.
 
-`EventManager` allows several pieces of code to subscribe to the one event. If you have already written global event handler functions you must move their definition _above_ any `require()` of ge_tts modules in the same script, otherwise your exising handlers will interfere with `EventManager.
+`EventManager` allows several pieces of code to subscribe to the one event. If you have already written global event handler functions you must move their definition _above_ any `require()` of ge_tts modules in the same script, otherwise your exising handlers will interfere with `EventManager`.
 
 ### Graph
 
@@ -86,7 +86,7 @@ Used in conjunction with the `ContainerEventsFix` package.
 
 ### Logger
 
-A robust logging system with support for log levels and filtering. 
+A robust logging system with support for log levels and filtering.
 
 ### PlayerDropZone
 
@@ -102,7 +102,11 @@ Using HTTP `PUT` instead of `POST` is pretty severe abuse of HTTP semantics, how
 
 We don't presently provide a corresponding server, but it's pretty trivial to create your own in Python, Ruby, Node.js etc.
 
-Remote logs could be useful for diagnosing issues your players are running into, however personally I just use it in development as my logs are kept even if TTS crashes, and it's easy to copy and paste data from my logs etc. 
+Remote logs could be useful for diagnosing issues your players are running into, however personally I just use it in development as my logs are kept even if TTS crashes, and it's easy to copy and paste data from my logs etc.
+
+### SaveManager
+
+SaveManager allows modules/files to independently maintain their own saved state, without conflicting with other saved state from other modules/files.
 
 ### TableUtils
 

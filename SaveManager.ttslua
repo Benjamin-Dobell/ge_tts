@@ -1,0 +1,101 @@
+local EventManager = require('ge_tts/EventManager')
+local Logger = require('ge_tts/Logger')
+
+local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
+
+---@class SaveManager
+local SaveManager = {}
+
+---@shape __ge_tts__SaveManager_Callbacks
+---@field onLoad fun(savedState: string): void
+---@field onSave fun(): string
+
+---@type table<string, __ge_tts__SaveManager_Callbacks>
+local callbacks = {}
+
+---
+---Registers onLoad and onSave for the specified moduleName. moduleName must be unique.
+---
+---The provided onLoad function will only be called with data pertaining to the provided moduleName. This allows Lua
+---modules to independently maintain their own savedState.
+---
+---@param moduleName string
+---@param onLoad fun(savedState: string): void
+---@param onSave fun(): string
+function SaveManager.register(moduleName, onLoad, onSave)
+    Logger.assert(moduleName ~= nil, 'SaveManager moduleName must not be nil')
+    Logger.assert(callbacks[moduleName] == nil, 'SaveManager callbacks are already registered for module: ' .. moduleName)
+
+    callbacks[moduleName] = {
+        onLoad = onLoad,
+        onSave = onSave
+    }
+end
+
+local ORIGINAL_PSEUDO_MODULE_NAME = '__originalSavedState'
+
+local originalOnSave = --[[---@type fun(): string]] _G.onSave
+
+---@return string
+function onSave()
+    local savedState = SAVE_STATE_IDENTIFIER
+
+    for moduleName, moduleCallbacks in pairs(callbacks) do
+        local moduleSavedState = moduleCallbacks.onSave()
+        savedState = savedState .. moduleName:len() .. ' ' .. moduleName .. ' ' .. moduleSavedState:len() .. ' ' .. moduleSavedState
+    end
+
+    if originalOnSave then
+        local originalSavedStated = originalOnSave()
+        savedState = savedState .. ORIGINAL_PSEUDO_MODULE_NAME:len() .. ' ' .. ORIGINAL_PSEUDO_MODULE_NAME .. ' ' .. originalSavedStated:len() .. ' ' .. originalSavedStated
+    end
+
+    return savedState
+end
+
+local originalOnLoad = _G.onLoad
+
+---@param savedState string
+function onLoad(savedState)
+    if not savedState or savedState == '' then
+        return
+    end
+
+    Logger.assert(savedState:sub(1, #SAVE_STATE_IDENTIFIER) == SAVE_STATE_IDENTIFIER, "When working with ge_tts, you must use ge_tts/SaveManager instead of writing directly to script_state.")
+
+    local savedStateLength = savedState:len()
+    local moduleNameOffset = SAVE_STATE_IDENTIFIER:len() + 1
+    local i = moduleNameOffset
+
+    repeat
+        if savedState:sub(i, i) == ' ' then
+            local moduleNameLength = tonumber(savedState:sub(moduleNameOffset, i - 1))
+            local moduleName = savedState:sub(i + 1, i + moduleNameLength)
+            local moduleSizeOffset = i + moduleNameLength + 2
+
+            for j = moduleSizeOffset, savedStateLength do
+                if savedState:sub(j, j) == ' ' then
+                    local moduleStateLength = tonumber(savedState:sub(moduleSizeOffset, j - 1))
+                    local moduleSavedStateEnd = j + moduleStateLength
+                    local moduleSavedState = savedState:sub(j + 1, moduleSavedStateEnd)
+
+                    local moduleCallbacks = callbacks[moduleName]
+
+                    if moduleCallbacks then
+                        moduleCallbacks.onLoad(moduleSavedState)
+                    elseif moduleName == ORIGINAL_PSEUDO_MODULE_NAME and originalOnLoad then
+                        originalOnLoad(moduleSavedState)
+                    end
+
+                    moduleNameOffset = moduleSavedStateEnd + 1
+                    i = moduleSavedStateEnd + 1
+                    break
+                end
+            end
+        else
+            i = i + 1
+        end
+    until i > savedStateLength
+end
+
+return SaveManager
