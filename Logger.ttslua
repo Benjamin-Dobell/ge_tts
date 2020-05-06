@@ -1,4 +1,7 @@
 ---@class ge_tts__Logger
+
+---@class __ge_tts__static_Logger
+---@overload fun(): ge_tts__Logger
 local Logger = {}
 
 Logger.ERROR = 1
@@ -7,7 +10,9 @@ Logger.INFO = 3
 Logger.DEBUG = 4
 Logger.VERBOSE = 5
 
----@type table<number, string>
+---@alias ge_tts__Logger_LogLevel 1 | 2 | 3 | 4 | 5
+
+---@type table<ge_tts__Logger_LogLevel, string>
 local levelPrefixes = {
     [Logger.ERROR] = 'ERROR: ',
     [Logger.WARNING] = 'WARNING: ',
@@ -16,28 +21,44 @@ local levelPrefixes = {
     [Logger.VERBOSE] = '',
 }
 
+---@type ge_tts__Logger_LogLevel
+local defaultLogLevel = Logger.DEBUG
+
 setmetatable(Logger, {
     __call = function()
-        ---@type ge_tts__Logger
-        local self = {}
+        local self = --[[---@type ge_tts__Logger]] {}
 
-        local logLevel = Logger.INFO
+        ---@type ge_tts__Logger_LogLevel
+        local filterLevel = Logger.INFO
 
-        ---@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-        function self.getLogLevel()
-            return logLevel
+        ---@return ge_tts__Logger_LogLevel
+        function self.getFilterLevel()
+            return filterLevel
         end
 
-        ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
-        function self.setLogLevel(level)
-            logLevel = level
+        ---@param level ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
+        function self.setFilterLevel(level)
+            filterLevel = level
         end
 
         ---@param message string
-        ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+        ---@param level ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
         function self.log(message, level)
-            if level <= logLevel then
+            level = level or defaultLogLevel
+            if level <= filterLevel then
                 print(levelPrefixes[level] .. message)
+            end
+        end
+
+        ---
+        ---If value is false, logs message at level Logger.ERROR and then calls Lua's in-built error(message).
+        ---
+        ---@param value any
+        ---@param message string
+        function self.assert(value, message)
+            if not value then
+                self.log(message, Logger.ERROR)
+                error(message)
             end
         end
 
@@ -46,7 +67,6 @@ setmetatable(Logger, {
 })
 
 local defaultLogger = Logger()
-local defaultLogLevel = Logger.DEBUG
 
 ---@param logger ge_tts__Logger
 function Logger.setDefaultLogger(logger)
@@ -57,21 +77,41 @@ function Logger.getDefaultLogger()
     return defaultLogger
 end
 
----@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+---
+---When calling log() without specifying a log level, messages will log at the provided log level.
+---
+---@param level ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
 function Logger.setDefaultLogLevel(level)
     defaultLogLevel = level
 end
 
----@return number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+---
+---Returns the default log level.
+---
+---@return ge_tts__Logger_LogLevel
 function Logger.getDefaultLogLevel()
     return defaultLogLevel
 end
 
+---
+---Logs a message at the specified log level. If level is omitted, the default log level will be used.
+---
+---@overload fun(message: string): void
 ---@param message string
----@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
+---@param level ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
 function Logger.log(message, level)
     level = level or defaultLogLevel
     defaultLogger.log(message, level)
+end
+
+---
+---If value is false, logs message at level Logger.ERROR using the default logger, and then calls Lua's error(message).
+---
+---@param value any
+---@param message string
+function Logger.assert(value, message)
+    if not value then
+    end
 end
 
 return Logger
