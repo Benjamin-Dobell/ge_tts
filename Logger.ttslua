@@ -58,7 +58,7 @@ setmetatable(Logger, {
         function self.assert(value, message)
             if not value then
                 self.log(message, Logger.ERROR)
-                error(message)
+                error(message, 2)
             end
         end
 
@@ -111,6 +111,8 @@ end
 ---@param message string
 function Logger.assert(value, message)
     if not value then
+        defaultLogger.log(message, Logger.ERROR)
+        error(message, 2)
     end
 end
 
