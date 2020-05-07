@@ -65,7 +65,7 @@ end
 
 
 ---
----Registers onLoad the specified moduleName.
+---Registers onLoad for the specified moduleName. You may have multiple onLoad registered for the same moduleName.
 ---
 ---The provided onLoad function will only be called with data pertaining to the provided moduleName. This allows Lua
 ---modules to independently maintain their own savedState.
