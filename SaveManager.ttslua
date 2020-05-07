@@ -46,10 +46,10 @@ local function executeOnLoads(moduleName, savedState)
 end
 
 ---
----Registers onLoad and onSave for the specified moduleName. moduleName must be unique.
+---Registers onSave for the specified moduleName. moduleName must be unique.
 ---
----The provided onLoad function will only be called with data pertaining to the provided moduleName. This allows Lua
----modules to independently maintain their own savedState.
+---Any onLoad registered for the same moduleName will be called with the savedState returned from onSave. This allows
+---several Lua modules/files to independently maintain their own savedState.
 ---
 ---@param moduleName string
 ---@param onSave fun(): string
