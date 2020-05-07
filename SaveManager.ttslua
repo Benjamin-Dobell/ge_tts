@@ -1,5 +1,5 @@
-local EventManager = require('ge_tts/EventManager')
 local Logger = require('ge_tts/Logger')
+local TableUtils = require('ge_tts/TableUtils')
 
 local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
 
@@ -7,11 +7,43 @@ local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
 local SaveManager = {}
 
 ---@shape __ge_tts__SaveManager_Callbacks
----@field onLoad fun(savedState: string): void
----@field onSave fun(): string
+---@field onLoads (fun(savedState: string): void)[]
+---@field onSave nil | (fun(): string)
+
+local ORIGINAL_PSEUDO_MODULE_NAME = '__originalSavedState'
 
 ---@type table<string, __ge_tts__SaveManager_Callbacks>
 local callbacks = {}
+
+local originalOnSave = --[[---@type fun(): string]] _G.onSave
+local originalOnLoad = _G.onLoad
+
+---@param moduleName string
+---@return __ge_tts__SaveManager_Callbacks
+local function getModuleCallbacks(moduleName)
+    local moduleCallbacks = callbacks[moduleName]
+
+    if not moduleCallbacks then
+        moduleCallbacks = {onLoads = {}}
+        callbacks[moduleName] = moduleCallbacks
+    end
+
+    return moduleCallbacks
+end
+
+---@param moduleName string
+---@param savedState string
+local function executeOnLoads(moduleName, savedState)
+    if moduleName == ORIGINAL_PSEUDO_MODULE_NAME and originalOnLoad then
+        originalOnLoad(savedState)
+    else
+        local onLoads = TableUtils.copy(getModuleCallbacks(moduleName).onLoads) -- Copying because callbacks may modify onLoads whilst we iterate.
+
+        for _, onLoad in ipairs(onLoads) do
+            onLoad(savedState)
+        end
+    end
+end
 
 ---
 ---Registers onLoad and onSave for the specified moduleName. moduleName must be unique.
@@ -20,29 +52,104 @@ local callbacks = {}
 ---modules to independently maintain their own savedState.
 ---
 ---@param moduleName string
----@param onLoad fun(savedState: string): void
 ---@param onSave fun(): string
-function SaveManager.register(moduleName, onLoad, onSave)
-    Logger.assert(moduleName ~= nil, 'SaveManager moduleName must not be nil')
-    Logger.assert(callbacks[moduleName] == nil, 'SaveManager callbacks are already registered for module: ' .. moduleName)
+function SaveManager.registerOnSave(moduleName, onSave)
+    Logger.assert(type(moduleName) == 'string' and moduleName ~= '', 'moduleName must be specified')
 
-    callbacks[moduleName] = {
-        onLoad = onLoad,
-        onSave = onSave
-    }
+    local moduleCallbacks = getModuleCallbacks(moduleName)
+
+    Logger.assert(moduleCallbacks.onSave == nil, 'onSave is already registered for module: ' .. moduleName)
+
+    moduleCallbacks.onSave = onSave
 end
 
-local ORIGINAL_PSEUDO_MODULE_NAME = '__originalSavedState'
 
-local originalOnSave = --[[---@type fun(): string]] _G.onSave
+---
+---Registers onLoad the specified moduleName.
+---
+---The provided onLoad function will only be called with data pertaining to the provided moduleName. This allows Lua
+---modules to independently maintain their own savedState.
+---
+---If the moduleName argument is omitted, the provided onLoad will be called with an empty string. This is useful if you
+---simply want your onLoad callback called when Tabletop Simulator finished loading, but you don't need any saved state.
+---
+---@overload fun(onLoad: (fun(savedState: string): void)): boolean
+---@overload fun(moduleName: string, onLoad: (fun(savedState: string): void)): boolean
+---@param moduleNameOrOnLoad string | fun(savedState: string): void
+---@param nilOrOnLoad nil | fun(savedState: string): void
+function SaveManager.registerOnLoad(moduleNameOrOnLoad, nilOrOnLoad)
+    if type(moduleNameOrOnLoad) == 'function' then
+        SaveManager.registerOnLoad('', --[[---@type fun(savedState: string): void]] moduleNameOrOnLoad)
+        return
+    end
+
+    Logger.assert(type(moduleNameOrOnLoad) == 'string', 'moduleName must be a string')
+
+    local moduleName = --[[---@type string]] moduleNameOrOnLoad
+    local moduleCallbacks = getModuleCallbacks(moduleName)
+    local onLoad = --[[--@type fun(savedState: string): void]] nilOrOnLoad
+
+    table.insert(moduleCallbacks.onLoads, onLoad)
+end
+
+---
+---Remove the existing onSave callback for moduleName.
+---
+---Returns true if there was an existing onSave callback and it was removed, or false if there was already no onSave for moduleName.
+---
+---@param moduleName string
+---@return boolean
+function SaveManager.removeOnSave(moduleName)
+    local moduleCallbacks = callbacks[moduleName]
+
+    if moduleCallbacks and moduleCallbacks.onSave then
+        moduleCallbacks.onSave = nil
+        return true
+    end
+
+    return false
+end
+
+---@overload fun(onLoad: (fun(savedState: string): void)): boolean
+---@overload fun(moduleName: string, onLoad: (fun(savedState: string): void)): boolean
+---@param moduleNameOrOnLoad string | fun(savedState: string): void
+---@param nilOrOnLoad nil | fun(savedState: string): void
+---@return boolean
+function SaveManager.removeOnLoad(moduleNameOrOnLoad, nilOrOnLoad)
+    if type(moduleNameOrOnLoad) == 'function' then
+        return SaveManager.removeOnLoad('', --[[---@type fun(savedState: string): void]] moduleNameOrOnLoad)
+    end
+
+    Logger.assert(type(moduleNameOrOnLoad) == 'string', 'SaveManager moduleName must be a string')
+
+    local moduleName = --[[---@type string]] moduleNameOrOnLoad
+    local moduleCallbacks = callbacks[moduleName]
+    local onLoad = nilOrOnLoad
+
+    if moduleCallbacks then
+        for i, existingOnLoad in ipairs(moduleCallbacks.onLoads) do
+            if existingOnLoad == onLoad then
+                table.remove(moduleCallbacks.onLoads, i)
+                return true
+            end
+        end
+    end
+
+    return false
+end
 
 ---@return string
 function onSave()
     local savedState = SAVE_STATE_IDENTIFIER
 
     for moduleName, moduleCallbacks in pairs(callbacks) do
-        local moduleSavedState = moduleCallbacks.onSave()
-        savedState = savedState .. moduleName:len() .. ' ' .. moduleName .. ' ' .. moduleSavedState:len() .. ' ' .. moduleSavedState
+        if moduleCallbacks.onSave then
+            local moduleSavedState = (--[[---@type fun(): string]] moduleCallbacks.onSave)() or ''
+
+            Logger.assert(type(moduleSavedState) == 'string', moduleName .. "'s onSave returned a " .. type(moduleSavedState) .. ', a string is required.')
+
+            savedState = savedState .. moduleName:len() .. ' ' .. moduleName .. ' ' .. moduleSavedState:len() .. ' ' .. moduleSavedState
+        end
     end
 
     if originalOnSave then
@@ -53,19 +160,18 @@ function onSave()
     return savedState
 end
 
-local originalOnLoad = _G.onLoad
-
 ---@param savedState string
 function onLoad(savedState)
-    if not savedState or savedState == '' then
-        return
-    end
+    savedState = savedState or ''
 
-    Logger.assert(savedState:sub(1, #SAVE_STATE_IDENTIFIER) == SAVE_STATE_IDENTIFIER, "When working with ge_tts, you must use ge_tts/SaveManager instead of writing directly to script_state.")
+    Logger.assert(savedState == '' or  savedState:sub(1, SAVE_STATE_IDENTIFIER:len()) == SAVE_STATE_IDENTIFIER, "When working with ge_tts, you must use ge_tts/SaveManager instead of writing directly to script_state.")
 
     local savedStateLength = savedState:len()
     local moduleNameOffset = SAVE_STATE_IDENTIFIER:len() + 1
     local i = moduleNameOffset
+
+    ---@type table<string, true>
+    local loadedModules = {}
 
     repeat
         if savedState:sub(i, i) == ' ' then
@@ -79,13 +185,8 @@ function onLoad(savedState)
                     local moduleSavedStateEnd = j + moduleStateLength
                     local moduleSavedState = savedState:sub(j + 1, moduleSavedStateEnd)
 
-                    local moduleCallbacks = callbacks[moduleName]
-
-                    if moduleCallbacks then
-                        moduleCallbacks.onLoad(moduleSavedState)
-                    elseif moduleName == ORIGINAL_PSEUDO_MODULE_NAME and originalOnLoad then
-                        originalOnLoad(moduleSavedState)
-                    end
+                    executeOnLoads(moduleName, moduleSavedState)
+                    loadedModules[moduleName] = true
 
                     moduleNameOffset = moduleSavedStateEnd + 1
                     i = moduleSavedStateEnd + 1
@@ -96,6 +197,13 @@ function onLoad(savedState)
             i = i + 1
         end
     until i > savedStateLength
+
+    -- Here we handle first-time loads i.e. when there's no saved state for a module, so we call onLoad with a blank savedState.
+    for moduleName, _ in pairs(callbacks) do
+        if not loadedModules[moduleName] then
+            executeOnLoads(moduleName, '')
+        end
+    end
 end
 
 return SaveManager
