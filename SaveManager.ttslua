@@ -1,3 +1,4 @@
+local EventManager = require('ge_tts/EventManager')
 local Logger = require('ge_tts/Logger')
 local TableUtils = require('ge_tts/TableUtils')
 
@@ -160,6 +161,8 @@ function onSave()
     return savedState
 end
 
+local GE_MODULE_PREFIX = 'ge_tts/'
+
 ---@param savedState string
 function onLoad(savedState)
     savedState = savedState or ''
@@ -170,8 +173,8 @@ function onLoad(savedState)
     local moduleNameOffset = SAVE_STATE_IDENTIFIER:len() + 1
     local i = moduleNameOffset
 
-    ---@type table<string, true>
-    local loadedModules = {}
+    ---@type table<string, {rangeStart: number, rangeEnd: number}>
+    local moduleStateRanges = {}
 
     repeat
         if savedState:sub(i, i) == ' ' then
@@ -183,10 +186,11 @@ function onLoad(savedState)
                 if savedState:sub(j, j) == ' ' then
                     local moduleStateLength = tonumber(savedState:sub(moduleSizeOffset, j - 1))
                     local moduleSavedStateEnd = j + moduleStateLength
-                    local moduleSavedState = savedState:sub(j + 1, moduleSavedStateEnd)
 
-                    executeOnLoads(moduleName, moduleSavedState)
-                    loadedModules[moduleName] = true
+                    moduleStateRanges[moduleName] = {
+                        rangeStart = j + 1,
+                        rangeEnd = moduleSavedStateEnd
+                    }
 
                     moduleNameOffset = moduleSavedStateEnd + 1
                     i = moduleSavedStateEnd + 1
@@ -198,10 +202,30 @@ function onLoad(savedState)
         end
     until i > savedStateLength
 
-    -- Here we handle first-time loads i.e. when there's no saved state for a module, so we call onLoad with a blank savedState.
+    -- ge_tts listeners execute first
     for moduleName, _ in pairs(callbacks) do
-        if not loadedModules[moduleName] then
-            executeOnLoads(moduleName, '')
+        if moduleName:sub(1, GE_MODULE_PREFIX:len()) == GE_MODULE_PREFIX then
+            local stateRange = moduleStateRanges[moduleName]
+
+            if stateRange then
+                local moduleSavedState = savedState:sub(stateRange.rangeStart, stateRange.rangeEnd)
+                executeOnLoads(moduleName, moduleSavedState)
+            else
+                executeOnLoads(moduleName, '')
+            end
+        end
+    end
+
+    for moduleName, _ in pairs(callbacks) do
+        if moduleName:sub(1, GE_MODULE_PREFIX:len()) ~= GE_MODULE_PREFIX then
+            local stateRange = moduleStateRanges[moduleName]
+
+            if stateRange then
+                local moduleSavedState = savedState:sub(stateRange.rangeStart, stateRange.rangeEnd)
+                executeOnLoads(moduleName, moduleSavedState)
+            else
+                executeOnLoads(moduleName, '')
+            end
         end
     end
 end
