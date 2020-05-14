@@ -1,6 +1,6 @@
 ---@class ge_tts__Logger
 
----@class __ge_tts__static_Logger
+---@class ge_tts__static_Logger
 ---@overload fun(): ge_tts__Logger
 local Logger = {}
 

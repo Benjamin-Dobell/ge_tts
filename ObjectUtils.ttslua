@@ -1,0 +1,309 @@
+local Base64 = require('ge_tts/Base64')
+local Object = require('ge_tts/Object')
+local SaveManager = require('ge_tts/SaveManager')
+local TableUtils = require('ge_tts/TableUtils')
+local Vector3 = require('ge_tts/Vector3')
+
+---There's a random component to our GUIDs designed to mitigate collisions is a user wants to copy objects between mods.
+local GUID_PREFIX_RANDOM_BYTE_LENGTH = 3
+
+---@type string
+local guidPrefix
+
+---@type number
+local guidIndex = 0
+
+---@type table<string, {object: tts__Object, json: string, callbacks: tts__ObjectCallbackFunction[]}> @GUID key
+local pendingSpawns = {}
+
+---@param guid string
+---@param object tts__Object
+local function triggerPendingCallbacks(guid, object)
+    local pendingSpawn = pendingSpawns[guid]
+
+    if not pendingSpawn then
+        return
+    end
+
+    pendingSpawns[guid] = nil
+
+    for _, callback in ipairs(pendingSpawn.callbacks) do
+        callback(object)
+    end
+end
+
+---@class ge_tts__ObjectUtils
+local ObjectUtils = {}
+
+---@param obj tts__Object
+---@return ge_tts__Vector3
+function ObjectUtils.getTransformScale(obj)
+    local rotation = obj.getRotation()
+    local onesVector = Vector3(1, 1, 1).rotateZ(rotation.z).rotateX(rotation.x).rotateY(rotation.y)
+    local scale = Vector3(obj.positionToLocal(onesVector.add(obj.getPosition())))
+    return scale
+end
+
+---@param tag string
+---@return boolean
+function ObjectUtils.isContainerTag(tag)
+    return tag == Object.Tag.Deck or tag == Object.Tag.Bag
+end
+
+---@return string
+function ObjectUtils.nextGuid()
+    guidIndex = guidIndex + 1
+    return guidPrefix .. tostring(guidIndex)
+end
+
+---@param objectState tts__ObjectState
+---@param guid string
+---@param callback_function nil | tts__ObjectCallbackFunction
+local function safeSpawnObject(objectState, guid, callback_function)
+    objectState.GUID = guid
+
+    local json = JSON.encode(objectState)
+    local spawningObject = spawnObjectJSON({
+        json = json,
+        callback_function = function(object)
+            triggerPendingCallbacks(guid, object)
+        end,
+    })
+
+    pendingSpawns[guid] = {
+        callbacks = {},
+        object = spawningObject,
+        json = json
+    }
+
+    if callback_function then
+        table.insert(pendingSpawns[guid].callbacks, --[[---@type tts__ObjectCallbackFunction]] callback_function)
+    end
+
+    return spawningObject
+end
+
+---
+---Unlike the built-in spawnObjectJSON(), this function guarantees the object will be spawned in the scene in onLoad
+---(SaveManager) callbacks i.e. if a user rewinds your mod.
+---
+---There is an edge-case with the built-in spawnObjectJSON() if Tabletop Simulator performs a save state immediately
+---after your call to spawnObjectJSON(). When you rewind (or load) save state the object may or may not have spawned.
+---Even if the object did spawn before the save state was generated (and hence exists when the user rewinds or loads),
+---the GUID on the object reference returned to you from spawnObjectJSON() is not guaranteed to be the final GUID of the
+---object within the scene. Thus, even if you correctly saved this GUID in onSave, your attempt to recover the object
+---may fail, as it ended up with a different GUID.
+---
+---To avoid these pitfalls, this function does two things.
+---
+---Firstly, we provide a GUID for your object that is guaranteed[*] to be unique.
+---
+---Secondly, onLoad ge_tts looks for any objects that should exist but don't. If it discovers any, it will spawn them
+---for you automatically. In your own onLoad (SaveManager) callbacks you can call ObjectUtils.recoverSafeSpawnedObject
+---to recover a reference to any objects that were safe spawned.
+---
+---WARNING: If you provide a GUID for your object in jsonTable, it will not be used. Instead, please grab the GUID from
+---the object reference returned from this function. GUIDs we generate do not match the same format as those generated
+---by Tabletop Simulator. We have confirmed with Berserk that internally GUIDs are only ever treated as strings and it
+---is entirely safe for us to use our own format.
+---
+---[*] If you're really determined you can still create GUID collisions. However, it won't happen by accident. You'd
+---have to be intentionally spawning objects (not using this method) with specific GUIDs that you're specifically trying
+---to make collide.
+---
+---@overload fun(objectState: tts__ObjectState): tts__Object
+---@param objectState tts__ObjectState @Will be JSON encoded after we generate and assign a GUID.
+---@param callback_function nil | tts__ObjectCallbackFunction @Callback that will be called when the object has finished spawning.
+---@return tts__Object
+function ObjectUtils.safeSpawnObject(objectState, callback_function)
+    return safeSpawnObject(objectState, ObjectUtils.nextGuid(), callback_function)
+end
+
+---
+---Same as ObjectUtils.safeSpawnObject(...), except that instead of generating a unique GUID, it is your responsibility
+---to provide one. If you fail to provide a unique GUID, all safety guarantees are lost.
+---
+---In practice, you should only call this method if you're respawning an object that was destroyed.
+---
+---@overload fun(objectState: tts__ObjectState, guid: string): tts__Object
+---@param objectState tts__ObjectState @Will be JSON encoded after we generate and assign a GUID.
+---@param guid string
+---@param callback_function nil | tts__ObjectCallbackFunction @Callback that will be called when the object has finished spawning.
+---@return tts__Object
+function ObjectUtils.safeRespawnObject(objectState, guid, callback_function)
+    return safeSpawnObject(objectState, guid, callback_function)
+end
+
+---@overload fun(position: nil | tts__VectorShape, rotation: nil | tts__VectorShape, scale: nil | tts__VectorShape): tts__ObjectState_Transform
+---@overload fun(transform: {position: nil | tts__VectorShape, rotation: nil | tts__VectorShape, scale: nil | tts__VectorShape}): tts__ObjectState_Transform
+---@vararg ge_tts__Vector3
+---@return tts__ObjectState_Transform
+function ObjectUtils.transformState(...)
+    ---@type tts__ObjectState_Transform
+    local state = {}
+
+    ---@type nil | tts__VectorShape
+    local position = nil
+
+    ---@type nil | tts__VectorShape
+    local rotation = nil
+
+    ---@type nil | tts__VectorShape
+    local scale = nil
+
+    if select('#', ...) == 3 then
+        position, rotation, scale = ...
+    else
+        local transform = --[[---@type {position: nil | tts__VectorShape, rotation: nil | tts__VectorShape, scale: nil | tts__VectorShape}]] ...
+        position = transform.position
+        rotation = transform.rotation
+        scale = transform.scale
+    end
+
+    if position then
+        state.posX = (--[[---@type tts__CharVectorShape]] position).x or (--[[---@type tts__NumVectorShape]] position)[1]
+        state.posY = (--[[---@type tts__CharVectorShape]] position).y or (--[[---@type tts__NumVectorShape]] position)[2]
+        state.posZ = (--[[---@type tts__CharVectorShape]] position).z or (--[[---@type tts__NumVectorShape]] position)[3]
+    end
+
+    if rotation then
+        state.rotX = (--[[---@type tts__CharVectorShape]] rotation).x or (--[[---@type tts__NumVectorShape]] position)[1]
+        state.rotY = (--[[---@type tts__CharVectorShape]] rotation).y or (--[[---@type tts__NumVectorShape]] position)[2]
+        state.rotZ = (--[[---@type tts__CharVectorShape]] rotation).z or (--[[---@type tts__NumVectorShape]] position)[3]
+    end
+
+    if scale then
+        state.scaleX = (--[[---@type tts__CharVectorShape]] scale).x or (--[[---@type tts__NumVectorShape]] position)[1]
+        state.scaleY = (--[[---@type tts__CharVectorShape]] scale).y or (--[[---@type tts__NumVectorShape]] position)[2]
+        state.scaleZ = (--[[---@type tts__CharVectorShape]] scale).z or (--[[---@type tts__NumVectorShape]] position)[3]
+    end
+
+    return state
+end
+
+---
+---Same as ObjectUtils.safeSpawnObject except that each entry in containerState.ContainedObjects will also be assigned a
+---unique GUID.
+---
+---@overload fun(containerState: tts__ContainerState): tts__Object
+---@param containerState tts__ContainerState @Will be JSON encoded after we generate and assign a GUID.
+---@param callback_function nil | tts__Callback<fun(container: tts__Container): void> @Callback that will be called when the object has finished spawning.
+---@return tts__Container
+function ObjectUtils.safeSpawnContainer(containerState, callback_function)
+    for _, objectState in ipairs(containerState.ContainedObjects) do
+        objectState.GUID = ObjectUtils.nextGuid()
+    end
+
+    return --[[---@type tts__Container]] ObjectUtils.safeSpawnObject(containerState, --[[---@type nil | tts__ObjectCallbackFunction]] callback_function)
+end
+
+---
+---Recovers a reference to a spawn spawned object via its GUID.
+---
+---Returns a reference to the safe spawned object or nil if an object matching the provided GUID does not exist in the
+---scene. Aside from providing an invalid GUID, this may occur if the object spawned in the past and has since bee
+---deleted.
+---
+---If the object has finished spawning, the provided callback will be called immediately (synchronously), however if
+---the object is presently in the process of being spawned, then the callback will be called as soon as the object has
+---finished spawning.
+---
+---@overload fun(guid: string): nil | tts__Object
+---@param guidOrObject string | tts__Object
+---@param callback nil | fun(object: tts__Object): void
+---@return nil | tts__Object
+function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
+    ---@type string
+    local guid
+
+    if guidOrObject ~= nil and type(guidOrObject) == 'userdata' then
+        ---@type tts__Object
+        local object = --[[---@type tts__Object]] guidOrObject
+
+        if object.spawning then
+            guid = object.guid
+        else
+            callback(object)
+            return object
+        end
+    end
+
+    local pendingSpawn = pendingSpawns[guid]
+
+    if pendingSpawn then
+        table.insert(pendingSpawn.callbacks, callback)
+        return pendingSpawn.object
+    end
+
+    local existingObject = getObjectFromGUID(guid)
+
+    if existingObject ~= nil then
+        callback(--[[---@type tts__Object]] existingObject)
+    end
+
+    return existingObject
+end
+
+---@shape __ge_tts__ObjectUtils_SavedStateData
+---@field guidPrefix string
+---@field pendingSpawns table<string, string>
+
+---@return string
+local function onSave()
+    ---@type __ge_tts__ObjectUtils_SavedStateData
+    local data = {
+        guidPrefix = guidPrefix,
+        pendingSpawns = TableUtils.map(pendingSpawns, function(pendingSpawn) return pendingSpawn.json end),
+    }
+
+    return JSON.encode(data)
+end
+
+local function onFirstLoad()
+    local guidRandomBytes = {}
+
+    for _ = 1, GUID_PREFIX_RANDOM_BYTE_LENGTH do
+        table.insert(guidRandomBytes, math.random(1, 255))
+    end
+
+    guidPrefix = Base64.encode(guidRandomBytes, false) .. ':'
+end
+
+---@param savedState string
+local function onLoad(savedState)
+    if savedState == '' then
+        onFirstLoad()
+        return
+    end
+
+    ---@type __ge_tts__ObjectUtils_SavedStateData
+    local data = JSON.decode(savedState)
+
+    guidPrefix = data.guidPrefix
+
+    for guid, json in pairs(data.pendingSpawns) do
+        local existingObject = getObjectFromGUID(guid)
+
+        if not existingObject then
+            local spawningObject = spawnObjectJSON({
+                json = json,
+                callback_function = function(object)
+                    triggerPendingCallbacks(guid, object)
+                end
+            })
+
+            pendingSpawns[guid] = {
+                callbacks = {},
+                object = spawningObject,
+                json = json
+            }
+        end
+    end
+end
+
+local MODULE_NAME = 'ge_tts/ObjectUtils'
+
+SaveManager.registerOnSave(MODULE_NAME, onSave)
+SaveManager.registerOnLoad(MODULE_NAME, onLoad)
+
+return ObjectUtils

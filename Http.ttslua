@@ -1,13 +1,21 @@
----@type ge_tts__Base64
 local Base64 = require('ge_tts/Base64')
-
----@type ge_tts__TableUtils
+local Logger = require('ge_tts/Logger')
 local TableUtils = require('ge_tts/TableUtils')
 
+---@shape ge_tts__Http_Response
+---@field statusCode number
+---@field headers table<string, string>
+---@field body string|number[]|table
+
+---@alias ge_tts__Http_Callback fun(response: nil|ge_tts__Http_Response, error: nil|string): void
+---
+---@type nil | string
 local proxyUrl
+
+---@type nil | string
 local decodeJsonContentType = 'application/json'
 
----@module ge_tts__Http
+---@class ge_tts__Http
 local Http = {}
 
 ---@param url string
@@ -30,7 +38,7 @@ function Http.getDecodeJsonContentType()
     return decodeJsonContentType
 end
 
----@param headers table
+---@param headers table<string, string>
 ---@param name string
 ---@return string|nil, string|nil @value, headerName - `headerName` being the case-sensitive variant of `name` found within headers
 function Http.getHeader(headers, name)
@@ -43,10 +51,10 @@ end
 
 ---@param method string
 ---@param url string
----@param options table
----@param callback fun(table, string) @function(response, error)
+---@param options table<string, any>
+---@param callback ge_tts__Http_Callback
 function Http.request(method, url, options, callback)
-    assert(proxyUrl, 'Http must be configured with Http.setProxyUrl(\'YOUR_TTS_PROXY_URL\'). Please refer to https://gitlab.com/BenjaminDobell/tts-proxy for details.')
+    Logger.assert(proxyUrl, 'Http must be configured with Http.setProxyUrl(\'YOUR_TTS_PROXY_URL\'). Please refer to https://gitlab.com/BenjaminDobell/tts-proxy for details.')
 
     content = JSON.encode(TableUtils.merge(
         {
@@ -59,87 +67,99 @@ function Http.request(method, url, options, callback)
         }
     ))
 
-    WebRequest.put(proxyUrl, content, function(request)
+    WebRequest.put(--[[---@type string]] proxyUrl, content, function(request)
         if request.is_error then
             callback(nil, request.error)
         elseif request.is_done then
-            response = JSON.decode(request.text)
+            local responseContent = JSON.decode(request.text)
 
-            if response.base64 then
-                response.base64 = nil
+            ---@type ge_tts__Http_Response
+            local response = {
+                statusCode = responseContent.status_code,
+                headers = responseContent.headers,
+                body = responseContent.body
+            }
+
+            if responseContent.base64 then
                 response.body = Base64.decode(response.body)
             else
                 local contentType = Http.getHeader(response.headers, 'Content-Type')
 
-                if contentType and contentType:lower() == decodeJsonContentType then
+                if contentType and (--[[---@type string]] contentType):lower() == decodeJsonContentType then
                     response.body = JSON.decode(response.body)
                 end
             end
 
-            callback(response)
+            callback(response, nil)
         end
     end)
 end
 
 ---@param method string
 ---@param url string
----@param body number[]|table|string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
----@param headers table<string, string>|nil
----@param callback fun(table, string) @function(response, error)
-function Http.submit(method, url, body, headers, callback)
-    headers = headers or {}
+---@param body number[]|table<string, any>|string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
+---@param headersOrNil nil | table<string, string>
+---@param callback ge_tts__Http_Callback
+function Http.submit(method, url, body, headersOrNil, callback)
+    ---@type table<string, string>
+    local headers = headersOrNil or {}
 
-    if type(body[1]) == 'number' then
-        headers = TableUtils.merge(headers, {base64=true})
-        body = Base64.encode(body)
+    ---@type table<string, any>
+    local options = {headers = headers}
+
+    if type((--[[---@type number[] ]] body)[1]) == 'number' then
+        options = TableUtils.merge(options, {base64=true})
+        body = Base64.encode(--[[---@type number[] ]] body)
     elseif type(body) == 'table' then
         local contentType, contentTypeHeader = Http.getHeader(headers, 'Content-Type')
         contentTypeHeader = contentTypeHeader or 'Content-Type'
 
-        if not (contentType and contentType:endsWith('json')) then
-            headers = TableUtils.merge(headers, {[contentTypeHeader]='application/json'})
+        if not (contentType and (--[[---@type string]] contentType):sub(-4) == 'json') then
+            headers = TableUtils.merge(--[[---@type table<string, any>]] headers, { [--[[---@type string]] contentTypeHeader]='application/json'})
         end
 
         body = JSON.encode(body)
     end
 
-    Http.request(method, url, {headers=headers, body=body}, callback)
+    options.body = body
+
+    Http.request(method, url, options, callback)
 end
 
 ---@param url string
----@param headers table<string, string>|nil
----@param callback fun(table, string) @function(response, error)
+---@param headers nil | table<string, string>
+---@param callback ge_tts__Http_Callback
 function Http.delete(url, headers, callback)
     Http.request('DELETE', url, {headers=headers}, callback)
 end
 
 ---@param url string
----@param headers table<string, string>|nil
----@param callback fun(table, string) @function(response, error)
+---@param headers nil | table<string, string>
+---@param callback ge_tts__Http_Callback
 function Http.get(url, headers, callback)
     Http.request('GET', url, {headers=headers}, callback)
 end
 
 ---@param method string
 ---@param url string
----@param headers table<string, string>|nil
----@param callback fun(table, string) @function(response, error)
+---@param headers nil | table<string, string>
+---@param callback ge_tts__Http_Callback
 function Http.patch(url, body, headers, callback)
     Http.submit('PATCH', url, body, headers, callback)
 end
 
 ---@param method string
 ---@param url string
----@param headers table<string, string>|nil
----@param callback fun(table, string) @function(response, error)
+---@param headers nil | table<string, string>
+---@param callback ge_tts__Http_Callback
 function Http.post(url, body, headers, callback)
     Http.submit('POST', url, body, headers, callback)
 end
 
 ---@param method string
 ---@param url string
----@param headers table<string, string>|nil
----@param callback fun(table, string) @function(response, error)
+---@param headers nil | table<string, string>
+---@param callback ge_tts__Http_Callback
 function Http.put(url, body, headers, callback)
     Http.submit('PUT', url, body, headers, callback)
 end

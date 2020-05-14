@@ -1,16 +1,27 @@
---- A 2D vector with x, y and z fields.
----@class ge_tts__CharVec2
+---
+--- A 2D vector implementation.
+---
+--- Components can be accessed as x and y properties, or indexed by numbers [1] and [2].
+---
+---@class ge_tts__Vector2 : __ge_tts__NumCharVec2Shape<number>
+
+---@shape ge_tts__CharVec2Shape
 ---@field x number
 ---@field y number
 
--- NOTE: EmmyLua doesn't seem to understand non-string field indexes. However, defining a type/class is still useful for documentation purposes.
---- A 2D vector with [1], [2] and [3] indexed fields.
----@class ge_tts__NumVec2
----@field 1 number
----@field 2 number
+---@shape ge_tts__NumVec2Shape
+---@field [1] number
+---@field [2] number
 
----@class ge_tts__Vector2 :  ge_ge_tts__CharVec2 @, ge_tts__NumVec2 - EmmyLua does not support multiple inheritance-like semantics
-local Vector2 = {}
+---@alias ge_tts__Vec2Shape ge_tts__CharVec2Shape | ge_tts__NumVec2Shape
+
+---@shape __ge_tts__NumCharVec2Shape<T>
+---@field x T
+---@field y T
+---@field [1] T
+---@field [2] T
+
+---@shape ge_tts__NumCharVec2Shape : __ge_tts__NumCharVec2Shape<number>
 
 ---@param vector ge_tts__Vector2
 ---@param index any
@@ -28,11 +39,17 @@ end
 
 local RADIANS_RATIO = math.pi / 180
 
+---@class ge_tts__static_Vector2
+---@overload fun(): ge_tts__Vector2
+---@overload fun(x: number, y: number): ge_tts__Vector2
+---@overload fun(source: ge_tts__Vec2Shape|number[]): ge_tts__Vector2
+local Vector2 = {}
+
 setmetatable(Vector2, {
-    ---@param sourceXOrVector ge_tts__CharVec2|ge_tts__NumVec2|number|nil
-    ---@param sourceY number|nil
+    ---@param sourceXOrVector nil | __ge_tts__NumCharVec2Shape<nil | number>
+    ---@param sourceY nil | number
     __call = function(_, sourceXOrVector, sourceY)
-        local self = {x = 0, y = 0}
+        local self = --[[---@type ge_tts__Vector2]] {x = 0, y = 0}
 
         setmetatable(self, {
             __index = numberedIndex,
@@ -43,11 +60,13 @@ setmetatable(Vector2, {
 
         if sourceXOrVector then
             if type(sourceXOrVector) == 'table' then
-                self.x = sourceXOrVector.x or sourceXOrVector[1] or self.x
-                self.y = sourceXOrVector.y or sourceXOrVector[2] or self.y
+                local source = --[[---@type __ge_tts__NumCharVec2Shape<nil | number>]] sourceXOrVector
+
+                self.x = source.x or source[1] or self.x
+                self.y = source.y or source[2] or self.y
             else
-                self.x = sourceXOrVector
-                self.y = sourceY
+                self.x = --[[---@type number]] sourceXOrVector
+                self.y = --[[---@type number]] sourceY
             end
         end
 
@@ -56,7 +75,7 @@ setmetatable(Vector2, {
             return '{x = ' .. self.x .. ', y = ' .. self.y .. '}'
         end
 
-        ---@return ge_tts__CharVec2
+        ---@return ge_tts__CharVec2Shape
         function self.toData()
             return {x = self.x, y = self.y}
         end
@@ -72,7 +91,8 @@ setmetatable(Vector2, {
         end
 
         ---Add a vector to self.
-        ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+        ---@overload fun(v: ge_tts__Vec2Shape): self
+        ---@param v ge_tts__NumCharVec2Shape
         ---@return ge_tts__Vector2 @self
         function self.add(v)
             self.x = self.x + (v.x or v[1])
@@ -81,7 +101,8 @@ setmetatable(Vector2, {
         end
 
         ---Subtract a vector from self.
-        ---@param v ge_tts__CharVec2|ge_tts__NumVec2
+        ---@overload fun(v: ge_tts__Vec2Shape): self
+        ---@param v ge_tts__NumCharVec2Shape
         ---@return ge_tts__Vector2 @self
         function self.sub(v)
             self.x = self.x - (v.x or v[1])
@@ -89,15 +110,15 @@ setmetatable(Vector2, {
             return self
         end
 
-        ---@param factor number|ge_tts__CharVec2|ge_tts__NumVec2
+        ---@param factor number | ge_tts__Vec2Shape
         ---@return ge_tts__Vector2 @self
         function self.scale(factor)
             if (type(factor) == 'number') then
                 self.x = self.x * factor
                 self.y = self.y * factor
             else
-                self.x = self.x * (factor.x or factor[1])
-                self.y = self.y * (factor.y or factor[2])
+                self.x = self.x * ((--[[---@type ge_tts__CharVec2Shape]] factor).x or (--[[---@type ge_tts__NumVec2Shape]] factor)[1])
+                self.y = self.y * ((--[[---@type ge_tts__CharVec2Shape]] factor).y or (--[[---@type ge_tts__NumVec2Shape]] factor)[2])
             end
 
             return self
@@ -122,7 +143,8 @@ setmetatable(Vector2, {
     end,
 })
 
----@param v ge_tts__CharVec2|ge_tts__NumVec2
+---@overload fun(v: ge_tts__Vec2Shape): number
+---@param v ge_tts__NumCharVec2Shape
 ---@return number
 function Vector2.lengthSquared(v)
     local x = v.x or v[1]
@@ -130,41 +152,42 @@ function Vector2.lengthSquared(v)
     return x * x + y * y
 end
 
----@param v ge_tts__CharVec2|ge_tts__NumVec2
+---@param v ge_tts__Vec2Shape
 ---@return number
 function Vector2.length(v)
     return math.sqrt(Vector2.lengthSquared(v))
 end
 
----@param v1 ge_tts__CharVec2|ge_tts__NumVec2
----@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+---@param v1 ge_tts__Vec2Shape
+---@param v2 ge_tts__Vec2Shape
 ---@return ge_tts__Vector2
 function Vector2.add(v1, v2)
     return Vector2(v1).add(v2)
 end
 
----@param v1 ge_tts__CharVec2|ge_tts__NumVec2
----@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+---@param v1 ge_tts__Vec2Shape
+---@param v2 ge_tts__Vec2Shape
 ---@return ge_tts__Vector2
 function Vector2.sub(v1, v2)
     return Vector2(v1).sub(v2)
 end
 
----@param v ge_tts__CharVec2|ge_tts__NumVec2
----@param factor number|ge_tts__CharVec2|ge_tts__NumVec2
+---@param v ge_tts__Vec2Shape
+---@param factor number | ge_tts__Vec2Shape
 ---@return ge_tts__Vector2
 function Vector2.scale(v, factor)
     return Vector2(v).scale(factor)
 end
 
----@param v ge_tts__CharVec2|ge_tts__NumVec2
+---@param v ge_tts__Vec2Shape
 ---@return ge_tts__Vector2
 function Vector2.normalize(v)
     return Vector2(v).normalize()
 end
 
----@param v1 ge_tts__CharVec2|ge_tts__NumVec2
----@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+---@overload fun(v1: ge_tts__Vec2Shape, v2: ge_tts__Vec2Shape): number
+---@param v1 ge_tts__NumCharVec2Shape
+---@param v2 ge_tts__NumCharVec2Shape
 ---@return number
 function Vector2.cross(v1, v2)
     local x1 = v1.x or v1[1]
@@ -176,8 +199,9 @@ function Vector2.cross(v1, v2)
     return x1 * y2 - y1 * x2
 end
 
----@param v1 ge_tts__CharVec2|ge_tts__NumVec2
----@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+---@overload fun(v1: ge_tts__Vec2Shape, v2: ge_tts__Vec2Shape): number
+---@param v1 ge_tts__NumCharVec2Shape
+---@param v2 ge_tts__NumCharVec2Shape
 ---@return number
 function Vector2.dot(v1, v2)
     local x1 = v1.x or v1[1]
@@ -189,8 +213,9 @@ function Vector2.dot(v1, v2)
     return x1 * x2 + y1 * y2
 end
 
----@param v1 ge_tts__CharVec2|ge_tts__NumVec2
----@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+---@overload fun(v1: ge_tts__Vec2Shape, v2: ge_tts__Vec2Shape): number
+---@param v1 ge_tts__NumCharVec2Shape
+---@param v2 ge_tts__NumCharVec2Shape
 ---@return number
 function Vector2.distanceSquared(v1, v2)
     local x1 = v1.x or v1[1]
@@ -202,27 +227,32 @@ function Vector2.distanceSquared(v1, v2)
     return Vector2.lengthSquared({x = x2 - x1, y = y2 - y1})
 end
 
----@param v1 ge_tts__CharVec2|ge_tts__NumVec2
----@param v2 ge_tts__CharVec2|ge_tts__NumVec2
+---@param v1 ge_tts__Vec2Shape
+---@param v2 ge_tts__Vec2Shape
 ---@return number
 function Vector2.distance(v1, v2)
     return math.sqrt(Vector2.distanceSquared(v1, v2))
 end
 
----@param v ge_tts__CharVec2|ge_tts__NumVec2
+---@overload fun(v: ge_tts__Vec2Shape): number
+---@param v ge_tts__NumCharVec2Shape
 ---@param angle number @angle in degrees
 ---@return ge_tts__Vector2
 function Vector2.rotate(v, angle)
     angle = angle * RADIANS_RATIO
 
+    local x = v.x or v[1]
+    local y = v.y or v[2]
+
     return Vector2(
-        v.x * math.cos(angle) - v.y * math.sin(angle),
-        v.x * math.sin(angle) + v.y * math.cos(angle)
+        x * math.cos(angle) - y * math.sin(angle),
+        x * math.sin(angle) + y * math.cos(angle)
     )
 end
 
----@param v3 ge_tts__CharVec3|ge_tts__NumVec3
----@return number
+---@overload fun(v3: tts__VectorShape): number
+---@param v3 ge_tts__NumCharVec3
+---@return ge_tts__Vector2
 function Vector2.fromXZ(v3)
     return Vector2(v3.x or v3[1], v3.z or v3[3])
 end

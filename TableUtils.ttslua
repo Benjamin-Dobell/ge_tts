@@ -5,11 +5,11 @@
 local TableUtils = {}
 
 --- Returns true if `tab` contains an entry at index 1. That being the case, this module will assume `tab` only contains sequential positive integer keys.
----@overload fun(tab: any[]): true
----@overload fun(tab: table<boolean, any>): false
----@overload fun(tab: table<string, any>): false
----@overload fun(tab: table<table, any>): false
----@overload fun(tab: table<userdata, any>): false
+---@overload fun<V>(tab: V[]): true
+---@overload fun<V>(tab: table<boolean, V>): false
+---@overload fun<V>(tab: table<string, V>): false
+---@overload fun<V>(tab: table<table, V>): false
+---@overload fun<V>(tab: table<userdata, V>): false
 ---@param tab table
 ---@return boolean
 TableUtils.isArray = function(tab)
@@ -102,7 +102,7 @@ TableUtils.reject = function(tab, func)
     return TableUtils.select(tab, function(v, k) return not func(v, k) end)
 end
 
----@overload fun<R, K: R, V>(tab: table<K, V>, func: fun(memo: R, value: V, key: K): R): R
+---@overload fun<R, K, V: R>(tab: table<K, V>, func: fun(memo: R, value: V, key: K): R): R
 ---@generic K, V, R
 ---@param tab table<K, V>
 ---@param initial R
@@ -126,9 +126,8 @@ TableUtils.reduce = function(tab, initial, func)
     return memo
 end
 
----@overload fun(tab: any[], value: any): number
----@generic K
----@param tab table<K, any>
+---@generic K, V
+---@param tab table<K, V>
 ---@param value any
 ---@return nil|K
 TableUtils.find = function(tab, value)
@@ -171,23 +170,22 @@ TableUtils.detect = function(tab, func)
     return nil, nil
 end
 
----@overload fun<V>(arr: V[]): V[]
----@overload fun<K, V>(tab: table<K, V>): table<K, V>
----@generic K, V
----@param tab table<K, V>
+---@overload fun<T>(tab: T): T
+---@generic T
+---@param tab T
 ---@param recursive boolean
----@return table<K, V>
+---@return T
 function TableUtils.copy(tab, recursive)
-    ---@type table<K, V>
+    ---@type table
     local copied = {}
 
-    for k, v in pairs(tab) do
+    for k, v in pairs(--[[---@type table]] tab) do
         copied[k] = (recursive and type(v) == 'table' and
-            --[[---@type V]] TableUtils.copy(--[[---@type table]] v, true)
+            TableUtils.copy(--[[---@type table]] v, true)
         ) or v
     end
 
-    return copied
+    return --[[---@type T]] copied
 end
 
 ---@generic K, V
@@ -235,8 +233,8 @@ TableUtils.flatten = function(tab)
     return flattened
 end
 
----@generic K
----@param tab table<K, any>
+---@generic K, V
+---@param tab table<K, V>
 ---@return K[]
 TableUtils.keys = function(tab)
     ---@type K[]
@@ -247,6 +245,20 @@ TableUtils.keys = function(tab)
     end
 
     return keys
+end
+
+---@generic K, V
+---@param tab table<K, V>
+---@return V[]
+TableUtils.values = function(tab)
+    ---@type V[]
+    local values = {}
+
+    for _, v in pairs(tab) do
+        table.insert(values, v)
+    end
+
+    return values
 end
 
 ---@param tab table

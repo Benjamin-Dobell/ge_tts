@@ -1,4 +1,4 @@
----@module ge_tts__Coroutine
+---@class ge_tts__Coroutine
 local Coroutine = {}
 
 --- Yields from the current coroutine, which will later be resumed once a condition is met.
@@ -38,7 +38,8 @@ function Coroutine.yieldSeconds(seconds)
 end
 
 --- Creates a co-routine from the specified function, and immediately starts it.
----@param func function
+---@param func fun
+---@return boolean, any...
 function Coroutine.start(func)
     return coroutine.resume(coroutine.create(func))
 end

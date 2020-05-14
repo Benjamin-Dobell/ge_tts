@@ -4,7 +4,7 @@ local TableUtils = require('ge_tts/TableUtils')
 
 local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
 
----@class SaveManager
+---@class ge_tts__SaveManager
 local SaveManager = {}
 
 ---@shape __ge_tts__SaveManager_Callbacks

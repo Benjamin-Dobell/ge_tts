@@ -1,70 +1,56 @@
----@type ge_tts__TableUtils
+local Logger = require('ge_tts/Logger')
+local ObjectUtils = require('ge_tts/ObjectUtils')
 local TableUtils = require('ge_tts/TableUtils')
-
----@type ge_tts__Vector3
 local Vector3 = require('ge_tts/Vector3')
-
----@type ge_tts__Zone
 local Zone = require('ge_tts/Zone')
 
-local CONTAINER_TYPES = {
-    'Deck',
-    'Bag'
-}
+---@class ge_tts__HandZone : ge_tts__Zone
 
----@param player userdata @tts__Player
----@param handIndex number @integer
----@return ge_tts__Vector3
-local function getDealOrigin(player, handIndex)
-    local handObjects = player.getHandObjects(handIndex)
+---@shape ge_tts__HandZone_SavedState : ge_tts__Zone_SavedState
+---@field ownerColor tts__PlayerHandColor
+---@field handIndex number
 
-    if #handObjects > 0 then
-        local lastObject = handObjects[#handObjects]
-        return lastObject.getPosition()
-    else
-        local position = player.getHandTransform(handIndex).position
-        return Vector3(position.x, position.y + 2, position.z)
-    end
-end
-
----@param player userdata @tts__Player
----@param handIndex number @integer
----@return ge_tts__Vector3
-local function getDealOffset(player, handIndex)
-    local right = player.getHandTransform(handIndex).right
-    return Vector3(0.5 * right.x, 0.5, 0.5 * right.z)
-end
-
----@param owner userdata @tts__Player
+---@param owner tts__Player
 ---@param handIndex number
----@return table<string, any>
+---@return tts__Vector, tts__Vector, tts__Vector
 local function zoneParameters(owner, handIndex)
     local handTransform = owner.getHandTransform(handIndex)
-    return {handTransform.position, handTransform.rotation, handTransform.scale}
+    return handTransform.position, handTransform.rotation, handTransform.scale
 end
 
----@class ge_tts__HandZone : ge_tts__Zone
+---@class ge_tts__static_HandZone : ge_tts__static_Zone
+---@overload fun(owner: tts__Player): ge_tts__HandZone
+---@overload fun(owner: tts__Player, handIndex: nil | number): ge_tts__HandZone
+---@overload fun(savedState: ge_tts__HandZone_SavedState): ge_tts__HandZone
+---@overload fun(ownerOrSavedState: tts__Player | ge_tts__HandZone_SavedState, nilOrHandIndex: nil | number): ge_tts__HandZone
 local HandZone = {}
 
-setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
-    ---@param ownerOrData userdata|table @tts__Player|table - TTS player, or saved state table
-    ---@param handIndex number @TTS player hand index, defaults to 1.
-    __call = function(_, ownerOrData, handIndex)
-        ---@type ge_tts__HandZone
-        local self = HandZone.isSavedState(ownerOrData) and Zone(ownerOrData) or Zone(table.unpack(zoneParameters(ownerOrData, handIndex)))
+HandZone.ZONE_TYPE = 'HandZone'
 
+setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
+    ---@param ownerOrSavedState tts__Player | ge_tts__HandZone_SavedState
+    ---@param nilOrHandIndex nil | number @TTS player hand index, defaults to 1.
+    __call = function(_, ownerOrSavedState, nilOrHandIndex)
+        ---@type ge_tts__HandZone
+        local self = HandZone.isSavedState(ownerOrSavedState) and Zone(--[[---@type ge_tts__Zone_SavedState]] ownerOrSavedState) or Zone(zoneParameters(--[[---@type tts__Player]] ownerOrSavedState, handIndex))
+
+        ---@type tts__Player
         local owner
 
-        if HandZone.isSavedState(ownerOrData) then
-            local data = ownerOrData
+        ---@type number
+        local handIndex
+
+        if HandZone.isSavedState(ownerOrSavedState) then
+            local data = --[[---@type ge_tts__HandZone_SavedState]] ownerOrSavedState
 
             owner = Player[data.ownerColor]
             handIndex = data.handIndex
         else
-            owner = ownerOrData
+            owner = --[[---@type tts__Player]] ownerOrSavedState
+            handIndex = nilOrHandIndex or 1
         end
 
-        ---@return userdata @tts__Player
+        ---@return tts__Player
         function self.getOwner()
             return owner
         end
@@ -74,15 +60,19 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
             return handIndex
         end
 
+        function self.getZoneType()
+            return HandZone.ZONE_TYPE
+        end
+
         local superOnEnter = self.onEnter
 
         --- Called when a TTS object enters this HandZone.
-        ---@param object userdata @tts__Object
+        ---@param object tts__Object
         function self.onEnter(object)
             superOnEnter(object)
 
-            if not TableUtils.find(self.getOccupyingObjects(), object) and TableUtils.find(owner.getHandObjects(handIndex), object) then
-                self.onDrop(owner.color, object)
+            if not self.isObjectOccupying(object) and TableUtils.find(owner.getHandObjects(handIndex), object) then
+                self.onDrop(owner.color, object, false)
             end
         end
 
@@ -90,62 +80,59 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
 
         --- Can be called to dynamically drop (deal) a TTS object into this HandZone. Works for containers or objects with `use_hands` enabled.
         ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
-        ---@param object userdata @tts__Object - The object that will be dropped.
+        ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
-            local isContainer = TableUtils.find(CONTAINER_TYPES, object.tag)
-            self.deal(colorName, object, isContainer and object.GetQuantity() or 1)
+            local isContainer = ObjectUtils.isContainerTag(object.tag)
+            self.deal(colorName, object, isContainer and object.getQuantity() or 1)
         end
 
         --- Same as onDrop except that we provide a count which is the maximum number of objects dealt from a container.
         ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
-        ---@param object userdata @tts__Object - The object that will be dropped.
+        ---@param object tts__Object @The object that will be dropped.
         function self.deal(colorName, object, count)
-            local isContainer = TableUtils.find(CONTAINER_TYPES, object.tag)
-
-            if not isContainer and not object.use_hands then
-                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') does not have hand usage enabled and was unable to be dropped in Hand Zone (' .. tostring(self.getScriptingZone().getGUID()) .. ')', Logger.WARNING)
-                return
-            end
+            local isContainer = ObjectUtils.isContainerTag(object.tag)
 
             if isContainer then
                 -- The deal API doesn't do what we want, so we need to do our best to mimic it with takeObject
-                local zoneRotation = self.getScriptingZone().getRotation()
+                local quantity = math.min(count, object.getQuantity())
 
-                local origin = getDealOrigin(owner, handIndex)
-                local offset = getDealOffset(owner, handIndex)
-                local rotation = Vector3(zoneRotation.x, zoneRotation.y + 180, zoneRotation.z)
-
-                local quantity = math.min(count, object.GetQuantity())
-
-                for i = 1, quantity do
-                    -- TODO: Hmmm, can't remember. Is there a reason why we don't just takeObject in place then call deal on the object that was taken?
-                    object.takeObject({
-                        position = Vector3.scale(offset, i).add(origin),
-                        rotation = rotation,
-                        smooth = true,
-                        callback_function = function(takenObject)
-                            -- TODO: This won't be called until the movement finishes, do we care?
-                            superDrop(colorName, takenObject)
+                for _ = 1, quantity do
+                    local takenObject = object.takeObject({
+                        callback_function = function(spawnedObject)
+                            if self.isObjectOccupying(spawnedObject) then
+                                spawnedObject.use_hands = true
+                                spawnedObject.deal(1, --[[---@type tts__PlayerHandColor]] owner.color, handIndex)
+                            end
                         end,
                     })
+
+                    superDrop(colorName, --[[---@type tts__Object]] takenObject)
                 end
             else
-                object.deal(1, owner.color, handIndex)
+                if object.spawning then
+                    -- Unlike setPositionSmooth, deal does not work on objects that are in the process of spawning.
+                    Wait.condition(function()
+                        if self.isObjectOccupying(object) then
+                            object.use_hands = true
+                            object.deal(1, --[[---@type tts__PlayerHandColor]] owner.color, handIndex)
+                        end
+                    end, function() return object ~= nil and not object.spawning end)
+                else
+                    object.deal(1, --[[---@type tts__PlayerHandColor]] owner.color, handIndex)
+                end
+
                 superDrop(colorName, object)
             end
         end
 
         local superSave = self.save
 
+        ---@return ge_tts__HandZone_SavedState
         function self.save()
-            return TableUtils.merge(superSave(), {
+            return --[[---@type ge_tts__HandZone_SavedState]] TableUtils.merge(superSave(), {
                 ownerColor = owner.color,
                 handIndex = handIndex,
             })
-        end
-
-        function self.toString()
-            return 'HandZone (' .. tostring(self.getScriptingZone().getGUID()) .. ')'
         end
 
         return self

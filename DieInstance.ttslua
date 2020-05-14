@@ -1,0 +1,94 @@
+local EventManager = require('ge_tts/EventManager')
+local Instance = require('ge_tts/Instance')
+local Object = require('ge_tts/Object')
+local Vector3 = require('ge_tts/Vector3')
+
+---@class ge_tts__DieInstance : ge_tts__Instance
+
+---@shape ge_tts__DieInstance_SavedState : ge_tts__Instance_SavedState
+---@field heroName string
+---@field heroSet string
+
+---@class ge_tts__static_DieInstance
+---@overload fun(savedState: ge_tts__Instance_SavedState): ge_tts__Instance
+---@overload fun(object: tts__Object): ge_tts__Instance
+---@overload fun(guid: string, container: tts__Container): ge_tts__Instance
+---@overload fun(objectOrSavedState: tts__Object | ge_tts__Instance_SavedState): ge_tts__Instance
+---@overload fun(objectOrGuidOrSavedState: tts__Object | string | ge_tts__Instance_SavedState, nilOrContainer: nil | tts__Container): ge_tts__Instance
+---@field INSTANCE_TYPE string
+local DieInstance = {}
+
+DieInstance.INSTANCE_TYPE = 'Die'
+
+setmetatable(DieInstance, {
+    ---@param objectOrGuidOrSavedState tts__Object | string | ge_tts__Instance_SavedState
+    ---@param nilOrContainer nil | tts__Container
+    __call = function(_, objectOrGuidOrSavedState, nilOrContainer)
+        local self = --[[---@type ge_tts__DieInstance]] Instance(objectOrGuidOrSavedState, nilOrContainer)
+
+        ---@return string
+        function self.getInstanceType()
+            return DieInstance.INSTANCE_TYPE
+        end
+
+        ---@param value number|string
+        ---@param playerColor nil|tts__PlayerColor
+        function self.onRotationValueChanged(value, playerColor)
+        end
+
+        return self
+    end,
+    __index = Instance,
+})
+
+local MIN_ROLL_ANGULAR_VELOCITY_SQUARED = 2 * math.pi * math.pi
+
+---@type table<tts__Object, true>
+local monitoredDice = {}
+
+---@param object tts__Object
+---@param playerColor nil|tts__PlayerColor
+local onObjectUpdating = function(object, playerColor)
+    if monitoredDice[object] or object.tag ~= Object.Tag.Die then
+        return
+    end
+
+    local instance = Instance.getOneInstance(object)
+
+    if instance and (--[[---@type ge_tts__DieInstance]] instance).onRotationValueChanged ~= nil then
+        local dieInstance = (--[[---@type ge_tts__DieInstance]] instance)
+        local initialRotationValue = object.getRotationValue()
+        local isRolling = false
+
+        monitoredDice[object] = true
+
+        Wait.condition(function()
+            if isRolling then
+                Wait.condition(function()
+                    monitoredDice[object] = nil
+
+                    if object ~= nil then
+                        local value = (--[[---@type tts__Die]] object).getRotationValue()
+                        dieInstance.onRotationValueChanged(value, playerColor)
+                    end
+                end, function()
+                    return object == nil or object.resting
+                end)
+            else
+                monitoredDice[object] = nil
+            end
+        end, function()
+            if object == nil then
+                return true
+            end
+
+            isRolling = object.getRotationValue() ~= initialRotationValue and Vector3.lengthSquared(object.getAngularVelocity()) > MIN_ROLL_ANGULAR_VELOCITY_SQUARED
+            return isRolling or object.resting
+        end, 20)
+    end
+end
+
+EventManager.addHandler('onObjectRandomize', onObjectUpdating)
+EventManager.addHandler('onObjectDrop', function(playerColor, object) onObjectUpdating(object, playerColor) end)
+
+return DieInstance

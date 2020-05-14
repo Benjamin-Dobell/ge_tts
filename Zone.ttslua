@@ -1,54 +1,85 @@
----@type ge_tts__TableUtils
-local TableUtils = require('ge_tts/TableUtils')
-
----@type ge_tts__EventManager
 local EventManager = require('ge_tts/EventManager')
-
----@type ge_tts__Logger
+local Instance = require('ge_tts/Instance')
 local Logger = require('ge_tts/Logger')
-
----@type ge_tts__Vector3
+local Object = require('ge_tts/Object')
+local ObjectUtils = require('ge_tts/ObjectUtils')
+local TableUtils = require('ge_tts/TableUtils')
 local Vector3 = require('ge_tts/Vector3')
 
----@type table<userdata, ge_tts__Zone> @table<tts__ScriptingZone, ge_tts__Zone>
-local scriptingZoneZoneMap = {}
+---@type table<tts__ScriptingTrigger, ge_tts__Zone>
+local scriptingTriggerZoneMap = {}
 
----@type table<userdata, ge_tts__Zone[]> @table<tts__Object, ge_tts__Zone[]>
-local objectZonesMap = {}
+---@type table<tts__Object, ge_tts__Zone[]>
+local objectIntersectingZonesMap = {}
 
-local function addObjectZone(object, zone)
-    local objectZones = objectZonesMap[object]
+---@type table<tts__Object, ge_tts__Zone>
+local objectOccupyingZoneMap = {}
+
+---@param object tts__Object
+---@param zone ge_tts__Zone
+local function addObjectIntersectingZone(object, zone)
+    local objectZones = objectIntersectingZonesMap[object]
 
     if objectZones and not TableUtils.find(objectZones, zone) then
         table.insert(objectZones, zone)
     else
-        objectZonesMap[object] = { zone }
+        objectIntersectingZonesMap[object] = { zone }
     end
 end
 
-local function removeObjectZone(object, zone)
-    local objectZones = objectZonesMap[object]
+local function removeObjectIntersectingZone(object, zone)
+    local objectZones = objectIntersectingZonesMap[object]
 
     if objectZones then
         local zoneIndex = TableUtils.find(objectZones, zone)
 
         if zoneIndex then
-            table.remove(objectZones, zoneIndex)
+            table.remove(objectZones, --[[---@type number]] zoneIndex)
 
             if #objectZones == 0 then
-                objectZonesMap[object] = nil
+                objectIntersectingZonesMap[object] = nil
             end
         end
     end
 end
 
----@param position ge_tts__CharVec3|ge_tts__NumVec3
----@param rotation ge_tts__CharVec3|ge_tts__NumVec3
----@param scale ge_tts__CharVec3|ge_tts__NumVec3
----@param callback fun(object:userdata) @function(object:tts__ScriptingZone) - TTS object spawned callback
+---@param zone ge_tts__Zone
+---@param object tts__Object
+local function associateOccupyingObject(zone, object)
+    objectOccupyingZoneMap[object] = zone
+
+    for _, instance in ipairs(Instance.getInstances(object)) do
+        instance.setZone(zone)
+    end
+end
+
+---@overload fun(zone: ge_tts__Zone, object: tts__Object): void
+---@param zone ge_tts__Zone
+---@param object tts__Object
+---@param disassociateInstances nil | boolean
+local function disassociateOccupyingObject(zone, object, disassociateInstances)
+    if objectOccupyingZoneMap[object] == zone then
+        objectOccupyingZoneMap[object] = nil
+    end
+
+    -- Note that we're intentionally not disassociating instances by default. Instances track the *most recent* zone.
+    if disassociateInstances ~= nil and disassociateInstances then
+        for _, instance in ipairs(Instance.getInstances(object)) do
+            if instance.getZone() == zone then
+                instance.setZone(nil)
+            end
+        end
+    end
+end
+
+---@param position ge_tts__Vector3
+---@param rotation ge_tts__Vector3
+---@param scale ge_tts__Vector3
+---@param callback fun(object: tts__ScriptingTrigger): void @TTS object spawned callback
+---@return tts__ScriptingTrigger
 local function spawn(position, rotation, scale, callback)
-    local json = {
-        Name = "ScriptingTrigger",
+    local jsonTable = {
+        Name = Object.Name.ScriptingTrigger,
         Transform = {
             posX = position.x,
             posY = position.y,
@@ -61,24 +92,33 @@ local function spawn(position, rotation, scale, callback)
             scaleZ = scale.z,
         },
         Locked = true,
-        GUID = "000000"
     }
-    return spawnObjectJSON({
-        callback_function=callback,
-        json=JSON.encode(json)
-    })
+
+    return --[[---@type tts__ScriptingTrigger]] ObjectUtils.safeSpawnObject(jsonTable, --[[---@type fun(o: tts__Object):void]] callback)
 end
 
 ---@class ge_tts__Zone
+
+---@shape ge_tts__Zone_SavedState
+---@field __savedState true
+---@field guid string
+---@field occupyingObjectGuids string[]
+
+---@class ge_tts__static_Zone
+---@overload fun(position: tts__VectorShape, rotation: tts__VectorShape, scale: tts__VectorShape): ge_tts__Zone
+---@overload fun(scriptingTrigger: tts__ScriptingTrigger): ge_tts__Zone
+---@overload fun(savedState: ge_tts__Zone_SavedState): ge_tts__Zone
+---@overload fun(positionOrTriggerOrSavedState: tts__VectorShape | tts__ScriptingTrigger | ge_tts__Zone_SavedState, nilOrRotation: nil | tts__VectorShape, nilOrScale: nil | tts__VectorShape): ge_tts__Zone
 local Zone = {}
 
+Zone.ZONE_TYPE = 'Zone'
+
 setmetatable(Zone, {
-    ---@param zonePositionOrData ge_tts__CharVec3|ge_tts__NumVec3|table
-    ---@param zoneRotation ge_tts__CharVec3|ge_tts__NumVec3
-    ---@param zoneScale ge_tts__CharVec3|ge_tts__NumVec3
-    __call = function(_, zonePositionOrData, zoneRotation, zoneScale)
-        ---@type ge_tts__Zone
-        local self = {}
+    ---@param positionOrTriggerOrSavedState tts__VectorShape | tts__ScriptingTrigger | ge_tts__Zone_SavedState
+    ---@param nilOrRotation nil | tts__VectorShape
+    ---@param nilOrScale nil | tts__VectorShape
+    __call = function(_, positionOrTriggerOrSavedState, nilOrRotation, nilOrScale)
+        local self = --[[---@type ge_tts__Zone]] {}
 
         setmetatable(self, {
             __tostring = function(_)
@@ -86,119 +126,150 @@ setmetatable(Zone, {
             end
         })
 
-        ---@type ge_tts__Vector3
-        local position
-        ---@type ge_tts__Vector3
-        local rotation
-        ---@type ge_tts__Vector3
-        local scale
+        ---@type tts__ScriptingTrigger
+        local scriptingTrigger
 
-        ---@type userdata @tts__ScriptingZone
-        local scriptingZone
-
-        ---@type userdata[] @tts__Object[]
+        ---@type tts__Object[]
         local occupyingObjects
 
-        if Zone.isSavedState(zonePositionOrData) then
-            local data = zonePositionOrData
+        if Zone.isSavedState(positionOrTriggerOrSavedState) then
+            local data = --[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState
 
-            position = Vector3(data.position)
-            rotation = Vector3(data.rotation)
-            scale = Vector3(data.scale)
-            scriptingZone = getObjectFromGUID(data.guid)
-            occupyingObjects = TableUtils.map(data.occupyingObjectsGuids, function(guid) return getObjectFromGUID(guid) end)
+            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
+            occupyingObjects = TableUtils.map(data.occupyingObjectGuids, function(guid)
+                local object = --[[---@type tts__Object]] ObjectUtils.getSafeSpawnedObject(guid)
+                associateOccupyingObject(self, object)
+                return object
+            end)
 
             -- May be nil if onSave was called before we finished spawning
-            if scriptingZone then
-                scriptingZoneZoneMap[scriptingZone] = self
+            if scriptingTrigger then
+                scriptingTriggerZoneMap[scriptingTrigger] = self
             end
         else
-            position = Vector3(zonePositionOrData)
-            rotation = Vector3(zoneRotation)
-            scale = Vector3(zoneScale)
-
             occupyingObjects = {}
+
+            if type(positionOrTriggerOrSavedState) == 'table' then
+                local position = Vector3(--[[---@type tts__VectorShape]] positionOrTriggerOrSavedState)
+                local rotation = Vector3(--[[---@type tts__VectorShape]] nilOrRotation)
+                local scale = Vector3(--[[---@type tts__VectorShape]] nilOrScale)
+
+                scriptingTrigger = spawn(position, rotation, scale, function()
+                    self.onSpawned()
+                end)
+
+                scriptingTriggerZoneMap[scriptingTrigger] = self
+            elseif type(positionOrTriggerOrSavedState) == 'userdata' then
+                scriptingTrigger = --[[---@type tts__ScriptingTrigger]] positionOrTriggerOrSavedState
+            end
+
+            if type(positionOrTriggerOrSavedState) == 'userdata' then
+
+            end
+
         end
 
-        if not scriptingZone then
-            spawn(position, rotation, scale, function(spawnedScriptingZone)
-                scriptingZone = spawnedScriptingZone
-                scriptingZoneZoneMap[scriptingZone] = self
-            end)
+        ---An identifier for this type of zone.
+        ---
+        ---This is convenience method. Aside from logging, ge_tts does not use this method. However, it may be useful
+        ---for your game to be able to discern one type of zone from another.
+        ---
+        ---Subclasses may either set ZONE_TYPE on the class (static) table, or alternatively, override this method.
+        ---@return string
+        function self.getZoneType()
+            return Zone.ZONE_TYPE
+        end
+
+        -- Callback for sub-classes to override.
+        function self.onSpawned()
         end
 
         ---@return ge_tts__Vector3
         function self.getPosition()
-            return position
+            return Vector3(scriptingTrigger.getPosition())
         end
 
         ---@return ge_tts__Vector3
         function self.getRotation()
-            return rotation
+            return Vector3(scriptingTrigger.getRotation())
         end
 
         ---@return ge_tts__Vector3
         function self.getScale()
-            return scale
+            return Vector3(scriptingTrigger.getScale())
         end
 
-        ---@return userdata @tts__ScriptingZone - associated TTS scripting zone
-        function self.getScriptingZone()
-            return scriptingZone
+        ---@return nil | tts__ScriptingTrigger @Associated TTS scripting trigger
+        function self.getScriptingTrigger()
+            return scriptingTrigger
         end
 
-        ---@return userdata[] @tts__Object[] - TTS objects that have been dropped in the zone
+        ---@return tts__Object[] @TTS objects that have been dropped in the zone
         function self.getOccupyingObjects()
-            return occupyingObjects
+            return TableUtils.copy(occupyingObjects)
+        end
+
+        ---@param object tts__Object
+        ---@return boolean
+        function self.isObjectOccupying(object)
+            return TableUtils.find(occupyingObjects, object) ~= nil
         end
 
         --- Called when a TTS object enters this Zone.
-        ---@param object userdata @tts__Object
+        ---@param object tts__Object
         function self.onEnter(object)
         end
 
         --- Called when a TTS object leaves this Zone.
-        ---@param object userdata @tts__Object
+        ---@param object tts__Object
         function self.onLeave(object)
             local index = TableUtils.find(occupyingObjects, object)
 
             if index then
-                table.remove(occupyingObjects, index)
+                table.remove(occupyingObjects, --[[---@type number]] index)
             end
+
+            disassociateOccupyingObject(self, object)
         end
 
         --- Called when a TTS object is dropped within this Zone.
-        ---@param colorName string @Color of the TTS player that dropped the TTS object.
-        ---@param object userdata @tts__Object - The object that was dropped.
+        ---@param colorName nil|tts__PlayerColor @Color of the TTS player that dropped the TTS object.
+        ---@param object tts__Object @The object that was dropped.
         ---@param dynamicallyDropped boolean @true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
         function self.onDrop(colorName, object, dynamicallyDropped)
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
+
+            associateOccupyingObject(self, object)
         end
 
         --- Called when a TTS object is picked up from this Zone.
         ---@param colorName string @Color of the TTS player that dropped the TTS object.
-        ---@param object userdata @tts__Object - The object that was picked up.
+        ---@param object tts__Object @The object that was picked up.
         function self.onPickUp(colorName, object)
             local index = TableUtils.find(occupyingObjects, object)
 
             if index then
-                table.remove(occupyingObjects, index)
+                table.remove(occupyingObjects, --[[---@type number]] index)
             end
+
+            disassociateOccupyingObject(self, object)
         end
 
         --- Used programmatically when `object` should be made a direct occupant, but not dropped by a player.
-        ---@param object userdata @tts__Object - The object that was dropped.
+        ---@param object tts__Object @The object that was dropped.
         function self.insertOccupyingObject(object)
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
+
+            associateOccupyingObject(self, object)
         end
 
         --- Can be called to dynamically drop a TTS object in this Zone.
-        ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
-        ---@param object userdata @tts__Object - The object that will be dropped.
+        ---@param colorName nil|tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
+        ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
             self.onDrop(colorName, object, true)
         end
@@ -207,27 +278,28 @@ setmetatable(Zone, {
         function self.save()
             return {
                 __savedState = true,
-                guid = scriptingZone and scriptingZone.getGUID(),
-                position = position.toData(),
-                rotation = rotation.toData(),
-                scale = scale.toData(),
-                occupyingObjectsGuids = TableUtils.map(occupyingObjects, function(object) return object.getGUID() end)
+                guid = scriptingTrigger and scriptingTrigger.getGUID(),
+                occupyingObjectGuids = TableUtils.map(occupyingObjects, function(object) return object.getGUID() end)
             }
         end
 
         function self.destruct()
-            scriptingZoneZoneMap[scriptingZone] = nil
+            scriptingTriggerZoneMap[scriptingTrigger] = nil
 
-            for object, _ in ipairs(objectZonesMap) do
-                removeObjectZone(object, self)
+            for _, object in ipairs(occupyingObjects) do
+                disassociateOccupyingObject(self, object, true)
             end
 
-            scriptingZone.destruct()
+            for object, _ in pairs(objectIntersectingZonesMap) do
+                removeObjectIntersectingZone(object, self)
+            end
+
+            scriptingTrigger.destruct()
         end
 
         ---@return string
         function self.toString()
-            return 'Zone (' .. tostring(scriptingZone.getGUID()) .. ')'
+            return self.getZoneType() .. ' (' .. tostring(scriptingTrigger.getGUID()) .. ')'
         end
 
         return self
@@ -235,21 +307,37 @@ setmetatable(Zone, {
 })
 
 function Zone.isSavedState(value)
-    return type(value) == 'table' and value.__savedState
+    return type(value) == 'table' and (--[[---@type table]] value).__savedState
 end
 
 ---Returns a list of Zones that `object` is inside.
----Returned Zones are zones that the `object` is presently inside of, and *not* strictly zones in which `object` has been dropped, it may still be in
----the players hand, or simply passing through these zones as a result of `object` movement.
----@param object userdata @tts__Object
+---Returned Zones are zones that the `object` is presently inside of, and *not* strictly zones in which `object` has
+---been dropped, it may still be held by a player, or simply passing through these zones as a result of smooth movement.
+---@param object tts__Object
 ---@return ge_tts__Zone[]
-function Zone.getObjectZones(object)
-    return objectZonesMap[object] or {}
+function Zone.getObjectIntersectingZones(object)
+    return objectIntersectingZonesMap[object] or {}
 end
 
-EventManager.addHandler('onObjectEnterContainer', function(container, object)
-    for _, zone in ipairs(Zone.getObjectZones(object)) do
-        if TableUtils.find(zone.getOccupyingObjects(), object) and not TableUtils.find(zone.getOccupyingObjects(), container) then
+---Returns the Zone that `object` is occupying, or nil if `object` is not occupying a zone.
+---@param object tts__Object
+---@return nil | ge_tts__Zone
+function Zone.getObjectOccupyingZone(object)
+    return objectOccupyingZoneMap[object]
+end
+
+---Returns the Zone associated with a scripting trigger, or nil if the scripting trigger does not belong to a Zone.
+---@param scriptingTrigger tts__ScriptingTrigger
+---@return nil | ge_tts__Zone
+function Zone.getScriptingTriggerZone(scriptingTrigger)
+    return scriptingTriggerZoneMap[scriptingTrigger]
+end
+
+---@param container tts__Container
+---@param object tts__Object
+local function onObjectEnterContainer(container, object)
+    for _, zone in ipairs(Zone.getObjectIntersectingZones(object)) do
+        if zone.isObjectOccupying(object) and not TableUtils.find(zone.getOccupyingObjects(), container) then
             Logger.log(
                     object.tag .. ' (' .. tostring(object.getGUID()) .. '), previously dropped in ' .. tostring(zone) .. ', entered ' ..
                             container.tag .. ' (' .. tostring(container.getGUID()) .. ') which will now be marked as dropped in the same zone.',
@@ -260,9 +348,11 @@ EventManager.addHandler('onObjectEnterContainer', function(container, object)
             break
         end
     end
-end)
+end
 
-EventManager.addHandler('onObjectLeaveContainer', function(container, object)
+---@param container tts__Container
+---@param object tts__Object
+local function onObjectLeaveContainer(container, object)
     local objectPosition = object.getPosition()
     local containerPosition = container.getPosition()
 
@@ -271,68 +361,65 @@ EventManager.addHandler('onObjectLeaveContainer', function(container, object)
         and objectPosition.x == containerPosition.x
         and objectPosition.z == containerPosition.z
     then
-        local zones = Zone.getObjectZones(container)
+        local zone = objectOccupyingZoneMap[container]
 
-        for _, zone in ipairs(zones) do
-            if TableUtils.find(zone.getOccupyingObjects(), container) then
-                if not TableUtils.find(zone.getOccupyingObjects(), object) then
-                    Logger.log(
-                        object.tag .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone) .. ' as it was the bottom ' ..
-                            object.tag .. ' in now empty ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ').',
-                        Logger.DEBUG
-                    )
-                    zone.insertOccupyingObject(object)
-                end
-
-                break
+        if zone then
+            if not TableUtils.find(zone.getOccupyingObjects(), object) then
+                Logger.log(
+                    object.tag .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone) .. ' as it was the bottom ' ..
+                        object.tag .. ' in now empty ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ').',
+                    Logger.DEBUG
+                )
+                zone.insertOccupyingObject(object)
             end
         end
     end
-end)
+end
 
-EventManager.addHandler('onObjectEnterScriptingZone', function(scriptingZone, object)
-    local zone = scriptingZoneZoneMap[scriptingZone]
+EventManager.addHandler('onObjectEnterContainer', onObjectEnterContainer)
+EventManager.addHandler('onObjectLeaveContainer', onObjectLeaveContainer)
+
+
+---@param scriptingTrigger tts__ScriptingTrigger
+---@param object tts__Object
+local function onObjectEnterScriptingZone(scriptingTrigger, object)
+    local zone = scriptingTriggerZoneMap[scriptingTrigger]
 
     if zone then
         Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. tostring(zone), Logger.DEBUG)
-        addObjectZone(object, zone)
+        addObjectIntersectingZone(object, zone)
         zone.onEnter(object)
-    end
-end)
 
-EventManager.addHandler('onObjectLeaveScriptingZone', function(scriptingZone, object)
-    local zone = scriptingZoneZoneMap[scriptingZone]
+        if object.spawning and not TableUtils.find(zone.getOccupyingObjects(), object) then
+            zone.drop(nil, object)
+        end
+    end
+end
+
+---@param scriptingTrigger tts__ScriptingTrigger
+---@param object tts__Object
+local function onObjectLeaveScriptingZone(scriptingZone, object)
+    local zone = scriptingTriggerZoneMap[scriptingZone]
 
     if zone then
         Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') left ' .. tostring(zone), Logger.DEBUG)
-        removeObjectZone(object, zone)
+        removeObjectIntersectingZone(object, zone)
         zone.onLeave(object)
     end
-end)
+end
 
-EventManager.addHandler('onObjectDrop', function(colorName, object)
-    local objectZones = objectZonesMap[object]
+EventManager.addHandler('onObjectEnterScriptingZone', onObjectEnterScriptingZone)
+EventManager.addHandler('onObjectLeaveScriptingZone', onObjectLeaveScriptingZone)
 
-    if objectZones then
-        local objectPosition = object.getPosition()
 
-        local nearestZone = TableUtils.reduce(objectZones, {math.huge, nil}, function(pair, zone)
-            local distanceSquared = Vector3.distanceSquared(objectPosition, zone.getScriptingZone().getPosition())
-            return distanceSquared < pair[1] and {distanceSquared, zone} or pair
-        end)[2]
-
-        Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(nearestZone), Logger.DEBUG)
-
-        nearestZone.onDrop(colorName, object, false)
-    end
-end)
-
-EventManager.addHandler('onObjectPickUp', function(colorName, object)
-    local objectZones = objectZonesMap[object]
+---@param colorName tts__PlayerColor
+---@param object tts__Object
+local function onObjectPickUp(colorName, object)
+    local objectZones = objectIntersectingZonesMap[object]
 
     if objectZones then
         for _, zone in ipairs(objectZones) do
-            if TableUtils.find(zone.getOccupyingObjects(), object) then
+            if zone.isObjectOccupying(object) then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') picked up from ' .. tostring(zone), Logger.DEBUG)
 
                 zone.onPickUp(colorName, object)
@@ -340,10 +427,45 @@ EventManager.addHandler('onObjectPickUp', function(colorName, object)
             end
         end
     end
-end)
+end
 
-EventManager.addHandler('onObjectDestroy', function(object)
-    local zones = objectZonesMap[object]
+---@param colorName tts__PlayerColor
+---@param object tts__Object
+local function onObjectDrop(colorName, object)
+    local objectZones = objectIntersectingZonesMap[object]
+
+    if objectZones then
+        local objectPosition = object.getPosition()
+
+        local zoneDistances = TableUtils.map(objectZones,  function(zone)
+            local distanceSquared = Vector3.distanceSquared(objectPosition, (--[[---@type tts__ScriptingTrigger]] zone.getScriptingTrigger()).getPosition())
+            return {distanceSquared = distanceSquared, zone = zone}
+        end)
+
+        table.sort(zoneDistances, function(zoneDistance1, zoneDistance2)
+            return zoneDistance1.distanceSquared < zoneDistance2.distanceSquared
+        end)
+
+        for _, zoneDistance in ipairs(zoneDistances) do
+            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') attempting to drop in ' .. tostring(zoneDistance.zone), Logger.DEBUG)
+
+            zoneDistance.zone.onDrop(colorName, object, false)
+
+            if objectOccupyingZoneMap[object] then
+                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zoneDistance.zone), Logger.DEBUG)
+                break
+            end
+        end
+    end
+end
+
+EventManager.addHandler('onObjectPickUp', onObjectPickUp)
+EventManager.addHandler('onObjectDrop', onObjectDrop)
+
+
+---@param object tts__Object
+local function onObjectDestroy(object)
+    local zones = objectIntersectingZonesMap[object]
 
     if zones then
         for _, zone in ipairs(zones) do
@@ -354,8 +476,10 @@ EventManager.addHandler('onObjectDestroy', function(object)
             zone.onLeave(object)
         end
 
-        objectZonesMap[object] = nil
+        objectIntersectingZonesMap[object] = nil
     end
-end)
+end
+
+EventManager.addHandler('onObjectDestroy', onObjectDestroy)
 
 return Zone

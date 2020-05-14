@@ -20,29 +20,29 @@ _However_, at present there is not yet a Tabletop Simulator plugin available for
 
 These modules are written as standard Lua modules. In order to use these modules you must [require](https://www.lua.org/pil/8.1.html) them.
 
-_However_, Tabletop Simulator is sandboxed and `require()` cannot access a user's file system. Even if it could, you want your scripts to be included in your mod save file.
-
-As such, you'll need to run [luabundler](https://github.com/Benjamin-Dobell/luabundler), which simply takes a bunch of standard Lua modules and bundles them up into one large file. You can then either copy and paste the contents of resultant singular Lua file into TTS, or ideally include it in your scripts with Atom's [#include](https://github.com/Berserk-Games/atom-tabletopsimulator-lua/wiki/%23include) functionality.
+The official Atom plugin has built-in support for `require`. Otherwise, if your IDE doens't support it, you can use [luabundler](https://github.com/Benjamin-Dobell/luabundler) from command line. However, this is an advanced solution, Atom is recommended for pushing code to TTS.
 
 ### Base64
 
 A package for encoding and decoding Base64 binary data.
 
-### ContainerEventsFix
-
-This can be utilized as a work around for a [bug](http://www.berserk-games.com/forums/showthread.php?5461-onObjectEnterContainer-never-fires-for-bottom-card) that presently exists in Tabletop Simulator.
-
-Specifically `onObjectEnterContainer` is only fired for one card, when two cards for a deck. To fix this your cards must each have a script that looks like:
-
-```lua
-require("ge_tts/InstanceCollisionProxy")
-```
-
-Then in your Global script you can then simply require `ContainerEventsFix`.
-
 ### Coroutine
 
 Convenience functions for working with co-routines that are, for example, to be executed every X frames, or every X seconds.
+
+### Debug
+
+Simply utility to facilitate debugging within TTS.
+
+#### `Debug.createGlobals(prefix = "")`
+
+Registers all `require()`d ge_tts types as global variables so they can easily used from TTS' console.
+
+e.g. If you include `Debug.createGlobals()` at the bottom of your script
+
+```
+/execute
+```
 
 ### DropZone
 
@@ -78,12 +78,6 @@ A simple (but functionally complete) HTTP client that works in conjunction with 
 
 The Http module will automatically encode/decode JSON, otherwise you can provide a string and specify headers yourself. You may also provide an array of number, which represent bytes if the request body should be an octet-stream.
 
-### InstanceCollisionProxy
-
-Dependencies: **core**
-
-Used in conjunction with the `ContainerEventsFix` package.
-
 ### Logger
 
 A robust logging system with support for log levels and filtering.
@@ -98,7 +92,7 @@ A `Logger` that rather than printing to TTS' console, will HTTP `PUT` a JSON obj
 
 Using HTTP `PUT` instead of `POST` is pretty severe abuse of HTTP semantics, however we don't have a choice as TTS' HTTP functionality is severely lacking and cannot `POST` JSON.
 
-**WARNING**: The `Content-Type` of the request is `octet-stream` instead of the correct type `application/json`. As mentioned, TTS' HTTP client is extremely poor and does not allow us to set headers.
+**Warning**: The `Content-Type` of the request is `octet-stream` instead of the correct type `application/json`. As mentioned, TTS' HTTP client is extremely poor and does not allow us to set headers.
 
 We don't presently provide a corresponding server, but it's pretty trivial to create your own in Python, Ruby, Node.js etc.
 
@@ -107,6 +101,10 @@ Remote logs could be useful for diagnosing issues your players are running into,
 ### SaveManager
 
 SaveManager allows modules/files to independently maintain their own saved state, without conflicting with other saved state from other modules/files.
+
+### SaveManager
+
+SaveManager allows modules/files to independently maintain their own saved state, without conflicting with other saved state from other modules/files. 
 
 ### TableUtils
 
@@ -122,8 +120,24 @@ Several convenience methods to be used in conjunction with tables.
 
 3D vector implementation.
 
+This was written before TTS had its own `Vector` class and is used through-out this library. You may pass `Vector3` to any TTS method that accepts a vector. However, it's worth keeping in mind that our methods return a `Vector3`, whilst TTS's own methods return `Vector`. 
+
+In general TTS' `Vector` and our `Vector3` offer a similar set of functionality, however you can call `Vector3` methods the same way you'd call methods on any complex type in TTS API i.e. `vector1.add(vector2)`, where as TTS' `Vector` requres you to do `vector1:add(vector2)`.
+
+Additionally, all `Vector3` methods will happily accept a `Vector3`, a `Vector`, a table with entries `x`, `y` and `z`, or a table with entries `[1]`, `[2]` and `[3]` as arguments. Where as the TTS-provided `Vector` is a bit more restrictive and will only accept arguments that are also `Vector` e.g. 
+
+```lua
+local v = Vector()
+v:scale({1, 3, 1}) -- This will throw an error
+
+local v3 = Vector3()
+v3.scale({1, 3, 1}) -- This works fine, as does...
+v3.scale(v)
+v3.scale({x = 1, y = 3, z = 1})
+```
+
 ### Zone
 
-A wrapper around a TTS scripting zone (`ScriptingTrigger`) that tracks dropped and picked up objects. Objects that have been dropped in the `Zone` are deemed to be occupying and can be retrieved with `getOccupyingObjects()`.
+A wrapper around a TTS scripting trigger (`ScriptingTrigger`) that tracks dropped and picked up objects. Objects that have been dropped in the `Zone` are deemed to be occupying and can be retrieved with `getOccupyingObjects()`.
 
 Typically, you'll want to use a `DropZone`, `PlayerDropZone` or `HandZone` rather than `Zone`. However, you may sub-class `Zone` if you wish.

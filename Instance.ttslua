@@ -1,0 +1,424 @@
+local EventManager = require('ge_tts/EventManager')
+local Logger = require('ge_tts/Logger')
+local ObjectUtils = require('ge_tts/ObjectUtils')
+local TableUtils = require('ge_tts/TableUtils')
+
+---@class ge_tts__Instance
+
+---@type table<string, ge_tts__Instance>
+local allInstances = {}
+
+---@type table<tts__Object, ge_tts__Instance[]>
+local objectInstancesMap = {}
+
+---@param instance ge_tts__Instance
+local function destroyAssociatedObject(instance)
+    if instance.getObject() ~= nil then
+        local object = --[[---@type tts__Object]] instance.getObject()
+
+        if ObjectUtils.isContainerTag(object.tag) then
+            local guid = instance.getInstanceGuid()
+
+            object.takeObject({
+                guid = guid,
+                smooth = false,
+                callback_function = function(obj)
+                    obj.destruct()
+                end,
+            })
+        else
+            object.destruct()
+        end
+    end
+end
+
+---@param instance ge_tts__Instance
+---@param object tts__Object
+local function associateObject(instance, object)
+    local associated = objectInstancesMap[object] or {}
+    table.insert(associated, instance)
+    objectInstancesMap[object] = associated
+
+    Logger.log(
+        instance.toString() .. ' associated with ' .. object.tag .. ' (' .. tostring(object.getGUID()) .. ')',
+        Logger.VERBOSE
+    )
+end
+
+---@param instance ge_tts__Instance
+---@param object tts__Object
+local function disassociateObject(instance, object)
+    local associated = objectInstancesMap[object] or {}
+    local associationIndex = associated and TableUtils.find(associated, instance) or nil
+
+    if associationIndex then
+        table.remove(associated, --[[---@type number]] associationIndex)
+        objectInstancesMap[object] = #associated > 0 and associated or nil
+
+        Logger.log(
+            instance.toString() .. ' disassociated from ' .. object.tag .. ' ('
+                .. tostring(object.getGUID()) .. ')',
+            Logger.VERBOSE
+        )
+    else
+        Logger.log(
+            'Tried to disassociate ' .. instance.toString() .. ' from ' .. object.tag
+                .. ' (' .. tostring(object.getGUID()) .. ') but they were not associated.',
+            Logger.WARNING
+        )
+    end
+end
+
+---@shape ge_tts__Instance_SavedState
+---@field instanceGuid string
+---@field objectGuid nil | string
+---@field zoneTriggerGuid nil | string
+
+---@alias ge_tts__Instance_RecoverObject<T> fun(savedState: ge_tts__Instance_SavedState): T
+
+---@class ge_tts__static_Instance
+---@overload fun(savedState: ge_tts__Instance_SavedState): ge_tts__Instance
+---@overload fun(object: tts__Object): ge_tts__Instance
+---@overload fun(guid: string, container: tts__Container): ge_tts__Instance
+---@overload fun(objectOrSavedState: tts__Object | ge_tts__Instance_SavedState): ge_tts__Instance
+---@overload fun(objectOrGuidOrSavedState: tts__Object | string | ge_tts__Instance_SavedState, nilOrContainer: nil | tts__Container): ge_tts__Instance
+---@field INSTANCE_TYPE string
+local Instance = {}
+
+Instance.INSTANCE_TYPE = 'Instance'
+
+setmetatable(Instance, {
+    ---@param objectOrGuidOrSavedState tts__Object | string | ge_tts__Instance_SavedState
+    ---@param nilOrContainer nil | tts__Container
+    __call = function(_, objectOrGuidOrSavedState, nilOrContainer)
+        local self = --[[---@type ge_tts__Instance]] {}
+
+        setmetatable(self, {
+            __tostring = function(_)
+                return self.toString()
+            end,
+        })
+
+        ---@type string
+        local instanceGuid
+
+        ---@type nil | tts__Object @Only nil if the object has been destroyed. An instance cannot be *created* without an object.
+        local object
+
+        ---@type nil | ge_tts__Zone
+        local zone = nil
+
+        if Instance.isSavedState(objectOrGuidOrSavedState) then
+            local savedState = --[[---@type ge_tts__Instance_SavedState]] objectOrGuidOrSavedState
+
+            instanceGuid = savedState.instanceGuid
+
+            if savedState.objectGuid then
+                object = --[[---@type tts__Object]] ObjectUtils.getSafeSpawnedObject(--[[---@type string]] savedState.objectGuid)
+                Logger.assert(object, 'Failed to recover object reference for Instance ' .. instanceGuid)
+            end
+
+            if savedState.zoneTriggerGuid then
+                local trigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(--[[---@type string]] savedState.zoneTriggerGuid)
+
+                -- NOTE: If this Instance is restored from its saved state before the trigger's Zone is restored from
+                --       its saved state, the zone will be nil. However, when the Zone is restored from its saved state
+                --       it will setZone() on all occupying instances. So the only possible information loss is due to
+                --       the face our zone is the *most recent* Zone. If TTS saves when instance is not in its most
+                --       recent zone *and* that most recent zone restores second, we'll lose our reference.
+                --
+                --       We're requiring here to avoid top-level (illegal) cyclical requires.
+                zone = require('ge_tts/Zone').getScriptingTriggerZone(trigger)
+            end
+        elseif nilOrContainer then
+            instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
+            object = --[[---@type tts__Object]] nilOrContainer
+
+            Logger.assert(instanceGuid, 'Instance cannot be instantiated with a container but no GUID')
+        else
+            Logger.assert(objectOrGuidOrSavedState, 'Instance cannot be instantiated without an associated object')
+
+            local instanceObject = --[[---@type tts__Object]] objectOrGuidOrSavedState
+            object = instanceObject
+            instanceGuid = instanceObject.guid
+        end
+
+        ---@param container tts__Container
+        self.onEnterContainer = function(container)
+        end
+
+        ---@param container tts__Container
+        self.onLeaveContainer = function(container)
+        end
+
+        ---@return string
+        function self.getInstanceGuid()
+            return instanceGuid
+        end
+
+        ---A simple string identifier for this type of instance. ge_tts itself only uses this in toString().
+        ---
+        ---Subclasses that wish to have their own instance type should override this method.
+        ---
+        ---@return string
+        function self.getInstanceType()
+            return Instance.INSTANCE_TYPE
+        end
+
+        ---@param obj tts__Object
+        function self.setObject(obj)
+            if object ~= obj then
+                if object ~= nil then
+                    disassociateObject(self, --[[---@type tts__Object]] object)
+
+                    if ObjectUtils.isContainerTag((--[[---@type tts__Object]] object).tag) then
+                        self.onLeaveContainer(--[[---@type tts__Container]] object)
+                    end
+                end
+
+                object = obj
+                associateObject(self, obj)
+
+                if ObjectUtils.isContainerTag(obj.tag) then
+                    self.onEnterContainer(--[[---@type tts__Container]] obj)
+                end
+            end
+        end
+
+        --- Returns the associated object, or nil if the associated object and this Instance have been destroyed.
+        ---@return nil | tts__Object
+        function self.getObject()
+            return object
+        end
+
+        ---If the instance is presently within a container, returns the position (starting from 1) within said container, otherwise returns nil.
+        ---@return nil | number
+        function self.getContainerPosition()
+            if object ~= nil and (--[[---@type tts__Object]] object).guid ~= instanceGuid and ObjectUtils.isContainerTag((--[[---@type tts__Object]] object).tag) then
+                local correspondingObject = TableUtils.detect((--[[---@type tts__Container ]] object).getObjects(), function(objectState)
+                    return objectState.guid == instanceGuid
+                end)
+
+                return correspondingObject and ((--[[---@type tts__IndexedSimpleObjectState]] correspondingObject).index + 1)
+            end
+
+            return nil
+        end
+
+        ---@return boolean
+        function self.isTopOfContainer()
+            if object ~= nil and ObjectUtils.isContainerTag((--[[---@type tts__Object]] object).tag) then
+                return self.getContainerPosition() == (--[[---@type tts__Object]] object).getQuantity()
+            end
+
+            return false
+        end
+
+        ---@param newZone nil | ge_tts__Zone
+        function self.setZone(newZone)
+            if zone ~= newZone then
+                zone = newZone
+                Logger.log(self.toString() .. ' zone set to ' .. tostring(zone), Logger.VERBOSE)
+            end
+        end
+
+        ---
+        ---The zone this Instance is presently (or most recently) occupied.
+        ---
+        ---It is intentional that this is not set to nil when an Instance stops occupying (i.e. leaves) a zone. It's
+        ---often useful to know where an Instance came from e.g. if desired you can return an Instance to its previous
+        ---zone.
+        ---
+        ---If you're specifically interested in whether an instance is currently occupying a zone, this can be obtained
+        ---with:
+        ---
+        ---    instance.getObject() and Zone.getObjectOccupyingZone(instance.getObject())
+        ---
+        ---@return nil | ge_tts__Zone
+        function self.getZone()
+            return zone
+        end
+
+        ---The zone type of the most presently, or most recently, occupied zone.
+        ---@return nil | string
+        function self.getZoneType()
+            return zone and (--[[---@type ge_tts__Zone]] zone).getZoneType()
+        end
+
+        function self.save()
+            return {
+                __savedState = true,
+                instanceId = instanceGuid,
+                objectGuid = object and (--[[---@type tts__Object]] object).getGUID(),
+            }
+        end
+
+        function self.destroy()
+            allInstances[instanceGuid] = nil
+
+            if object ~= nil then
+                destroyAssociatedObject(self)
+                disassociateObject(self, --[[---@type tts__Object]] object)
+            end
+
+            object = nil
+
+            Logger.log(self.toString() .. ' destroyed.', Logger.DEBUG)
+        end
+
+        ---@return string
+        function self.toString()
+            return self.getInstanceType() .. " (" .. instanceGuid .. ")"
+        end
+
+        function self.onSpawned()
+        end
+
+        allInstances[instanceGuid] = self
+        associateObject(self, --[[---@type tts__Object]] object)
+
+        return self
+    end
+})
+
+---@param value any
+---@return boolean
+function Instance.isSavedState(value)
+    return type(value) == 'table' and (--[[---@type table]] value).__savedState
+end
+
+---@param id string
+---@return nil | ge_tts__Instance
+function Instance.getInstance(guid)
+    return allInstances[guid]
+end
+
+---@param object tts__Object @TTS object for which we wish to obtain associated instances
+---@return ge_tts__Instance[]
+function Instance.getInstances(object)
+    local instances = objectInstancesMap[object]
+    return instances and TableUtils.copy(instances) or {}
+end
+
+---@param object tts__Object @TTS object for which we wish to obtain an associated instance
+---@return nil | ge_tts__Instance
+function Instance.getOneInstance(object)
+    local instances = objectInstancesMap[object]
+    return instances and instances[1] or nil
+end
+
+---@return table<string, ge_tts__Instance> @table<GUID, ge_tts__Instance>
+function Instance.getAllInstances()
+    return TableUtils.copy(allInstances)
+end
+
+---@param container tts__Container
+---@param position number @Starts at 1
+---@return nil | ge_tts__Instance
+function Instance.getContainerInstance(container, position)
+    local objectStates = container.getObjects()
+
+    if position > 0 and position <= #objectStates then
+        local objectState = objectStates[position]
+        return allInstances[objectState.guid]
+    end
+
+    return nil
+end
+
+---@param container tts__Container
+---@return nil | ge_tts__Instance
+function Instance.getContainerTopInstance(container)
+    return Instance.getContainerInstance(container, container.is_face_down and 1 or container.getQuantity())
+end
+
+---@param object tts__Object
+---@return nil | ge_tts__Instance
+function Instance.getPrimaryInstance(object)
+    return ObjectUtils.isContainerTag(object.tag)
+        and Instance.getContainerTopInstance(--[[---@type tts__Container]] object)
+        or Instance.getOneInstance(object)
+end
+
+
+---@param object tts__Object
+local function onObjectSpawn(object)
+    if not ObjectUtils.isContainerTag(object.tag) then
+        local instances = objectInstancesMap[object]
+
+        if instances then
+            instances[1].onSpawned()
+        end
+    end
+end
+
+---@param object tts__Object
+local function onObjectDestroy(object)
+    local instances = objectInstancesMap[object]
+
+    if instances then
+        instances = TableUtils.copy(instances) -- Shallow copy, because we will modify the original table whilst iterating
+
+        for _, instance in ipairs(instances) do
+            Logger.log(
+                'Destroying ' .. instance.toString() .. ' as its associated ' .. object.tag .. ' ('
+                    .. tostring(object.getGUID()) .. ') is being destroyed',
+                Logger.DEBUG
+            )
+            instance.destroy()
+        end
+    end
+end
+
+EventManager.addHandler('onObjectSpawn', onObjectSpawn)
+EventManager.addHandler('onObjectDestroy', onObjectDestroy)
+
+
+-- When a card (or deck) has been inserted into a deck, we want our Instance to track the deck now.
+---@param container tts__Container
+---@param object tts__Object
+local function onObjectEnterContainer(container, object)
+    Logger.log(
+        object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ')',
+        Logger.DEBUG
+    )
+    local instances = objectInstancesMap[object]
+
+    if instances then
+        instances = TableUtils.copy(instances) -- Shallow copy, because we will modify the original table whilst iterating
+
+        for _, instance in ipairs(instances) do
+            Logger.log(
+                instance.toString() .. ' entered ' .. container.tag .. ' ('
+                    .. tostring(container.getGUID()) .. ')',
+                Logger.DEBUG
+            )
+
+            instance.setObject(container)
+        end
+    end
+end
+
+-- When a card leaves a container we want to find the associated Instance and associate them.
+---@param container tts__Container
+---@param object tts__Object
+local function onObjectLeaveContainer(container, object)
+    local instance = allInstances[object.guid]
+
+    if instance then
+        Logger.log(instance.toString() .. ' left ' .. container.tag .. ' ('
+            .. tostring(container.getGUID()) .. ')', Logger.DEBUG)
+        instance.setObject(object)
+    else
+        Logger.log(
+            'Card (' .. tostring(object.getGUID()) .. ') with unknown card instance (' .. object.guid .. ') left ' .. container.tag
+                .. ' (' .. tostring(container.getGUID()) .. ')',
+            Logger.WARNING
+        )
+    end
+end
+
+EventManager.addHandler('onObjectEnterContainer', onObjectEnterContainer)
+EventManager.addHandler('onObjectLeaveContainer', onObjectLeaveContainer)
+
+return Instance

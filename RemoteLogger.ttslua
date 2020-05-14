@@ -1,12 +1,12 @@
----@type ge_tts__TableUtils
 local TableUtils = require('ge_tts/TableUtils')
-
----@type ge_tts__Logger
 local Logger = require('ge_tts/Logger')
 
 local MAX_RETRIES = 5
 
----@class ge_tts__RemoteLogger
+---@class ge_tts__RemoteLogger : ge_tts__Logger
+
+---@class ge_tts__static_RemoteLogger : ge_tts__static_Logger
+---@overload fun(url: string): ge_tts__RemoteLogger
 local RemoteLogger = {}
 
 ---@type table<number, string>
@@ -78,7 +78,7 @@ setmetatable(RemoteLogger, TableUtils.merge(getmetatable(Logger), {
         ---@param message string
         ---@param level number @One of Logger.ERROR, Logger.WARNING, Logger.INFO, Logger.DEBUG or Logger.VERBOSE
         function self.log(message, level)
-            if level <= self.getLogLevel() then
+            if level <= self.getFilterLevel() then
                 table.insert(queuedMessages, levelPrefixes[level] .. message)
                 pumpQueue()
             end

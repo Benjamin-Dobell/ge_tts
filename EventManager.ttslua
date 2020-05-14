@@ -10,18 +10,18 @@ local function listen(event)
     _G[event] = function(...)
         local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
 
-        ---@type any
-        local finalResult
+        ---@type std__Packed<any>
+        local finalResult = --[[---@type std__Packed<any>]] {n = 0}
 
         for _, handler in ipairs(handlers) do
-            local result = handler(...)
+            local result = table.pack(handler(...))
 
-            if result then
+            if result.n > 0 then
                 finalResult = result
             end
         end
 
-        return finalResult
+        return table.unpack(finalResult, 1, finalResult.n)
     end
 
     local handlers = {}
@@ -70,7 +70,7 @@ end
 ---@param event string @Event name
 ---@vararg any
 function EventManager.triggerEvent(event, ...)
-    _G[event](...)
+    (--[[---@type function]] _G[event])(...)
 end
 
 return EventManager

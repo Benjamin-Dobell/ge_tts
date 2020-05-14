@@ -1,30 +1,27 @@
----@type ge_tts__TableUtils
 local TableUtils = require('ge_tts/TableUtils')
-
----@module ge_tts__Graph
 local Graph = {}
 
----@param node table
----@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
----@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
+---@param node any
+---@param getChildren fun(node: any): nil | any[] @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
+---@param visitCallback fun(node: any) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
+---@return thread
 local function breadthVisitCoroutine(node, getChildren, visitCallback)
     return coroutine.create(function()
+        ---@type std__Packed<any>
         local result = table.pack(visitCallback(node))
 
-        if #result > 0 then
-            return table.unpack(result)
+        if result.n > 0 then
+            return table.unpack(result, 1, result.n)
         end
-
-        result = nil
 
         local children = getChildren(node)
 
         if children then
-            local visitDescendantCoroutines = TableUtils.map(node.children, function(child)
+            local visitDescendantCoroutines = TableUtils.map(--[[---@type any[] ]] children, function(child)
                 return breadthVisitCoroutine(child, getChildren, visitCallback)
             end)
 
-            local stopped
+            local stopped = true
 
             repeat
                 coroutine.yield()
@@ -39,7 +36,6 @@ local function breadthVisitCoroutine(node, getChildren, visitCallback)
                             return table.unpack(result, 2)
                         end
 
-                        result = nil
                         stopped = false
                     end
                 end
@@ -49,9 +45,9 @@ local function breadthVisitCoroutine(node, getChildren, visitCallback)
 end
 
 --- Performs preorder traversal over a node hierarchy starting at `node`. If `visitCallback` returns a value, traversal stops and the value is returned.
----@param node table
----@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
----@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
+---@param node any
+---@param getChildren fun(node: any): nil | any[] @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
+---@param visitCallback fun(node: any) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
 ---@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
 Graph.traverse = function(node, getChildren, visitCallback)
     local result = table.pack(visitCallback(node))
@@ -63,7 +59,7 @@ Graph.traverse = function(node, getChildren, visitCallback)
     local children = getChildren(node)
 
     if children then
-        for _, child in ipairs(children) do
+        for _, child in ipairs(--[[---@type any[] ]] children) do
             result = table.pack(Graph.traverse(child, getChildren, visitCallback))
 
             if #result > 1 then
@@ -75,7 +71,7 @@ end
 
 --- Performs breadth first traversal over a node hierarchy starting at `node`. If `visitCallback` returns a value, traversal stops and the value is returned.
 ---@param root table
----@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
+---@param getChildren fun(node:table): nil | any[] @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
 ---@param visitCallback fun(node:table) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
 ---@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
 Graph.breadthTraverse = function(root, getChildren, visitCallback)
@@ -92,7 +88,7 @@ end
 
 --- Perform breadth first search over a node hierarchy starting at `node`, and returning the first node for which `visitCallback` returns true.
 ---@param node table
----@param getChildren fun(node:table) @A callback that when passed a node, must return a table of the node's children to be traversed, may be length zero.
+---@param getChildren fun(node:table): nil | any[] @A callback that when passed a node, must return a table of the node's children to be traversed, may be length zero.
 ---@param visitCallback fun(node:table) @Condition callback
 Graph.find = function(root, getChildren, visitCallback)
     return Graph.breadthTraverse(root, getChildren, function(node)

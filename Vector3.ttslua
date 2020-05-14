@@ -1,18 +1,19 @@
---- A 3D vector with x, y and z fields.
----@class ge_tts__CharVec3
----@field x number
----@field y number
----@field z number
+---
+--- A 3D vector implementation.
+---
+--- Components can be accessed as x, y and z properties, or indexed by numbers [1], [2] and [3].
+---
+---@class ge_tts__Vector3 : __ge_tts__NumCharVec3<number>
 
--- NOTE: EmmyLua doesn't seem to understand non-string field indexes. However, defining a type/class is still useful for documentation purposes.
---- A 3D vector with [1], [2] and [3] indexed fields.
----@class ge_tts__NumVec3
----@field 1 number
----@field 2 number
----@field 3 number
+---@shape __ge_tts__NumCharVec3<T>
+---@field x T
+---@field y T
+---@field z T
+---@field [1] T
+---@field [2] T
+---@field [3] T
 
----@class ge_tts__Vector3 : ge_ge_tts__CharVec3 @, ge_tts__NumVec3 - Unfortunately EmmyLua doesn't support type unions or multiple inheritance
-local Vector3 = {}
+---@shape ge_tts__NumCharVec3 : __ge_tts__NumCharVec3<number>
 
 ---@param vector ge_tts__Vector3
 ---@param index any
@@ -32,12 +33,18 @@ end
 
 local RADIANS_RATIO = math.pi / 180
 
+---@class ge_tts__static_Vector3
+---@overload fun(): ge_tts__Vector3
+---@overload fun(x: number, y: number, z: number): ge_tts__Vector3
+---@overload fun(source: tts__VectorShape|number[]): ge_tts__Vector3
+local Vector3 = {}
+
 setmetatable(Vector3, {
-    ---@param sourceXOrVector ge_tts__CharVec3|ge_tts__NumVec3|nil
-    ---@param sourceY number|nil
-    ---@param sourceZ number|nil
+    ---@param sourceXOrVector nil | __ge_tts__NumCharVec3<nil | number>
+    ---@param sourceY nil | number
+    ---@param sourceZ nil | number
     __call = function(_, sourceXOrVector, sourceY, sourceZ)
-        local self = {x = 0, y = 0, z = 0}
+        local self = --[[---@type ge_tts__Vector3]] {x = 0, y = 0, z = 0}
 
         setmetatable(self, {
             __index = numberedIndex,
@@ -48,13 +55,15 @@ setmetatable(Vector3, {
 
         if sourceXOrVector then
             if type(sourceXOrVector) == 'table' then
-                self.x = sourceXOrVector.x or sourceXOrVector[1] or self.x
-                self.y = sourceXOrVector.y or sourceXOrVector[2] or self.y
-                self.z = sourceXOrVector.z or sourceXOrVector[3] or self.z
+                local source = --[[---@type __ge_tts__NumCharVec3<nil | number>]] sourceXOrVector
+
+                self.x = source.x or source[1] or self.x
+                self.y = source.y or source[2] or self.y
+                self.z = source.z or source[3] or self.z
             else
-                self.x = sourceXOrVector
-                self.y = sourceY
-                self.z = sourceZ
+                self.x = --[[---@type number]] sourceXOrVector
+                self.y = --[[---@type number]] sourceY
+                self.z = --[[---@type number]] sourceZ
             end
         end
 
@@ -63,7 +72,7 @@ setmetatable(Vector3, {
             return '{x = ' .. self.x .. ', y = ' .. self.y .. ', z = ' .. self.z .. '}'
         end
 
-        ---@return ge_tts__CharVec3
+        ---@return tts__CharVectorShape
         function self.toData()
             return {x = self.x, y = self.y, z = self.z}
         end
@@ -79,7 +88,8 @@ setmetatable(Vector3, {
         end
 
         ---Add a vector to self.
-        ---@param v ge_tts__CharVec3|ge_tts__NumVec3
+        ---@overload fun(v: tts__VectorShape): self
+        ---@param v ge_tts__NumCharVec3
         ---@return ge_tts__Vector3 @self
         function self.add(v)
             self.x = self.x + (v.x or v[1])
@@ -89,7 +99,8 @@ setmetatable(Vector3, {
         end
 
         ---Subtract a vector from self.
-        ---@param v ge_tts__CharVec3|ge_tts__NumVec3
+        ---@overload fun(v: tts__VectorShape): self
+        ---@param v ge_tts__NumCharVec3
         ---@return ge_tts__Vector3 @self
         function self.sub(v)
             self.x = self.x - (v.x or v[1])
@@ -98,7 +109,7 @@ setmetatable(Vector3, {
             return self
         end
 
-        ---@param factor number|ge_tts__CharVec3|ge_tts__NumVec3
+        ---@param factor number | tts__VectorShape
         ---@return ge_tts__Vector3 @self
         function self.scale(factor)
             if (type(factor) == 'number') then
@@ -106,9 +117,9 @@ setmetatable(Vector3, {
                 self.y = self.y * factor
                 self.z = self.z * factor
             else
-                self.x = self.x * (factor.x or factor[1])
-                self.y = self.y * (factor.y or factor[2])
-                self.z = self.z * (factor.z or factor[3])
+                self.x = self.x * ((--[[---@type tts__CharVectorShape]] factor).x or (--[[---@type tts__NumVectorShape]] factor)[1])
+                self.y = self.y * ((--[[---@type tts__CharVectorShape]] factor).y or (--[[---@type tts__NumVectorShape]] factor)[2])
+                self.z = self.z * ((--[[---@type tts__CharVectorShape]] factor).z or (--[[---@type tts__NumVectorShape]] factor)[3])
             end
 
             return self
@@ -153,7 +164,8 @@ setmetatable(Vector3, {
     end,
 })
 
----@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v: tts__VectorShape): number
+---@param v ge_tts__NumCharVec3
 ---@return number
 function Vector3.lengthSquared(v)
     local x = v.x or v[1]
@@ -162,41 +174,42 @@ function Vector3.lengthSquared(v)
     return x * x + y * y + z * z
 end
 
----@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@param v tts__VectorShape
 ---@return number
 function Vector3.length(v)
     return math.sqrt(Vector3.lengthSquared(v))
 end
 
----@param v1 ge_tts__CharVec3|ge_tts__NumVec3
----@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v1 tts__VectorShape
+---@param v2 tts__VectorShape
 ---@return ge_tts__Vector3
 function Vector3.add(v1, v2)
     return Vector3(v1).add(v2)
 end
 
----@param v1 ge_tts__CharVec3|ge_tts__NumVec3
----@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@param v1 tts__VectorShape
+---@param v2 tts__VectorShape
 ---@return ge_tts__Vector3
 function Vector3.sub(v1, v2)
     return Vector3(v1).sub(v2)
 end
 
----@param v ge_tts__CharVec3|ge_tts__NumVec3
----@param factor number|ge_tts__CharVec3|ge_tts__NumVec3
+---@param v tts__VectorShape
+---@param factor number | tts__VectorShape
 ---@return ge_tts__Vector3
 function Vector3.scale(v, factor)
     return Vector3(v).scale(factor)
 end
 
----@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@param v tts__VectorShape
 ---@return ge_tts__Vector3
 function Vector3.normalize(v)
     return Vector3(v).normalize()
 end
 
----@param v1 ge_tts__CharVec3|ge_tts__NumVec3
----@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v1: tts__VectorShape, v2: tts__VectorShape): ge_tts__Vector3
+---@param v1 ge_tts__NumCharVec3
+---@param v2 ge_tts__NumCharVec3
 ---@return ge_tts__Vector3
 function Vector3.cross(v1, v2)
     local x1 = v1.x or v1[1]
@@ -210,8 +223,9 @@ function Vector3.cross(v1, v2)
     return Vector3(y1 * z2 - z1 * y2, z1 * x2 - x1 * z2, x1 * y2 - y1 * x2)
 end
 
----@param v1 ge_tts__CharVec3|ge_tts__NumVec3
----@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v1: tts__VectorShape, v2: tts__VectorShape): number
+---@param v1 ge_tts__NumCharVec3
+---@param v2 ge_tts__NumCharVec3
 ---@return number
 function Vector3.dot(v1, v2)
     local x1 = v1.x or v1[1]
@@ -225,8 +239,9 @@ function Vector3.dot(v1, v2)
     return x1 * x2 + y1 * y2 + z1 * z2
 end
 
----@param v1 ge_tts__CharVec3|ge_tts__NumVec3
----@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v1: tts__VectorShape, v2: tts__VectorShape): number
+---@param v1 ge_tts__NumCharVec3
+---@param v2 ge_tts__NumCharVec3
 ---@return number
 function Vector3.distanceSquared(v1, v2)
     local x1 = v1.x or v1[1]
@@ -240,49 +255,65 @@ function Vector3.distanceSquared(v1, v2)
     return Vector3.lengthSquared({x = x2 - x1, y = y2 - y1, z = z2 - z1})
 end
 
----@param v1 ge_tts__CharVec3|ge_tts__NumVec3
----@param v2 ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v1: tts__VectorShape, v2: tts__VectorShape): number
+---@param v1 ge_tts__NumCharVec3
+---@param v2 ge_tts__NumCharVec3
 ---@return number
 function Vector3.distance(v1, v2)
     return math.sqrt(Vector3.distanceSquared(v1, v2))
 end
 
----@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v: tts__VectorShape, angle: number): ge_tts__Vector3
+---@param v ge_tts__NumCharVec3
 ---@param angle number @angle in degrees
 ---@return ge_tts__Vector3
 function Vector3.rotateX(v, angle)
     angle = angle * RADIANS_RATIO
 
+    local x = v.x or v[1]
+    local y = v.y or v[2]
+    local z = v.z or v[3]
+
     return Vector3(
-        v.x,
-        v.y * math.cos(angle) - v.z * math.sin(angle),
-        v.y * math.sin(angle) + v.z * math.cos(angle)
+        x,
+        y * math.cos(angle) - z * math.sin(angle),
+        y * math.sin(angle) + z * math.cos(angle)
     )
 end
 
----@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v: tts__VectorShape, angle: number): ge_tts__Vector3
+---@param v ge_tts__NumCharVec3
 ---@param angle number @angle in degrees
 ---@return ge_tts__Vector3
 function Vector3.rotateY(v, angle)
     angle = angle * RADIANS_RATIO
 
+    local x = v.x or v[1]
+    local y = v.y or v[2]
+    local z = v.z or v[3]
+
     return Vector3(
-        v.z * math.sin(angle) + v.x * math.cos(angle),
-        v.y,
-        v.z * math.cos(angle) - v.x * math.sin(angle)
+        z * math.sin(angle) + x * math.cos(angle),
+        y,
+        z * math.cos(angle) - x * math.sin(angle)
     )
 end
 
----@param v ge_tts__CharVec3|ge_tts__NumVec3
+---@overload fun(v: tts__VectorShape, angle: number): ge_tts__Vector3
+---@param v ge_tts__NumCharVec3
 ---@param angle number @angle in degrees
 ---@return ge_tts__Vector3
 function Vector3.rotateZ(v, angle)
     angle = angle * RADIANS_RATIO
 
+    local x = v.x or v[1]
+    local y = v.y or v[2]
+    local z = v.z or v[3]
+
     return Vector3(
-        v.x * math.cos(angle) - v.y * math.sin(angle),
-        v.x * math.sin(angle) + v.y * math.cos(angle),
-        v.z
+        x * math.cos(angle) - y * math.sin(angle),
+        x * math.sin(angle) + y * math.cos(angle),
+        z
     )
 end
 
