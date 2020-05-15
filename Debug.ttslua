@@ -1,0 +1,49 @@
+local ChatCommands = require('ge_tts/ChatCommands')
+
+---@class tts__Debug
+local Debug = {}
+
+---@overload fun(): void
+---@param prefix nil | string
+function Debug.createGlobals(prefix)
+    Wait.frames(function()
+        prefix = prefix or ''
+
+        -- First directory is the "scripts", which we don't want.
+        for packageName, package in pairs(--[[---@type table<string, function>]] _LOADED) do
+            if packageName:sub(1, 7) == 'ge_tts/' then
+                local identifier = prefix .. packageName:sub(8):gsub('/', '__')
+                _G[identifier] = --[[---@type any]] package
+            end
+        end
+
+        print('Initialized Debug globals with "' .. prefix .. '" prefix.')
+    end, 1)
+end
+
+---@param value string
+---@param player tts__Player
+local onChatCommand = function(value, player)
+    if player.host then
+        ---@type string[]
+        local components = {}
+
+        for component in string.gmatch(value, "([^ ]+)") do
+            table.insert(components, component)
+        end
+
+        if #components == 0 then
+            return
+        end
+
+        local subcommand = components[1]
+
+        if subcommand == 'globals' then
+            Debug.createGlobals(components[2])
+        end
+    end
+end
+
+ChatCommands.addCommand('debug', onChatCommand)
+
+return Debug

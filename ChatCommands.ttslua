@@ -1,0 +1,44 @@
+local EventManager = require('ge_tts/EventManager')
+
+---@alias ge_tts__ChatCommand_Callback fun(value: string, player: tts__Player): void
+
+---@type table<string, ge_tts__ChatCommand_Callback>
+local commandCallbacks = {}
+
+---@class tts__ChatCommands
+local ChatCommand = {}
+
+---@param command string
+---@param callback ge_tts__ChatCommand_Callback
+function ChatCommand.addCommand(command, callback)
+    commandCallbacks[command] = callback
+end
+
+---@param command string
+function ChatCommand.removeCommand(command)
+    commandCallbacks[command] = nil
+end
+
+---@param message string
+---@param player tts__Player
+local function onChat(message, player)
+    local _, _, command, value = message:find('^~(.+)~%s*(.*)')
+
+    if not command then
+        return true
+    end
+
+    local callback = commandCallbacks[command]
+
+    if callback then
+        callback(value, player)
+    else
+        broadcastToColor('Unknown command: ' .. command, player.color, 'Red')
+    end
+
+    return false
+end
+
+EventManager.addHandler('onChat', onChat)
+
+return ChatCommand
