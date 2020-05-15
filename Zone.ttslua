@@ -236,12 +236,14 @@ setmetatable(Zone, {
         ---@param colorName nil|tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was dropped.
         ---@param dynamicallyDropped boolean @true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
+        ---@return boolean
         function self.onDrop(colorName, object, dynamicallyDropped)
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
 
             associateOccupyingObject(self, object)
+            return true
         end
 
         --- Called when a TTS object is picked up from this Zone.
@@ -449,9 +451,7 @@ local function onObjectDrop(colorName, object)
         for _, zoneDistance in ipairs(zoneDistances) do
             Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') attempting to drop in ' .. tostring(zoneDistance.zone), Logger.DEBUG)
 
-            zoneDistance.zone.onDrop(colorName, object, false)
-
-            if objectOccupyingZoneMap[object] then
+            if zoneDistance.zone.onDrop(colorName, object, false) then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zoneDistance.zone), Logger.DEBUG)
                 break
             end

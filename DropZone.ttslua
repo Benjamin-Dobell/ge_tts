@@ -136,49 +136,55 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@param colorName nil|tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was dropped.
         ---@param dynamicallyDropped boolean @true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
+        ---@return boolean
         function self.onDrop(colorName, object, dynamicallyDropped)
-            if dynamicallyDropped or Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
-                superOnDrop(colorName, object, false)
-
-                local objectRotation = object.getRotation()
-                local position = (--[[---@type tts__ScriptingTrigger]] self.getScriptingTrigger()).positionToWorld(dropOffset)
-
-                object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z })
-
-                if rotationEnabled then
-                    local rotation = self.getRotation()
-
-                    if bit32.band(rotationAxis, DropZone.RotationAxis.X) ~= 0 then
-                        objectRotation.x = rotation.x
-                    end
-
-                    if bit32.band(rotationAxis, DropZone.RotationAxis.Y) ~= 0 then
-                        objectRotation.y = rotation.y
-                    end
-
-                    if bit32.band(rotationAxis, DropZone.RotationAxis.Z) ~= 0 then
-                        if facing == DropZone.Facing.DROPPED then
-                            objectRotation.z = (objectRotation.z + 360) % 360
-
-                            if objectRotation.z >= 270 then
-                                objectRotation.z = 360
-                            elseif objectRotation.z <= 90 then
-                                objectRotation.z = 0
-                            else
-                                objectRotation.z = 180
-                            end
-                        else
-                            objectRotation.z = facing == DropZone.Facing.UP and 0 or 180
-                        end
-                    end
-
-                    object.setRotationSmooth(objectRotation)
-                end
-
-                if occupantScale then
-                    object.scale((--[[---@type number]] occupantScale) / object.getScale()[1])
-                end
+            if (not dynamicallyDropped and Vector3.lengthSquared(object.getVelocity()) > MAX_DROP_VELOCITY_SQUARED)
+                or not superOnDrop(colorName, object, false)
+            then
+                return false
             end
+
+
+            local objectRotation = object.getRotation()
+            local position = (--[[---@type tts__ScriptingTrigger]] self.getScriptingTrigger()).positionToWorld(dropOffset)
+
+            object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z })
+
+            if rotationEnabled then
+                local rotation = self.getRotation()
+
+                if bit32.band(rotationAxis, DropZone.RotationAxis.X) ~= 0 then
+                    objectRotation.x = rotation.x
+                end
+
+                if bit32.band(rotationAxis, DropZone.RotationAxis.Y) ~= 0 then
+                    objectRotation.y = rotation.y
+                end
+
+                if bit32.band(rotationAxis, DropZone.RotationAxis.Z) ~= 0 then
+                    if facing == DropZone.Facing.DROPPED then
+                        objectRotation.z = (objectRotation.z + 360) % 360
+
+                        if objectRotation.z >= 270 then
+                            objectRotation.z = 360
+                        elseif objectRotation.z <= 90 then
+                            objectRotation.z = 0
+                        else
+                            objectRotation.z = 180
+                        end
+                    else
+                        objectRotation.z = facing == DropZone.Facing.UP and 0 or 180
+                    end
+                end
+
+                object.setRotationSmooth(objectRotation)
+            end
+
+            if occupantScale then
+                object.scale((--[[---@type number]] occupantScale) / object.getScale()[1])
+            end
+
+            return true
         end
 
         local superInsertOccupyingObject = self.insertOccupyingObject
