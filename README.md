@@ -6,6 +6,10 @@ Documentation is a work in progress, pull/merge requests welcome.
 
 Everything in this repository is permissively licensed under the MIT license, please refer to the `LICENSE` file.
 
+## Discord
+
+If you'd like to discuss ge_tts, you can do so on the [TTS Community Discord](https://discord.gg/YwD22SM).
+
 ### EmmyLua and Jetbrains IntelliJ IDEA
 
 For development of your TTS mod we highly recommend using Jetbrains IntelliJ IDEA with the [EmmyLua](https://github.com/EmmyLua/IntelliJ-EmmyLua) (_not_ the plugin simply called 'Lua') to write your code, instead of (or rather in conjunction with) Atom and the Atom TTS plugin.
@@ -20,7 +24,7 @@ _However_, at present there is not yet a Tabletop Simulator plugin available for
 
 These modules are written as standard Lua modules. In order to use these modules you must [require](https://www.lua.org/pil/8.1.html) them.
 
-The official Atom plugin has built-in support for `require`. Otherwise, if your IDE doens't support it, you can use [luabundler](https://github.com/Benjamin-Dobell/luabundler) from command line. However, this is an advanced solution, Atom is recommended for pushing code to TTS.
+The official Atom plugin has built-in support for `require`. Otherwise, if your IDE doesn't support it, you can use [luabundler](https://github.com/Benjamin-Dobell/luabundler) from command line. However, this is an advanced solution, Atom is recommended for pushing code to TTS.
 
 ### Base64
 
