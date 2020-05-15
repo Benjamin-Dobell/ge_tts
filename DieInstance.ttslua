@@ -33,7 +33,7 @@ setmetatable(DieInstance, {
 
         ---@param value number|string
         ---@param playerColor nil|tts__PlayerColor
-        function self.onRotationValueChanged(value, playerColor)
+        function self.onRolled(value, playerColor)
         end
 
         return self
@@ -55,7 +55,7 @@ local onObjectUpdating = function(object, playerColor)
 
     local instance = Instance.getOneInstance(object)
 
-    if instance and (--[[---@type ge_tts__DieInstance]] instance).onRotationValueChanged ~= nil then
+    if instance and (--[[---@type ge_tts__DieInstance]] instance).onRolled ~= nil then
         local dieInstance = (--[[---@type ge_tts__DieInstance]] instance)
         local initialRotationValue = object.getRotationValue()
         local isRolling = false
@@ -69,7 +69,7 @@ local onObjectUpdating = function(object, playerColor)
 
                     if object ~= nil then
                         local value = (--[[---@type tts__Die]] object).getRotationValue()
-                        dieInstance.onRotationValueChanged(value, playerColor)
+                        dieInstance.onRolled(value, playerColor)
                     end
                 end, function()
                     return object == nil or object.resting
