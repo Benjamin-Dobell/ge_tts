@@ -358,7 +358,7 @@ local function onObjectLeaveContainer(container, object)
     local objectPosition = object.getPosition()
     local containerPosition = container.getPosition()
 
-    if #container.getObjects() == 0
+    if container.tag ~= "Infinite" and #container.getObjects() == 0
         and objectPosition.y <= containerPosition.y
         and objectPosition.x == containerPosition.x
         and objectPosition.z == containerPosition.z
