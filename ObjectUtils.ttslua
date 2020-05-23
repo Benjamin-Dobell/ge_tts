@@ -226,6 +226,8 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
             callback(object)
             return object
         end
+    else
+        guid = --[[---@type string]] guidOrObject
     end
 
     local pendingSpawn = pendingSpawns[guid]
