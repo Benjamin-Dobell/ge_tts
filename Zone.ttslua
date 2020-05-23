@@ -434,10 +434,11 @@ end
 ---@param colorName tts__PlayerColor
 ---@param object tts__Object
 local function onObjectDrop(colorName, object)
-    local objectZones = objectIntersectingZonesMap[object]
+    -- TODO: The following cast ought to be unnecessary. Looks like a bug in my EmmyLua fork's and ... or handling.
+    local objectZones = --[[---@type ge_tts__Zone[] ]] (object.isSmoothMoving() and TableUtils.values(scriptingTriggerZoneMap) or objectIntersectingZonesMap[object])
 
     if objectZones then
-        local objectPosition = object.getPosition()
+        local objectPosition = object.isSmoothMoving() and object.pick_up_position or object.getPosition()
 
         local zoneDistances = TableUtils.map(objectZones,  function(zone)
             local distanceSquared = Vector3.distanceSquared(objectPosition, (--[[---@type tts__ScriptingTrigger]] zone.getScriptingTrigger()).getPosition())
