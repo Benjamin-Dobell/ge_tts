@@ -149,7 +149,7 @@ Object.Tag = {
     VRUI = "VR UI",
 }
 
-Object.DiceType = {
+Object.DieType = {
     D4 = 0,
     D6 = 1,
     D8 = 2,
