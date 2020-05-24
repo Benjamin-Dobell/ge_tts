@@ -409,12 +409,6 @@ local function onObjectLeaveContainer(container, object)
         Logger.log(instance.toString() .. ' left ' .. container.tag .. ' ('
             .. tostring(container.getGUID()) .. ')', Logger.DEBUG)
         instance.setObject(object)
-    else
-        Logger.log(
-            'Card (' .. tostring(object.getGUID()) .. ') with unknown card instance (' .. object.guid .. ') left ' .. container.tag
-                .. ' (' .. tostring(container.getGUID()) .. ')',
-            Logger.WARNING
-        )
     end
 end
 
