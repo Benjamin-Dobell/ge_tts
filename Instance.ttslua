@@ -245,6 +245,26 @@ setmetatable(Instance, {
             return zone and (--[[---@type ge_tts__Zone]] zone).getZoneType()
         end
 
+        ---@overload fun(): boolean
+        ---@param colorName nil|tts__PlayerColor
+        ---@return boolean
+        function self.reject(colorName)
+            if object then
+                local obj = --[[---@type tts__Object]] object
+
+                if zone then
+                    (--[[---@type ge_tts__Zone]] zone).drop(colorName, obj)
+                    return true
+                elseif obj.pick_up_position:sqrMagnitude() ~= 0 then
+                    obj.setPositionSmooth(obj.pick_up_position)
+                    obj.setRotationSmooth(obj.pick_up_rotation)
+                    return true
+                end
+            end
+
+            return false
+        end
+
         function self.save()
             return {
                 __savedState = true,
