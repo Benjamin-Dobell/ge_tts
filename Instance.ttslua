@@ -1,5 +1,6 @@
 local EventManager = require('ge_tts/EventManager')
 local Logger = require('ge_tts/Logger')
+local Object = require('ge_tts/Object')
 local ObjectUtils = require('ge_tts/ObjectUtils')
 local TableUtils = require('ge_tts/TableUtils')
 
@@ -407,14 +408,26 @@ local function onObjectEnterContainer(container, object)
     if instances then
         instances = TableUtils.copy(instances) -- Shallow copy, because we will modify the original table whilst iterating
 
-        for _, instance in ipairs(instances) do
-            Logger.log(
-                instance.toString() .. ' entered ' .. container.tag .. ' ('
-                    .. tostring(container.getGUID()) .. ')',
-                Logger.DEBUG
-            )
+        if container.tag == Object.Tag.Infinite then
+            for _, instance in ipairs(instances) do
+                Logger.log(
+                    instance.toString() .. ' is being destroyed as it entered infinite bag ('
+                        .. tostring(container.getGUID()) .. ')',
+                    Logger.DEBUG
+                )
 
-            instance.setObject(container)
+                instance.destroy()
+            end
+        else
+            for _, instance in ipairs(instances) do
+                Logger.log(
+                    instance.toString() .. ' entered ' .. container.tag .. ' ('
+                        .. tostring(container.getGUID()) .. ')',
+                    Logger.DEBUG
+                )
+
+                instance.setObject(container)
+            end
         end
     end
 end
