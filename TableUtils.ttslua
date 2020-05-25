@@ -66,6 +66,7 @@ TableUtils.remap = function(tab, func)
     return remapped
 end
 
+---@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[]
 ---@generic K, V
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): any
@@ -76,11 +77,9 @@ TableUtils.select = function(tab, func)
 
     if TableUtils.isArray(tab) then
         local arr = tab
-        local index = 1
         for i, v in ipairs(--[[---@type V[] ]] arr) do
             if func(v, --[[---@type K]] i) then
-                selected[--[[---@type K]] index] = v
-                index = index + 1
+                table.insert(--[[---@type V[] ]] selected, v)
             end
         end
     else
@@ -94,6 +93,7 @@ TableUtils.select = function(tab, func)
     return selected
 end
 
+---@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[]
 ---@generic K, V
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): boolean
