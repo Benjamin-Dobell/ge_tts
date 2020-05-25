@@ -1,6 +1,7 @@
 local EventManager = require('ge_tts/EventManager')
 local Instance = require('ge_tts/Instance')
 local Object = require('ge_tts/Object')
+local ObjectUtils = require('ge_tts/ObjectUtils')
 local Vector3 = require('ge_tts/Vector3')
 
 ---@class ge_tts__DieInstance : ge_tts__Instance
@@ -26,6 +27,10 @@ setmetatable(DieInstance, {
     __call = function(_, objectOrGuidOrSavedState, nilOrContainer)
         local self = --[[---@type ge_tts__DieInstance]] Instance(objectOrGuidOrSavedState, nilOrContainer)
 
+        ObjectUtils.getSafeSpawnedObject(--[[---@type tts__Object]] self.getObject(), function(object)
+            object.registerCollisions()
+        end)
+
         ---@return string
         function self.getInstanceType()
             return DieInstance.INSTANCE_TYPE
@@ -34,6 +39,11 @@ setmetatable(DieInstance, {
         ---@param value number|string
         ---@param playerColor nil|tts__PlayerColor
         function self.onRolled(value, playerColor)
+        end
+
+        ---@param value number|string
+        ---@param playerColor nil|tts__PlayerColor
+        function self.onRotationValueUpdated(value, playerColor)
         end
 
         return self
@@ -68,13 +78,21 @@ local onObjectUpdating = function(object, playerColor)
                     monitoredDice[object] = nil
 
                     if object ~= nil then
-                        local value = (--[[---@type tts__Die]] object).getRotationValue()
+                        local value = object.getRotationValue()
                         dieInstance.onRolled(value, playerColor)
+                        dieInstance.onRotationValueUpdated(value, playerColor)
                     end
                 end, function()
                     return object == nil or object.resting
                 end)
             else
+                if object ~= nil then
+                    local value = object.getRotationValue()
+
+                    if value ~= initialRotationValue then
+                        dieInstance.onRotationValueUpdated(value, playerColor)
+                    end
+                end
                 monitoredDice[object] = nil
             end
         end, function()
@@ -90,5 +108,6 @@ end
 
 EventManager.addHandler('onObjectRandomize', onObjectUpdating)
 EventManager.addHandler('onObjectDrop', function(playerColor, object) onObjectUpdating(object, playerColor) end)
+EventManager.addHandler('onObjectCollisionExit', function(registeredObject) onObjectUpdating(registeredObject, nil) end)
 
 return DieInstance
