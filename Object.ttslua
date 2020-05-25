@@ -58,6 +58,7 @@ Object.Name = {
     GoGameBowlWhite = "go_game_bowl_white",
     GoGamePieceBlack = "go_game_piece_black",
     GoGamePieceWhite = "go_game_piece_white",
+    InfiniteBag = "Infinite_Bag",
     MahjongTile = "Mahjong_Tile",
     MetalBall = "Ball",
     Model = "Custom_Model",
