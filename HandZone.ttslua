@@ -32,7 +32,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
     ---@param nilOrHandIndex nil | number @TTS player hand index, defaults to 1.
     __call = function(_, ownerOrSavedState, nilOrHandIndex)
         ---@type ge_tts__HandZone
-        local self = HandZone.isSavedState(ownerOrSavedState) and Zone(--[[---@type ge_tts__Zone_SavedState]] ownerOrSavedState) or Zone(zoneParameters(--[[---@type tts__Player]] ownerOrSavedState, handIndex))
+        local self = HandZone.isSavedState(ownerOrSavedState) and Zone(--[[---@type ge_tts__Zone_SavedState]] ownerOrSavedState) or Zone(zoneParameters(--[[---@type tts__Player]] ownerOrSavedState, --[[---@not nil]] nilOrHandIndex))
 
         ---@type tts__Player
         local owner
