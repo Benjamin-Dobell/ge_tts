@@ -120,16 +120,18 @@ setmetatable(Instance, {
             end
 
             if savedState.zoneTriggerGuid then
-                local trigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(--[[---@type string]] savedState.zoneTriggerGuid)
+                local trigger = ObjectUtils.getSafeSpawnedObject(--[[---@not nil]] savedState.zoneTriggerGuid)
 
-                -- NOTE: If this Instance is restored from its saved state before the trigger's Zone is restored from
-                --       its saved state, the zone will be nil. However, when the Zone is restored from its saved state
-                --       it will setZone() on all occupying instances. So the only possible information loss is due to
-                --       the face our zone is the *most recent* Zone. If TTS saves when instance is not in its most
-                --       recent zone *and* that most recent zone restores second, we'll lose our reference.
-                --
-                --       We're requiring here to avoid top-level (illegal) cyclical requires.
-                zone = require('ge_tts/Zone').getScriptingTriggerZone(trigger)
+                if trigger ~= nil then
+                    -- NOTE: If this Instance is restored from its saved state before the trigger's Zone is restored from
+                    --       its saved state, the zone will be nil. However, when the Zone is restored from its saved state
+                    --       it will setZone() on all occupying instances. So the only possible information loss is due to
+                    --       the fact our zone is the *most recent* Zone. If TTS saves when instance is not in its most
+                    --       recent zone *and* that most recent zone restores second, we'll lose our reference.
+                    --
+                    --       We're requiring here to avoid top-level (illegal) cyclical requires.
+                    zone = require('ge_tts/Zone').getScriptingTriggerZone(--[[---@type tts__ScriptingTrigger]] trigger)
+                end
             end
         elseif nilOrContainer then
             instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
@@ -266,11 +268,15 @@ setmetatable(Instance, {
             return false
         end
 
+        ---@return ge_tts__Instance_SavedState
         function self.save()
+            local trigger = zone and (--[[---@not nil]] zone).getScriptingTrigger()
+
             return {
                 __savedState = true,
-                instanceId = instanceGuid,
-                objectGuid = object and (--[[---@type tts__Object]] object).getGUID(),
+                instanceGuid = instanceGuid,
+                objectGuid = object and (--[[---@not nil]] object).getGUID(),
+                zoneTriggerGuid = trigger ~= nil and (--[[---@not nil]] trigger).getGUID() or nil,
             }
         end
 
