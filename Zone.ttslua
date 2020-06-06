@@ -34,7 +34,7 @@ local function removeObjectIntersectingZone(object, zone)
         local zoneIndex = TableUtils.find(objectZones, zone)
 
         if zoneIndex then
-            table.remove(objectZones, --[[---@type number]] zoneIndex)
+            table.remove(objectZones, --[[---@not nil]] zoneIndex)
 
             if #objectZones == 0 then
                 objectIntersectingZonesMap[object] = nil
@@ -94,7 +94,7 @@ local function spawn(position, rotation, scale, callback)
         Locked = true,
     }
 
-    return --[[---@type tts__ScriptingTrigger]] ObjectUtils.safeSpawnObject(jsonTable, --[[---@type fun(o: tts__Object):void]] callback)
+    return --[[---@type tts__ScriptingTrigger]] ObjectUtils.safeSpawnObject(jsonTable, --[[---@type fun(o: tts__Object): void]] callback)
 end
 
 ---@class ge_tts__Zone
@@ -137,7 +137,7 @@ setmetatable(Zone, {
 
             scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
             occupyingObjects = TableUtils.map(data.occupyingObjectGuids, function(guid)
-                local object = --[[---@type tts__Object]] ObjectUtils.getSafeSpawnedObject(guid)
+                local object = --[[---@not nil]] ObjectUtils.getSafeSpawnedObject(guid)
                 associateOccupyingObject(self, object)
                 return object
             end)
@@ -151,8 +151,8 @@ setmetatable(Zone, {
 
             if type(positionOrTriggerOrSavedState) == 'table' then
                 local position = Vector3(--[[---@type tts__VectorShape]] positionOrTriggerOrSavedState)
-                local rotation = Vector3(--[[---@type tts__VectorShape]] nilOrRotation)
-                local scale = Vector3(--[[---@type tts__VectorShape]] nilOrScale)
+                local rotation = Vector3(--[[---@not nil]] nilOrRotation)
+                local scale = Vector3(--[[---@not nil]] nilOrScale)
 
                 scriptingTrigger = spawn(position, rotation, scale, function()
                     self.onSpawned()
@@ -199,7 +199,7 @@ setmetatable(Zone, {
             return Vector3(scriptingTrigger.getScale())
         end
 
-        ---@return nil | tts__ScriptingTrigger @Associated TTS scripting trigger
+        ---@return tts__ScriptingTrigger @Associated TTS scripting trigger
         function self.getScriptingTrigger()
             return scriptingTrigger
         end
@@ -226,7 +226,7 @@ setmetatable(Zone, {
             local index = TableUtils.find(occupyingObjects, object)
 
             if index then
-                table.remove(occupyingObjects, --[[---@type number]] index)
+                table.remove(occupyingObjects, --[[---@not nil]] index)
             end
 
             disassociateOccupyingObject(self, object)
@@ -253,7 +253,7 @@ setmetatable(Zone, {
             local index = TableUtils.find(occupyingObjects, object)
 
             if index then
-                table.remove(occupyingObjects, --[[---@type number]] index)
+                table.remove(occupyingObjects, --[[---@not nil]] index)
             end
 
             disassociateOccupyingObject(self, object)
@@ -451,7 +451,7 @@ local function onObjectDrop(colorName, object)
         local objectPosition = object.isSmoothMoving() and object.pick_up_position or object.getPosition()
 
         local zoneDistances = TableUtils.map(objectZones,  function(zone)
-            local distanceSquared = Vector3.distanceSquared(objectPosition, (--[[---@type tts__ScriptingTrigger]] zone.getScriptingTrigger()).getPosition())
+            local distanceSquared = Vector3.distanceSquared(objectPosition, (--[[---@not nil]] zone.getScriptingTrigger()).getPosition())
             return {distanceSquared = distanceSquared, zone = zone}
         end)
 

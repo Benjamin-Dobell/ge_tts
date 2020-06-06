@@ -77,7 +77,7 @@ local function safeSpawnObject(objectState, guid, callback_function)
     }
 
     if callback_function then
-        table.insert(pendingSpawns[guid].callbacks, --[[---@type tts__ObjectCallbackFunction]] callback_function)
+        table.insert(pendingSpawns[guid].callbacks, --[[---@not nil]] callback_function)
     end
 
     return spawningObject
@@ -232,8 +232,8 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
 
     local pendingSpawn = pendingSpawns[guid]
 
-    if pendingSpawn then
-        table.insert(pendingSpawn.callbacks, callback)
+    if pendingSpawn and callback then
+        table.insert(pendingSpawn.callbacks, --[[---@not nil]] callback)
         return pendingSpawn.object
     end
 

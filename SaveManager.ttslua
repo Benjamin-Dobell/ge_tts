@@ -16,8 +16,8 @@ local ORIGINAL_PSEUDO_MODULE_NAME = '__originalSavedState'
 ---@type table<string, __ge_tts__SaveManager_Callbacks>
 local callbacks = {}
 
-local originalOnSave = --[[---@type fun(): string]] _G.onSave
-local originalOnLoad = _G.onLoad
+local originalOnSave = --[[---@type nil | fun(): string]] _G.onSave
+local originalOnLoad = --[[---@type nil | fun(savedState: string): void]] _G.onLoad
 
 ---@param moduleName string
 ---@return __ge_tts__SaveManager_Callbacks
@@ -36,7 +36,7 @@ end
 ---@param savedState string
 local function executeOnLoads(moduleName, savedState)
     if moduleName == ORIGINAL_PSEUDO_MODULE_NAME and originalOnLoad then
-        originalOnLoad(savedState)
+        (--[[---@not nil]] originalOnLoad)(savedState)
     else
         local onLoads = TableUtils.copy(getModuleCallbacks(moduleName).onLoads) -- Copying because callbacks may modify onLoads whilst we iterate.
 
@@ -145,7 +145,7 @@ function onSave()
 
     for moduleName, moduleCallbacks in pairs(callbacks) do
         if moduleCallbacks.onSave then
-            local moduleSavedState = (--[[---@type fun(): string]] moduleCallbacks.onSave)() or ''
+            local moduleSavedState = (--[[---@not nil]]  moduleCallbacks.onSave)() or ''
 
             Logger.assert(type(moduleSavedState) == 'string', moduleName .. "'s onSave returned a " .. type(moduleSavedState) .. ', a string is required.')
 
@@ -154,7 +154,7 @@ function onSave()
     end
 
     if originalOnSave then
-        local originalSavedStated = originalOnSave()
+        local originalSavedStated = (--[[---@not nil]] originalOnSave)()
         savedState = savedState .. ORIGINAL_PSEUDO_MODULE_NAME:len() .. ' ' .. ORIGINAL_PSEUDO_MODULE_NAME .. ' ' .. originalSavedStated:len() .. ' ' .. originalSavedStated
     end
 

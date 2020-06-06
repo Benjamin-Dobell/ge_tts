@@ -207,7 +207,6 @@ TableUtils.inject = function(tab, ...)
     end
 end
 
----@overload fun<K, V>(...: table<K, V>): table<K, V>
 ---@overload fun<T>(...: T): T
 ---@vararg table
 ---@return table

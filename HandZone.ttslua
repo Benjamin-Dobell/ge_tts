@@ -106,7 +106,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
                         end,
                     })
 
-                    superDrop(colorName, --[[---@type tts__Object]] takenObject)
+                    superDrop(colorName, --[[---@not nil]] takenObject)
                 end
             else
                 if object.spawning then

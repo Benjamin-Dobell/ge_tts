@@ -59,7 +59,7 @@ Graph.traverse = function(node, getChildren, visitCallback)
     local children = getChildren(node)
 
     if children then
-        for _, child in ipairs(--[[---@type any[] ]] children) do
+        for _, child in ipairs(--[[---@not nil]] children) do
             result = table.pack(Graph.traverse(child, getChildren, visitCallback))
 
             if #result > 1 then

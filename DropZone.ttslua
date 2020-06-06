@@ -146,7 +146,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
 
 
             local objectRotation = object.getRotation()
-            local position = (--[[---@type tts__ScriptingTrigger]] self.getScriptingTrigger()).positionToWorld(dropOffset)
+            local position = (--[[---@not nil]] self.getScriptingTrigger()).positionToWorld(dropOffset)
 
             object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z })
 
@@ -181,7 +181,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             end
 
             if occupantScale then
-                object.scale((--[[---@type number]] occupantScale) / object.getScale()[1])
+                object.scale((--[[---@not nil]] occupantScale) / object.getScale()[1])
             end
 
             return true
@@ -193,7 +193,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@param object tts__Object @The object that was dropped.
         function self.insertOccupyingObject(object)
             if occupantScale then
-                object.scale((--[[---@type number]] occupantScale) / object.getScale()[1])
+                object.scale((--[[---@not nil]] occupantScale) / object.getScale()[1])
             end
 
             superInsertOccupyingObject(object)

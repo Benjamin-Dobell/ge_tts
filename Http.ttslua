@@ -67,7 +67,7 @@ function Http.request(method, url, options, callback)
         }
     ))
 
-    WebRequest.put(--[[---@type string]] proxyUrl, content, function(request)
+    WebRequest.put(--[[---@not nil]] proxyUrl, content, function(request)
         if request.is_error then
             callback(nil, request.error)
         elseif request.is_done then
@@ -85,7 +85,7 @@ function Http.request(method, url, options, callback)
             else
                 local contentType = Http.getHeader(response.headers, 'Content-Type')
 
-                if contentType and (--[[---@type string]] contentType):lower() == decodeJsonContentType then
+                if contentType and (--[[---@not nil]] contentType):lower() == decodeJsonContentType then
                     response.body = JSON.decode(response.body)
                 end
             end
@@ -114,8 +114,10 @@ function Http.submit(method, url, body, headersOrNil, callback)
         local contentType, contentTypeHeader = Http.getHeader(headers, 'Content-Type')
         contentTypeHeader = contentTypeHeader or 'Content-Type'
 
-        if not (contentType and (--[[---@type string]] contentType):sub(-4) == 'json') then
-            headers = TableUtils.merge(--[[---@type table<string, any>]] headers, { [--[[---@type string]] contentTypeHeader]='application/json'})
+        if not (contentType and (--[[---@not nil]] contentType):sub(-4) == 'json') then
+            headers = TableUtils.merge(headers, {
+                [--[[---@not nil]] contentTypeHeader] = 'application/json'}
+            )
         end
 
         body = JSON.encode(body)

@@ -53,7 +53,7 @@ local function disassociateObject(instance, object)
     local associationIndex = associated and TableUtils.find(associated, instance) or nil
 
     if associationIndex then
-        table.remove(associated, --[[---@type number]] associationIndex)
+        table.remove(associated, --[[---@not nil]] associationIndex)
         objectInstancesMap[object] = #associated > 0 and associated or nil
 
         Logger.log(
@@ -115,7 +115,7 @@ setmetatable(Instance, {
             instanceGuid = savedState.instanceGuid
 
             if savedState.objectGuid then
-                object = --[[---@type tts__Object]] ObjectUtils.getSafeSpawnedObject(--[[---@type string]] savedState.objectGuid)
+                object = --[[---@not nil]] ObjectUtils.getSafeSpawnedObject(--[[---@not nil]] savedState.objectGuid)
                 Logger.assert(object, 'Failed to recover object reference for Instance ' .. instanceGuid)
             end
 
@@ -133,7 +133,7 @@ setmetatable(Instance, {
             end
         elseif nilOrContainer then
             instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
-            object = --[[---@type tts__Object]] nilOrContainer
+            object = --[[---@not nil]] nilOrContainer
 
             Logger.assert(instanceGuid, 'Instance cannot be instantiated with a container but no GUID')
         else
@@ -170,9 +170,9 @@ setmetatable(Instance, {
         function self.setObject(obj)
             if object ~= obj then
                 if object ~= nil then
-                    disassociateObject(self, --[[---@type tts__Object]] object)
+                    disassociateObject(self, --[[---@not nil]] object)
 
-                    if ObjectUtils.isContainerTag((--[[---@type tts__Object]] object).tag) then
+                    if ObjectUtils.isContainerTag((--[[---@not nil]] object).tag) then
                         self.onLeaveContainer(--[[---@type tts__Container]] object)
                     end
                 end
@@ -195,12 +195,12 @@ setmetatable(Instance, {
         ---If the instance is presently within a container, returns the position (starting from 1) within said container, otherwise returns nil.
         ---@return nil | number
         function self.getContainerPosition()
-            if object ~= nil and (--[[---@type tts__Object]] object).guid ~= instanceGuid and ObjectUtils.isContainerTag((--[[---@type tts__Object]] object).tag) then
+            if object ~= nil and (--[[---@not nil]] object).guid ~= instanceGuid and ObjectUtils.isContainerTag((--[[---@not nil]] object).tag) then
                 local correspondingObject = TableUtils.detect((--[[---@type tts__Container ]] object).getObjects(), function(objectState)
                     return objectState.guid == instanceGuid
                 end)
 
-                return correspondingObject and ((--[[---@type tts__IndexedSimpleObjectState]] correspondingObject).index + 1)
+                return correspondingObject and ((--[[---@not nil]] correspondingObject).index + 1)
             end
 
             return nil
@@ -208,8 +208,8 @@ setmetatable(Instance, {
 
         ---@return boolean
         function self.isTopOfContainer()
-            if object ~= nil and ObjectUtils.isContainerTag((--[[---@type tts__Object]] object).tag) then
-                return self.getContainerPosition() == (--[[---@type tts__Object]] object).getQuantity()
+            if object ~= nil and ObjectUtils.isContainerTag((--[[---@not nil]] object).tag) then
+                return self.getContainerPosition() == (--[[---@not nil]] object).getQuantity()
             end
 
             return false
@@ -243,7 +243,7 @@ setmetatable(Instance, {
         ---The zone type of the most presently, or most recently, occupied zone.
         ---@return nil | string
         function self.getZoneType()
-            return zone and (--[[---@type ge_tts__Zone]] zone).getZoneType()
+            return zone and (--[[---@not nil]] zone).getZoneType()
         end
 
         ---@overload fun(): boolean
@@ -251,10 +251,10 @@ setmetatable(Instance, {
         ---@return boolean
         function self.reject(colorName)
             if object then
-                local obj = --[[---@type tts__Object]] object
+                local obj = --[[---@not nil]] object
 
                 if zone then
-                    (--[[---@type ge_tts__Zone]] zone).drop(colorName, obj)
+                    (--[[---@not nil]] zone).drop(colorName, obj)
                     return true
                 elseif obj.pick_up_position:sqrMagnitude() ~= 0 then
                     obj.setPositionSmooth(obj.pick_up_position)
@@ -279,7 +279,7 @@ setmetatable(Instance, {
 
             if object ~= nil then
                 destroyAssociatedObject(self)
-                disassociateObject(self, --[[---@type tts__Object]] object)
+                disassociateObject(self, --[[---@not nil]] object)
             end
 
             object = nil
@@ -296,7 +296,7 @@ setmetatable(Instance, {
         end
 
         allInstances[instanceGuid] = self
-        associateObject(self, --[[---@type tts__Object]] object)
+        associateObject(self, --[[---@not nil]] object)
 
         return self
     end

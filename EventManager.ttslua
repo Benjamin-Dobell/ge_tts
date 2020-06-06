@@ -1,11 +1,12 @@
 local TableUtils = require('ge_tts/TableUtils')
 local Logger = require('ge_tts/Logger')
 
+---@type table<string, function[]>
 local eventHandlers = {}
 
 ---@param event string
 local function listen(event)
-    local previousGlobalHandler = _G[event]
+    local previousGlobalHandler = --[[---@type nil | function]] _G[event]
 
     _G[event] = function(...)
         local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
@@ -24,13 +25,15 @@ local function listen(event)
         return table.unpack(finalResult, 1, finalResult.n)
     end
 
+    ---@type function[]
     local handlers = {}
+
     eventHandlers[event] = handlers
 
     Logger.log('EventManager now listening for ' .. event, Logger.VERBOSE)
 
     if previousGlobalHandler then
-        table.insert(handlers, previousGlobalHandler)
+        table.insert(handlers, --[[---@not nil]] previousGlobalHandler)
         Logger.log('Pre-existing global ' .. event .. ' handler preserved as the first handler', Logger.VERBOSE)
     end
 
@@ -63,7 +66,7 @@ function EventManager.removeHandler(event, handler)
     local handlerIndex = handlers and TableUtils.find(handlers, handler)
 
     if handlerIndex then
-        table.remove(handlers, handlerIndex)
+        table.remove(handlers, --[[---@not nil]] handlerIndex)
     end
 end
 

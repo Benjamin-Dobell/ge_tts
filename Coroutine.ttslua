@@ -2,7 +2,7 @@
 local Coroutine = {}
 
 --- Yields from the current coroutine, which will later be resumed once a condition is met.
----@param condition function @Return true when the current coroutine should be resumed.
+---@param condition fun(): boolean @Return true when the current coroutine should be resumed.
 function Coroutine.yieldCondition(condition)
     local co = coroutine.running()
 
