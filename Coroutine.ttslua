@@ -1,16 +1,27 @@
 ---@class ge_tts__Coroutine
 local Coroutine = {}
 
---- Yields from the current coroutine, which will later be resumed once a condition is met.
+--- Yields from the current coroutine. Resumes once a condition is met or an optional timeout is reached.
+---@overload fun(condition: fun(): boolean): true
 ---@param condition fun(): boolean @Return true when the current coroutine should be resumed.
-function Coroutine.yieldCondition(condition)
+---@param timeout number|nil @Timeout in seconds (optional).
+---@return boolean @True if the condition was met, or false if the (optional) timeout was reached.
+function Coroutine.yieldCondition(condition, timeout)
     local co = coroutine.running()
 
-    Wait.condition(function()
-        coroutine.resume(co)
-    end, condition)
+    local conditionMet = function()
+        coroutine.resume(co, true)
+    end
 
-    coroutine.yield()
+    if timeout then
+        Wait.condition(conditionMet, condition, --[[---@not nil]] timeout, function()
+            coroutine.resume(co, false)
+        end)
+    else
+        Wait.condition(conditionMet, condition)
+    end
+
+    return --[[---@type boolean]] coroutine.yield()
 end
 
 --- Yields from the current coroutine, which will later be resumed after the specified number of frames have passed.
