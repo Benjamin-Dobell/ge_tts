@@ -37,11 +37,12 @@ function Coroutine.yieldSeconds(seconds)
     coroutine.yield()
 end
 
---- Creates a co-routine from the specified function, and immediately starts it.
+--- Creates a co-routine from the specified function and immediately starts it, passing any any provided arguments.
 ---@param func fun
+---@vararg any
 ---@return boolean, any...
-function Coroutine.start(func)
-    return coroutine.resume(coroutine.create(func))
+function Coroutine.start(func, ...)
+    return coroutine.resume(coroutine.create(func), ...)
 end
 
 return Coroutine
