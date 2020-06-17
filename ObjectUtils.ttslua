@@ -181,6 +181,36 @@ function ObjectUtils.transformState(...)
     return state
 end
 
+---@param transformState tts__ObjectState_Transform
+---@return ge_tts__Vector3
+function ObjectUtils.getTransformStatePosition(transformState)
+    return Vector3(
+        transformState.posX or 0,
+        transformState.posY or 0,
+        transformState.posZ or 0
+    )
+end
+
+---@param transformState tts__ObjectState_Transform
+---@return ge_tts__Vector3
+function ObjectUtils.getTransformStateRotation(transformState)
+    return Vector3(
+        transformState.rotX or 0,
+        transformState.rotY or 0,
+        transformState.rotZ or 0
+    )
+end
+
+---@param transformState tts__ObjectState_Transform
+---@return ge_tts__Vector3
+function ObjectUtils.getTransformStateScale(transformState)
+    return Vector3(
+        transformState.scaleX or 1,
+        transformState.scaleY or 1,
+        transformState.scaleZ or 1
+    )
+end
+
 ---
 ---Same as ObjectUtils.safeSpawnObject except that each entry in containerState.ContainedObjects will also be assigned a
 ---unique GUID.
