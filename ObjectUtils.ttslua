@@ -215,7 +215,7 @@ end
 ---Same as ObjectUtils.safeSpawnObject except that each entry in containerState.ContainedObjects will also be assigned a
 ---unique GUID.
 ---
----@overload fun(containerState: tts__ContainerState): tts__Object
+---@overload fun(containerState: tts__ContainerState): tts__Container
 ---@param containerState tts__ContainerState @Will be JSON encoded after we generate and assign a GUID.
 ---@param callback_function nil | tts__Callback<fun(container: tts__Container): void> @Callback that will be called when the object has finished spawning.
 ---@return tts__Container
