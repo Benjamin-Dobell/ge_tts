@@ -8,33 +8,39 @@ local Coroutine = {}
 ---@return boolean @True if the condition was met, or false if the (optional) timeout was reached.
 function Coroutine.yieldCondition(condition, timeout)
     local co = coroutine.running()
-    local done, result
 
-    local conditionMet = function()
-        done, result = true, true
+    ---@type nil | boolean
+    local conditionMet
+
+    local resume = function()
+        conditionMet = true
         coroutine.resume(co)
     end
 
     if timeout then
-        Wait.condition(conditionMet, condition, --[[---@not nil]] timeout, function()
-            done, result = true, false
+        Wait.condition(resume, condition, --[[---@not nil]] timeout, function()
+            conditionMet = false
             coroutine.resume(co)
         end)
     else
-        Wait.condition(conditionMet, condition)
+        Wait.condition(resume, condition)
     end
 
     coroutine.yield()
-    if not done then
+
+    if conditionMet == nil then
         error("Coroutine.yieldCondition(): attempt to resume before Wait was completed!")
     end
-    return result
+
+    return --[[---@not nil]] conditionMet
 end
 
 --- Yields from the current coroutine, which will later be resumed after the specified number of frames have passed.
 ---@param frames number
 function Coroutine.yieldFrames(frames)
     local co = coroutine.running()
+
+    ---@type boolean
     local done
 
     Wait.frames(function()
@@ -43,6 +49,7 @@ function Coroutine.yieldFrames(frames)
     end, frames)
 
     coroutine.yield()
+
     if not done then
         error("Coroutine.yieldFrames(): attempt to resume before Wait was completed!")
     end
@@ -52,6 +59,8 @@ end
 ---@param seconds number
 function Coroutine.yieldSeconds(seconds)
     local co = coroutine.running()
+
+    ---@type boolean
     local done
 
     Wait.time(function()
@@ -60,6 +69,7 @@ function Coroutine.yieldSeconds(seconds)
     end, seconds)
 
     coroutine.yield()
+
     if not done then
         error("Coroutine.yieldSeconds(): attempt to resume before Wait was completed!")
     end

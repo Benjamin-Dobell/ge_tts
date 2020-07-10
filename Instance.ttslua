@@ -314,7 +314,7 @@ function Instance.isSavedState(value)
     return type(value) == 'table' and (--[[---@type table]] value).__savedState
 end
 
----@param id string
+---@param guid string
 ---@return nil | ge_tts__Instance
 function Instance.getInstance(guid)
     return allInstances[guid]

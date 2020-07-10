@@ -88,7 +88,7 @@ function SaveManager.registerOnLoad(moduleNameOrOnLoad, nilOrOnLoad)
 
     local moduleName = --[[---@type string]] moduleNameOrOnLoad
     local moduleCallbacks = getModuleCallbacks(moduleName)
-    local onLoad = --[[--@type fun(savedState: string): void]] nilOrOnLoad
+    local onLoad = --[[---@type fun(savedState: string): void]] nilOrOnLoad
 
     table.insert(moduleCallbacks.onLoads, onLoad)
 end

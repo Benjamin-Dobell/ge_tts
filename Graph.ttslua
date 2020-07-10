@@ -48,7 +48,7 @@ end
 ---@param node any
 ---@param getChildren fun(node: any): nil | any[] @A callback that when passed a node, must return a table of the node's children to be traversed, or nil.
 ---@param visitCallback fun(node: any) @If callback returns *any* value (including nil), then traversal is halted and the value is returned.
----@return any @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
+---@return any... @The return value of callback, or no return value if the entire tree traverses without callback returning a value.
 Graph.traverse = function(node, getChildren, visitCallback)
     local result = table.pack(visitCallback(node))
 

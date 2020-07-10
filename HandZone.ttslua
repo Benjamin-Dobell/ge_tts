@@ -1,7 +1,5 @@
-local Logger = require('ge_tts/Logger')
 local ObjectUtils = require('ge_tts/ObjectUtils')
 local TableUtils = require('ge_tts/TableUtils')
-local Vector3 = require('ge_tts/Vector3')
 local Zone = require('ge_tts/Zone')
 
 ---@class ge_tts__HandZone : ge_tts__Zone
@@ -31,8 +29,11 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
     ---@param ownerOrSavedState tts__Player | ge_tts__HandZone_SavedState
     ---@param nilOrHandIndex nil | number @TTS player hand index, defaults to 1.
     __call = function(_, ownerOrSavedState, nilOrHandIndex)
-        ---@type ge_tts__HandZone
-        local self = HandZone.isSavedState(ownerOrSavedState) and Zone(--[[---@type ge_tts__Zone_SavedState]] ownerOrSavedState) or Zone(zoneParameters(--[[---@type tts__Player]] ownerOrSavedState, --[[---@not nil]] nilOrHandIndex))
+        local isSavedState = HandZone.isSavedState(ownerOrSavedState)
+        local self = --[[---@type ge_tts__HandZone]] (
+            isSavedState and Zone(--[[---@type ge_tts__HandZone_SavedState]] ownerOrSavedState)
+                or Zone(zoneParameters(--[[---@type tts__Player]] ownerOrSavedState, --[[---@not nil]] nilOrHandIndex))
+        )
 
         ---@type tts__Player
         local owner

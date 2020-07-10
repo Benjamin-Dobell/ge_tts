@@ -308,8 +308,10 @@ setmetatable(Zone, {
     end,
 })
 
+---@param value any
+---@return boolean
 function Zone.isSavedState(value)
-    return type(value) == 'table' and (--[[---@type table]] value).__savedState
+    return type(value) == 'table' and (--[[---@type table]] value).__savedState ~= nil
 end
 
 ---Returns a list of Zones that `object` is inside.
@@ -400,8 +402,8 @@ end
 
 ---@param scriptingTrigger tts__ScriptingTrigger
 ---@param object tts__Object
-local function onObjectLeaveScriptingZone(scriptingZone, object)
-    local zone = scriptingTriggerZoneMap[scriptingZone]
+local function onObjectLeaveScriptingZone(scriptingTrigger, object)
+    local zone = scriptingTriggerZoneMap[scriptingTrigger]
 
     if zone then
         Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') left ' .. tostring(zone), Logger.DEBUG)

@@ -111,7 +111,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             return facing
         end
 
-        ---@param facing ge_tts__DropZone_Facing
+        ---@param face ge_tts__DropZone_Facing
         function self.setFacing(face)
             facing = face
         end
