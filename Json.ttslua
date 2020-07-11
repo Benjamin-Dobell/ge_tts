@@ -51,8 +51,8 @@ local NODE_KEY = 2
 ---@shape ge_tts__Json_DecodeAsyncOptions : ge_tts__Json_DecodeOptions
 ---@field onCompletion fun(data: ge_tts__JsonValue): void
 ---@field onError fun(message: string): void
----@field charactersPerChunk nil | number @Default 4096 (4 KiB)
----@field framesBetweenChunks nil | number @Default 2
+---@field charactersPerChunk nil | number @Default 2048 (2 KiB)
+---@field framesBetweenChunks nil | number @Default 1
 
 --- Parses JSON in a pseudo-async fashion using co-operative multi-tasking (i.e. coroutines).
 ---
