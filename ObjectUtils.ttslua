@@ -1,4 +1,5 @@
 local Base64 = require('ge_tts/Base64')
+local Json = require('ge_tts/Json')
 local Object = require('ge_tts/Object')
 local SaveManager = require('ge_tts/SaveManager')
 local TableUtils = require('ge_tts/TableUtils')
@@ -62,7 +63,7 @@ end
 local function safeSpawnObject(objectState, guid, callback_function)
     objectState.GUID = guid
 
-    local json = JSON.encode(objectState)
+    local json = Json.encode(objectState)
     local spawningObject = spawnObjectJSON({
         json = json,
         callback_function = function(object)
@@ -288,7 +289,7 @@ local function onSave()
         pendingSpawns = TableUtils.map(pendingSpawns, function(pendingSpawn) return pendingSpawn.json end),
     }
 
-    return JSON.encode(data)
+    return Json.encode(data)
 end
 
 local function onFirstLoad()
@@ -308,8 +309,7 @@ local function onLoad(savedState)
         return
     end
 
-    ---@type __ge_tts__ObjectUtils_SavedStateData
-    local data = JSON.decode(savedState)
+    local data = --[[---@type __ge_tts__ObjectUtils_SavedStateData]] Json.decode(savedState)
 
     guidPrefix = data.guidPrefix
 

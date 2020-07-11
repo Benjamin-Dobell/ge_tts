@@ -1,5 +1,6 @@
 local TableUtils = require('ge_tts/TableUtils')
 local Logger = require('ge_tts/Logger')
+local Json = require('ge_tts/Json')
 
 local MAX_RETRIES = 5
 
@@ -40,7 +41,7 @@ setmetatable(RemoteLogger, TableUtils.merge(getmetatable(Logger), {
                 retry = retry + 1
 
                 if retry <= MAX_RETRIES then
-                    local content = JSON.encode({
+                    local content = Json.encode({
                         messages=queuedMessages
                     })
 

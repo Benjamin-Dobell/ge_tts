@@ -1,5 +1,6 @@
 local Base64 = require('ge_tts/Base64')
 local Logger = require('ge_tts/Logger')
+local Json = require('ge_tts/Json')
 local TableUtils = require('ge_tts/TableUtils')
 
 ---@shape ge_tts__Http_Response
@@ -56,7 +57,7 @@ end
 function Http.request(method, url, options, callback)
     Logger.assert(proxyUrl, 'Http must be configured with Http.setProxyUrl(\'YOUR_TTS_PROXY_URL\'). Please refer to https://gitlab.com/BenjaminDobell/tts-proxy for details.')
 
-    content = JSON.encode(TableUtils.merge(
+    content = Json.encode(TableUtils.merge(
         {
             headers={},
         },
@@ -71,26 +72,44 @@ function Http.request(method, url, options, callback)
         if request.is_error then
             callback(nil, request.error)
         elseif request.is_done then
-            local responseContent = JSON.decode(request.text)
+            Json.decodeAsync(request.text, {
+                ---@param responseContent table
+                onCompletion = function(responseContent)
+                    ---@type ge_tts__Http_Response
+                    local response = {
+                        statusCode = responseContent.status_code,
+                        headers = responseContent.headers,
+                        body = responseContent.body or ""
+                    }
 
-            ---@type ge_tts__Http_Response
-            local response = {
-                statusCode = responseContent.status_code,
-                headers = responseContent.headers,
-                body = responseContent.body
-            }
+                    if responseContent.base64 then
+                        response.body = Base64.decode(response.body)
+                        callback(response, nil)
+                        return
+                    end
 
-            if responseContent.base64 then
-                response.body = Base64.decode(response.body)
-            else
-                local contentType = Http.getHeader(response.headers, 'Content-Type')
+                    local contentType = Http.getHeader(response.headers, 'Content-Type')
 
-                if contentType and (--[[---@not nil]] contentType):lower() == decodeJsonContentType then
-                    response.body = JSON.decode(response.body)
-                end
-            end
+                    if contentType and (--[[---@not nil]] contentType):lower() == decodeJsonContentType then
+                        Json.decodeAsync(request.text, {
+                            ---@param value table
+                            onCompletion = function(value)
+                                response.body = value
+                                callback(response, nil)
+                            end,
+                            onError = function(message)
+                                callback(nil, "Failed to parse JSON body: " .. message)
+                            end,
+                        })
+                        return
+                    end
 
-            callback(response, nil)
+                    callback(response, nil)
+                end,
+                onError = function(message)
+                    callback(nil, "Failed to parse proxy wrapper: " .. message)
+                end,
+            })
         end
     end)
 end
@@ -120,7 +139,7 @@ function Http.submit(method, url, body, headersOrNil, callback)
             headers[--[[---@not nil]] contentTypeHeader] = 'application/json'
         end
 
-        body = JSON.encode(body)
+        body = Json.encode(body)
     end
 
     options.body = body

@@ -1,0 +1,222 @@
+local Coroutine = require('ge_tts/Coroutine')
+
+local LunaJsonDecoder = require('ge_tts/lunajson/decoder')
+local LunaJsonEncoder = require('ge_tts/lunajson/encoder')
+local LunaJsonSAX = require('ge_tts/lunajson/sax')
+
+local NULL = setmetatable({}, {
+    __index = {},
+    __newindex = function() error("Attempt to modify JSON.null()") end,
+    __metatable = false
+})
+
+---@class ge_tts__Json
+local Json = {}
+
+function Json.null()
+    return NULL
+end
+
+---@alias ge_tts__JsonObject table<string, ge_tts__JsonValue>
+---@alias ge_tts__JsonArray ge_tts__JsonValue[]
+---@alias ge_tts__JsonContainer ge_tts__JsonObject | ge_tts__JsonArray
+---@alias ge_tts__JsonValue ge_tts__JsonContainer | number | string | boolean | nil
+
+---@alias __ge_tts__JsonNodeTypeObject 0
+---@alias __ge_tts__JsonNodeTypeArray 1
+---@alias __ge_tts__JsonNodeTypeKey 2
+
+---@type __ge_tts__JsonNodeTypeObject
+local NODE_OBJECT = 0
+
+---@type __ge_tts__JsonNodeTypeArray
+local NODE_ARRAY = 1
+
+---@type __ge_tts__JsonNodeTypeKey
+local NODE_KEY = 2
+
+---@alias __ge_tts__JsonNodeType __ge_tts__JsonNodeTypeObject | __ge_tts__JsonNodeTypeArray | __ge_tts__JsonNodeTypeKey
+
+---@alias __ge_tts__JsonObjectNode {[1]: __ge_tts__JsonNodeTypeObject, [2]: ge_tts__JsonObject}
+---@alias __ge_tts__JsonArrayNode {[1]: __ge_tts__JsonNodeTypeArray, [2]: ge_tts__JsonArray}
+---@alias __ge_tts__JsonKeyNode {[1]: __ge_tts__JsonNodeTypeKey, [2]: string }
+
+
+---@alias __ge_tts__JsonNode __ge_tts__JsonObjectNode | __ge_tts__JsonArrayNode | __ge_tts__JsonKeyNode
+
+---@shape ge_tts__Json_DecodeOptions
+---@field encodeArrayLength nil | boolean @Default false. When true, array lengths are encoded as the zeroth element. Thus an empty array can be discerned from an empty table.
+---@field nullIdentification nil | boolean @Default false. When true, null values in an array/object are represented by JSON.null() rather than being omitted.
+
+---@shape ge_tts__Json_DecodeAsyncOptions : ge_tts__Json_DecodeOptions
+---@field onCompletion fun(data: ge_tts__JsonValue): void
+---@field onError fun(message: string): void
+---@field charactersPerChunk nil | number @Default 4096 (4 KiB)
+---@field framesBetweenChunks nil | number @Default 2
+
+--- Parses JSON in a pseudo-async fashion using co-operative multi-tasking (i.e. coroutines).
+---
+--- The parser will only do a limited amount of work each frame before handing off processing back to TTS, thus we
+--- don't freeze the game when parsing large JSON.
+---
+--- Return value is a function that can be called to cancel decoding if it is yet to complete.
+---@param json string
+---@param options ge_tts__Json_DecodeAsyncOptions
+---@return fun(): void
+function Json.decodeAsync(json, options)
+    local cancelled = false
+
+    Coroutine.start(function()
+        ---@type __ge_tts__JsonNode[]
+        local stack = {}
+
+        ---@type nil | __ge_tts__JsonNode
+        local currentNode
+
+        ---@type ge_tts__JsonValue
+        local result
+
+        ---@param value ge_tts__JsonValue
+        local function addValue(value)
+            if currentNode then
+                local nodeType = (--[[---@not nil]] currentNode)[1]
+
+                if value == nil and options.nullIdentification then
+                    value = Json.null()
+                end
+
+                if nodeType == NODE_KEY then
+                    local key = (--[[---@type __ge_tts__JsonKeyNode]] currentNode)[2]
+
+                    local parentNode = --[[---@type __ge_tts__JsonObjectNode]] table.remove(stack)
+                    local parentObject = parentNode[2]
+                    parentObject[key] = value
+
+                    currentNode = parentNode
+                elseif nodeType == NODE_ARRAY then
+                    local array = (--[[---@type __ge_tts__JsonArrayNode]] currentNode)[2]
+                    table.insert(array, value)
+                end
+            else
+                result = value
+            end
+        end
+
+        local handler = {
+            startobject = function()
+                if currentNode then
+                    table.insert(stack, --[[---@not nil]] currentNode)
+                end
+
+                currentNode = {NODE_OBJECT , {}}
+            end,
+            ---@param key string
+            key = function(key)
+                table.insert(stack, --[[---@not nil]] currentNode)
+                currentNode = {NODE_KEY, key}
+            end,
+            endobject = function()
+                local objectNode = (--[[---@type __ge_tts__JsonObjectNode]] currentNode)
+                currentNode = table.remove(stack)
+                addValue(objectNode[2])
+            end,
+            startarray = function()
+                if currentNode then
+                    table.insert(stack, --[[---@not nil]] currentNode)
+                end
+
+                currentNode = {NODE_ARRAY , {}}
+            end,
+            endarray = function()
+                local objectNode = (--[[---@type __ge_tts__JsonArrayNode]] currentNode)
+                local array = objectNode[2]
+                currentNode = table.remove(stack)
+
+                if options.encodeArrayLength then
+                    array[0] = #array
+                end
+
+                addValue(array)
+            end,
+            string = addValue,
+            number = addValue,
+            boolean = addValue,
+            null = function()
+                addValue(nil)
+            end,
+        }
+
+        ---@type number
+        local charactersPerChunk
+
+        if options.charactersPerChunk and charactersPerChunk > 0 then
+            charactersPerChunk = --[[---@not nil]] options.charactersPerChunk
+        else
+            charactersPerChunk = 2048
+        end
+
+        ---@type number
+        local framesBetweenChunks
+
+        if options.framesBetweenChunks and framesBetweenChunks > 0 then
+            framesBetweenChunks = --[[---@not nil]] options.framesBetweenChunks
+        else
+            framesBetweenChunks = 1
+        end
+
+        local offset = 1
+        local length = #json
+
+        local function feed()
+            local characterCount = math.min(length - offset + 1, charactersPerChunk)
+
+            if characterCount == 0 or cancelled then
+                return nil
+            end
+
+            Coroutine.yieldFrames(1, function(message)
+                if not cancelled then
+                    options.onError(message)
+                end
+            end)
+
+            local nextOffset = offset + characterCount
+            local substring = json:sub(offset, nextOffset - 1)
+            offset = nextOffset
+            return substring
+        end
+
+        local parser = LunaJsonSAX.newparser(feed, handler)
+        parser.run()
+
+        if not cancelled then
+            options.onCompletion(result)
+        end
+    end)
+
+    return function()
+        cancelled = true
+    end
+end
+
+local decode = LunaJsonDecoder()
+
+---@overload fun(json: string): ge_tts__JsonValue
+---@param json string
+---@param options nil | ge_tts__Json_DecodeOptions
+---@return ge_tts__JsonValue
+function Json.decode(json, options)
+    local decodeOptions = --[[---@not nil]] options or {}
+    local nullValue = decodeOptions.nullIdentification and Json.null() or nil
+    return decode(json, 0, nullValue, decodeOptions.encodeArrayLength)
+end
+
+local encode = LunaJsonEncoder()
+
+---@param json ge_tts__JsonValue
+---@return string
+function Json.encode(value)
+    return encode(value, Json.null())
+end
+
+return Json
