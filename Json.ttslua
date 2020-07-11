@@ -174,7 +174,7 @@ function Json.decodeAsync(json, options)
                 return nil
             end
 
-            Coroutine.yieldFrames(1, function(message)
+            Coroutine.yieldFrames(framesBetweenChunks, function(message)
                 if not cancelled then
                     options.onError(message)
                 end
