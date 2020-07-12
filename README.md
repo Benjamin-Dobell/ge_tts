@@ -10,13 +10,13 @@ Everything in this repository is permissively licensed under the MIT license, pl
 
 If you'd like to discuss ge_tts, you can do so on the [TTS Community Discord](https://discord.gg/YwD22SM).
 
-### EmmyLua and Jetbrains IntelliJ IDEA
+### Luanalysis and Jetbrains IntelliJ IDEA
 
-For development of your TTS mod we highly recommend using Jetbrains IntelliJ IDEA with a significantly enhanced [EmmyLua fork](https://github.com/Benjamin-Dobell/tts-types/releases) to write your code, instead of (or rather in conjunction with) Atom and the Atom TTS plugin.
+For development of your TTS mod we highly recommend using Jetbrains IntelliJ IDEA with a [Luanalysis](https://github.com/Benjamin-Dobell/IntelliJ-Luanalysis) to write your code, instead of (or rather in conjunction with) Atom and the Atom TTS plugin.
 
-[IntelliJ Community Edition](https://www.jetbrains.com/idea/download/) and EmmyLua are both free, and offer significantly more advanced Lua editing capabilities than Atom.
+[IntelliJ Community Edition](https://www.jetbrains.com/idea/download/) and Luanalysis are both free, and offer significantly more advanced Lua editing capabilities than Atom.
 
-Most importantly, we've included EmmyLua type definitions for our APIs. This means that when you use our types, function and variable names will auto-complete. Additionally, when using EmmyLua you'll want [Tabletop Simulator EmmyLua Types](https://github.com/Benjamin-Dobell/tts-types) which enable auto-completion _and_ type checking.
+Most importantly, we've included Luanalysis type definitions for our APIs. This means that when you use our types, function and variable names will auto-complete. Additionally, when using Luanalysis you'll want [Tabletop Simulator Luanalysis Types](https://github.com/Benjamin-Dobell/tts-types) which enable auto-completion _and_ type checking.
 
 _However_, at present there is not yet a Tabletop Simulator plugin available for Jetbrains IntelliJ IDEA. So you must still use Atom for loading code out of, and saving code into Tabletop Simulator.
 
