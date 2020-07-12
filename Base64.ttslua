@@ -65,7 +65,7 @@ function Base64.encode(buffer, pad, map)
     local lastComponentSize = length % 3
 
     for offset = 1, length - lastComponentSize, 3 do
-        local a, b, c = table.unpack(buffer, offset, offset + 2)
+        local a, b, c = --[[---@not nil, nil, nil]] table.unpack(buffer, offset, offset + 2)
         local v = a * 0x10000 + b * 0x100 + c
 
         components[index] = string.char(map[extract(v, 18, 6)], map[extract(v, 12, 6)], map[extract(v, 6, 6)], map[extract(v, 0, 6)])
@@ -73,7 +73,7 @@ function Base64.encode(buffer, pad, map)
     end
 
     if lastComponentSize == 2 then
-        local a, b = table.unpack(buffer, length - 1, length)
+        local a, b = --[[---@not nil, nil]] table.unpack(buffer, length - 1, length)
         local v = a * 0x10000 + b * 0x100
 
         components[index] = string.char(map[extract(v, 18, 6)], map[extract(v, 12, 6)], map[extract(v, 6, 6)]) .. (pad and string.char(map[PAD_KEY]) or '')
@@ -99,9 +99,9 @@ function Base64.decode(b64, map)
 
     local length = #b64
 
-    if map[b64:sub(-2, -2):byte()] == PAD_KEY then
+    if map[--[[---@not nil]] b64:sub(-2, -2):byte()] == PAD_KEY then
         length = length - 2
-    elseif map[b64:sub(-1, -1):byte()] == PAD_KEY then
+    elseif map[--[[---@not nil]] b64:sub(-1, -1):byte()] == PAD_KEY then
         length = length - 1
     end
 
@@ -109,7 +109,7 @@ function Base64.decode(b64, map)
     local fullBlockEnd = length - lastBlockSize
 
     for i = 1, fullBlockEnd, 4 do
-        local a, b, c, d = b64:byte(i, i + 3)
+        local a, b, c, d = --[[---@not nil, nil, nil, nil]] b64:byte(i, i + 3)
 
         local v = map[a] * 0x40000 + map[b] * 0x1000 + map[c] * 0x40 + map[d]
 
@@ -122,13 +122,13 @@ function Base64.decode(b64, map)
 
 
     if lastBlockSize == 3 then
-        local a, b, c = b64:byte(fullBlockEnd + 1, fullBlockEnd + 3)
+        local a, b, c = --[[---@not nil, nil, nil]] b64:byte(fullBlockEnd + 1, fullBlockEnd + 3)
         local v = map[a] * 0x40000 + map[b] * 0x1000 + map[c] * 0x40
 
         buffer[offset] = extract(v, 16, 8)
         buffer[offset + 1] = extract(v, 8, 8)
     elseif lastBlockSize == 2 then
-        local a, b = b64:byte(fullBlockEnd + 1, fullBlockEnd + 2)
+        local a, b = --[[---@not nil, nil]] b64:byte(fullBlockEnd + 1, fullBlockEnd + 2)
         local v = map[a] * 0x40000 + map[b] * 0x1000
 
         buffer[offset] = extract(v, 16, 8)
