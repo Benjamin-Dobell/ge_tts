@@ -11,14 +11,7 @@ local function _parse_error(pos, errmsg)
 	error("parse error at " .. pos .. ": " .. errmsg, 2)
 end
 
-local f_str_ctrl_pat
-if _VERSION == "Lua 5.1" then
-	-- use the cluttered pattern because lua 5.1 does not handle \0 in a pattern correctly
-	f_str_ctrl_pat = '[^\32-\255]'
-else
-	f_str_ctrl_pat = '[\0-\31]'
-end
-
+local f_str_ctrl_pat = '[^\32-\255]'
 local type, unpack = type, table.unpack or unpack
 
 local _ENV = nil
