@@ -270,7 +270,7 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
 
     local existingObject = getObjectFromGUID(guid)
 
-    if existingObject ~= nil then
+    if callback and existingObject ~= nil then
         callback(--[[---@type tts__Object]] existingObject)
     end
 
