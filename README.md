@@ -10,6 +10,10 @@ Everything in this repository is permissively licensed under the MIT license, pl
 
 If you'd like to discuss ge_tts, you can do so on the [TTS Community Discord](https://discord.gg/YwD22SM).
 
+## Example Project
+
+For a quick overview of how to build a mod with ge_tts, please take a look at the [demo project](https://github.com/Benjamin-Dobell/ge_tts_demo).
+
 ### Luanalysis and Jetbrains IntelliJ IDEA
 
 For development of your TTS mod we highly recommend using Jetbrains IntelliJ IDEA with a [Luanalysis](https://github.com/Benjamin-Dobell/IntelliJ-Luanalysis) to write your code, instead of (or rather in conjunction with) Atom and the Atom TTS plugin.
