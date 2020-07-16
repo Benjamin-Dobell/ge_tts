@@ -491,6 +491,17 @@ local function onObjectDestroy(object)
 
         objectIntersectingZonesMap[object] = nil
     end
+
+    -- When objects are programmatically dropped, they may occupy a zone they're not yet intersecting.
+    local occupiedZone = objectOccupyingZoneMap[object]
+
+    if occupiedZone then
+        Logger.log(
+            object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from ' .. tostring(occupiedZone) .. ' as it\'s being destroyed',
+            Logger.DEBUG
+        )
+        occupiedZone.onLeave(object)
+    end
 end
 
 EventManager.addHandler('onObjectDestroy', onObjectDestroy)
