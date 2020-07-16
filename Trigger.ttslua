@@ -58,21 +58,6 @@ setmetatable(Trigger, {
         ---@type tts__ScriptingTrigger
         local scriptingTrigger
 
-        if Trigger.isSavedState(triggerPositionOrSavedState) then
-            local data = --[[---@type ge_tts__Trigger_SavedState]] triggerPositionOrSavedState
-            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
-        elseif type(triggerPositionOrSavedState) == 'userdata' then
-            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(--[[---@type string]] triggerPositionOrSavedState)
-        else
-            local position = Vector3(triggerPositionOrSavedState)
-            local rotation = Vector3(triggerRotation)
-            local scale = Vector3(triggerScale)
-
-            scriptingTrigger = spawn(position, rotation, scale, class.spawnOptions(...), function()
-                self.onSpawned()
-            end)
-        end
-
         -- Callback for sub-classes to override.
         function self.onSpawned()
         end
@@ -112,6 +97,21 @@ setmetatable(Trigger, {
         ---@return string
         function self.toString()
             return 'Trigger (' .. tostring(scriptingTrigger.guid) .. ')'
+        end
+
+        if Trigger.isSavedState(triggerPositionOrSavedState) then
+            local data = --[[---@type ge_tts__Trigger_SavedState]] triggerPositionOrSavedState
+            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
+        elseif type(triggerPositionOrSavedState) == 'userdata' then
+            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(--[[---@type string]] triggerPositionOrSavedState)
+        else
+            local position = Vector3(triggerPositionOrSavedState)
+            local rotation = Vector3(triggerRotation)
+            local scale = Vector3(triggerScale)
+
+            scriptingTrigger = spawn(position, rotation, scale, class.spawnOptions(...), function()
+                self.onSpawned()
+            end)
         end
 
         return self

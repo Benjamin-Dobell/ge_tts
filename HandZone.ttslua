@@ -41,16 +41,6 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         ---@type number
         local handIndex
 
-        if HandZone.isSavedState(ownerOrSavedState) then
-            local data = --[[---@type ge_tts__HandZone_SavedState]] ownerOrSavedState
-
-            owner = Player[data.ownerColor]
-            handIndex = data.handIndex
-        else
-            owner = --[[---@type tts__Player]] ownerOrSavedState
-            handIndex = nilOrHandIndex or 1
-        end
-
         ---@return tts__Player
         function self.getOwner()
             return owner
@@ -134,6 +124,16 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
                 ownerColor = owner.color,
                 handIndex = handIndex,
             })
+        end
+
+        if isSavedState then
+            local data = --[[---@type ge_tts__HandZone_SavedState]] ownerOrSavedState
+
+            owner = Player[data.ownerColor]
+            handIndex = data.handIndex
+        else
+            owner = --[[---@type tts__Player]] ownerOrSavedState
+            handIndex = nilOrHandIndex or 1
         end
 
         return self

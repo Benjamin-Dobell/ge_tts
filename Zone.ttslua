@@ -132,43 +132,6 @@ setmetatable(Zone, {
         ---@type tts__Object[]
         local occupyingObjects
 
-        if Zone.isSavedState(positionOrTriggerOrSavedState) then
-            local data = --[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState
-
-            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
-            occupyingObjects = TableUtils.map(data.occupyingObjectGuids, function(guid)
-                local object = --[[---@not nil]] ObjectUtils.getSafeSpawnedObject(guid)
-                associateOccupyingObject(self, object)
-                return object
-            end)
-
-            -- May be nil if onSave was called before we finished spawning
-            if scriptingTrigger then
-                scriptingTriggerZoneMap[scriptingTrigger] = self
-            end
-        else
-            occupyingObjects = {}
-
-            if type(positionOrTriggerOrSavedState) == 'table' then
-                local position = Vector3(--[[---@type tts__VectorShape]] positionOrTriggerOrSavedState)
-                local rotation = Vector3(--[[---@not nil]] nilOrRotation)
-                local scale = Vector3(--[[---@not nil]] nilOrScale)
-
-                scriptingTrigger = spawn(position, rotation, scale, function()
-                    self.onSpawned()
-                end)
-
-                scriptingTriggerZoneMap[scriptingTrigger] = self
-            elseif type(positionOrTriggerOrSavedState) == 'userdata' then
-                scriptingTrigger = --[[---@type tts__ScriptingTrigger]] positionOrTriggerOrSavedState
-            end
-
-            if type(positionOrTriggerOrSavedState) == 'userdata' then
-
-            end
-
-        end
-
         ---An identifier for this type of zone.
         ---
         ---This is convenience method. Aside from logging, ge_tts does not use this method. However, it may be useful
@@ -302,6 +265,43 @@ setmetatable(Zone, {
         ---@return string
         function self.toString()
             return self.getZoneType() .. ' (' .. tostring(scriptingTrigger.getGUID()) .. ')'
+        end
+
+        if Zone.isSavedState(positionOrTriggerOrSavedState) then
+            local data = --[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState
+
+            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
+            occupyingObjects = TableUtils.map(data.occupyingObjectGuids, function(guid)
+                local object = --[[---@not nil]] ObjectUtils.getSafeSpawnedObject(guid)
+                associateOccupyingObject(self, object)
+                return object
+            end)
+
+            -- May be nil if onSave was called before we finished spawning
+            if scriptingTrigger then
+                scriptingTriggerZoneMap[scriptingTrigger] = self
+            end
+        else
+            occupyingObjects = {}
+
+            if type(positionOrTriggerOrSavedState) == 'table' then
+                local position = Vector3(--[[---@type tts__VectorShape]] positionOrTriggerOrSavedState)
+                local rotation = Vector3(--[[---@not nil]] nilOrRotation)
+                local scale = Vector3(--[[---@not nil]] nilOrScale)
+
+                scriptingTrigger = spawn(position, rotation, scale, function()
+                    self.onSpawned()
+                end)
+
+                scriptingTriggerZoneMap[scriptingTrigger] = self
+            elseif type(positionOrTriggerOrSavedState) == 'userdata' then
+                scriptingTrigger = --[[---@type tts__ScriptingTrigger]] positionOrTriggerOrSavedState
+            end
+
+            if type(positionOrTriggerOrSavedState) == 'userdata' then
+
+            end
+
         end
 
         return self

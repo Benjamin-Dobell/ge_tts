@@ -115,43 +115,6 @@ setmetatable(Instance, {
         ---@type nil | ge_tts__Zone
         local zone = nil
 
-        if Instance.isSavedState(objectOrGuidOrSavedState) then
-            local savedState = --[[---@type ge_tts__Instance_SavedState]] objectOrGuidOrSavedState
-
-            instanceGuid = savedState.instanceGuid
-
-            if savedState.objectGuid then
-                object = --[[---@not nil]] ObjectUtils.getSafeSpawnedObject(--[[---@not nil]] savedState.objectGuid)
-                Logger.assert(object, 'Failed to recover object reference for Instance ' .. instanceGuid)
-            end
-
-            if savedState.zoneTriggerGuid then
-                local trigger = ObjectUtils.getSafeSpawnedObject(--[[---@not nil]] savedState.zoneTriggerGuid)
-
-                if trigger ~= nil then
-                    -- NOTE: If this Instance is restored from its saved state before the trigger's Zone is restored from
-                    --       its saved state, the zone will be nil. However, when the Zone is restored from its saved state
-                    --       it will setZone() on all occupying instances. So the only possible information loss is due to
-                    --       the fact our zone is the *most recent* Zone. If TTS saves when instance is not in its most
-                    --       recent zone *and* that most recent zone restores second, we'll lose our reference.
-                    --
-                    --       We're requiring here to avoid top-level (illegal) cyclical requires.
-                    zone = require('ge_tts/Zone').getScriptingTriggerZone(--[[---@type tts__ScriptingTrigger]] trigger)
-                end
-            end
-        elseif nilOrContainer then
-            instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
-            object = --[[---@not nil]] nilOrContainer
-
-            Logger.assert(instanceGuid, 'Instance cannot be instantiated with a container but no GUID')
-        else
-            Logger.assert(objectOrGuidOrSavedState, 'Instance cannot be instantiated without an associated object')
-
-            local instanceObject = --[[---@type tts__Object]] objectOrGuidOrSavedState
-            object = instanceObject
-            instanceGuid = instanceObject.guid
-        end
-
         ---@param container tts__Container
         self.onEnterContainer = function(container)
         end
@@ -356,6 +319,43 @@ setmetatable(Instance, {
         end
 
         function self.onSpawned()
+        end
+
+        if Instance.isSavedState(objectOrGuidOrSavedState) then
+            local savedState = --[[---@type ge_tts__Instance_SavedState]] objectOrGuidOrSavedState
+
+            instanceGuid = savedState.instanceGuid
+
+            if savedState.objectGuid then
+                object = --[[---@not nil]] ObjectUtils.getSafeSpawnedObject(--[[---@not nil]] savedState.objectGuid)
+                Logger.assert(object, 'Failed to recover object reference for Instance ' .. instanceGuid)
+            end
+
+            if savedState.zoneTriggerGuid then
+                local trigger = ObjectUtils.getSafeSpawnedObject(--[[---@not nil]] savedState.zoneTriggerGuid)
+
+                if trigger ~= nil then
+                    -- NOTE: If this Instance is restored from its saved state before the trigger's Zone is restored from
+                    --       its saved state, the zone will be nil. However, when the Zone is restored from its saved state
+                    --       it will setZone() on all occupying instances. So the only possible information loss is due to
+                    --       the fact our zone is the *most recent* Zone. If TTS saves when instance is not in its most
+                    --       recent zone *and* that most recent zone restores second, we'll lose our reference.
+                    --
+                    --       We're requiring here to avoid top-level (illegal) cyclical requires.
+                    zone = require('ge_tts/Zone').getScriptingTriggerZone(--[[---@type tts__ScriptingTrigger]] trigger)
+                end
+            end
+        elseif nilOrContainer then
+            instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
+            object = --[[---@not nil]] nilOrContainer
+
+            Logger.assert(instanceGuid, 'Instance cannot be instantiated with a container but no GUID')
+        else
+            Logger.assert(objectOrGuidOrSavedState, 'Instance cannot be instantiated without an associated object')
+
+            local instanceObject = --[[---@type tts__Object]] objectOrGuidOrSavedState
+            object = instanceObject
+            instanceGuid = instanceObject.guid
         end
 
         allInstances[instanceGuid] = self

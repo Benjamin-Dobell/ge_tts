@@ -18,12 +18,6 @@ setmetatable(PlayerDropZone, TableUtils.merge(getmetatable(DropZone), {
     __call = function(_, zonePositionOrSavedState, zoneRotation, zoneScale, occupantScale, owner)
         local self = --[[---@type ge_tts__PlayerDropZone]] DropZone(zonePositionOrSavedState, zoneRotation, zoneScale, occupantScale)
 
-        if PlayerDropZone.isSavedState(zonePositionOrSavedState) then
-            local data = --[[---@type ge_tts__PlayerDropZone_SavedState]] zonePositionOrSavedState
-
-            owner = Player[data.ownerColor]
-        end
-
         function self.getOwner()
             return owner
         end
@@ -35,6 +29,12 @@ setmetatable(PlayerDropZone, TableUtils.merge(getmetatable(DropZone), {
             return --[[---@type ge_tts__PlayerDropZone_SavedState]] TableUtils.merge(superSave(), {
                 ownerColor = owner.color
             })
+        end
+
+        if PlayerDropZone.isSavedState(zonePositionOrSavedState) then
+            local data = --[[---@type ge_tts__PlayerDropZone_SavedState]] zonePositionOrSavedState
+
+            owner = Player[data.ownerColor]
         end
 
         return self

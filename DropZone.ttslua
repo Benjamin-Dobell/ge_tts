@@ -67,20 +67,6 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@type ge_tts__Vector3
         local dropOffset = Vector3()
 
-        if DropZone.isSavedState(positionTriggerOrSavedState) then
-            local data = --[[---@type ge_tts__DropZone_SavedState]] positionTriggerOrSavedState
-
-            occupantScale = data.occupantScale
-            rotationEnabled = data.rotationEnabled
-            rotationAxis = data.rotationAxis
-            facing = data.facing
-            dropOffset = Vector3(data.dropOffset)
-        elseif triggerProvided then
-            occupantScale = --[[---@type nil | number]] nilOrRotationOrOccupantScale
-        else
-            occupantScale = nilOrOccupantScale
-        end
-
         ---@return nil | number @occupant's desired X-axis scale
         function self.getOccupantScale()
             return occupantScale
@@ -213,6 +199,20 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                 facing = facing,
                 dropOffset = dropOffset.toData()
             })
+        end
+
+        if DropZone.isSavedState(positionTriggerOrSavedState) then
+            local data = --[[---@type ge_tts__DropZone_SavedState]] positionTriggerOrSavedState
+
+            occupantScale = data.occupantScale
+            rotationEnabled = data.rotationEnabled
+            rotationAxis = data.rotationAxis
+            facing = data.facing
+            dropOffset = Vector3(data.dropOffset)
+        elseif triggerProvided then
+            occupantScale = --[[---@type nil | number]] nilOrRotationOrOccupantScale
+        else
+            occupantScale = nilOrOccupantScale
         end
 
         return self
