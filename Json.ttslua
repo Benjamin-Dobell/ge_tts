@@ -186,7 +186,7 @@ function Json.decodeAsync(json, options)
             return substring
         end
 
-        local parser = LunaJsonSAX.newparser(feed, handler)
+        local parser = --[[---@type {run: fun(): void}]] LunaJsonSAX.newparser(feed, handler)
         parser.run()
 
         if not cancelled then
