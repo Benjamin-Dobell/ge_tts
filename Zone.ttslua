@@ -394,7 +394,7 @@ local function onObjectEnterScriptingZone(scriptingTrigger, object)
         addObjectIntersectingZone(object, zone)
         zone.onEnter(object)
 
-        if object.spawning and not object.held_by_color and not TableUtils.find(zone.getOccupyingObjects(), object) then
+        if object.spawning and not object.isSmoothMoving() and not object.held_by_color and not TableUtils.find(zone.getOccupyingObjects(), object) then
             zone.drop(nil, object)
         end
     end
