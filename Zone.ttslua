@@ -113,6 +113,27 @@ local Zone = {}
 
 Zone.ZONE_TYPE = 'Zone'
 
+---@alias ge_tts__Zone_FilterResult 0 | 1 | 2
+
+Zone.FilterResult = {
+    -- The object being dropped will simply be ignored. Depending on the object's trajectory it may
+    -- end up settling within the drop zone, but it won't be considered as "occupying" the zone.
+    --
+    -- If an object is dropped whilst intersecting multiple zones, the zone with the closest origin
+    -- to the object's origin is tried first. If the object is ignored, then the next closest zone
+    -- will be tried.
+    IGNORE = 0,
+
+    -- If the object has an associated Instance, it'll be returned to the instance's zone. If not
+    -- and the object has a non-zero pick_up_position, it will be returned there. Otherwise, the
+    -- object will continue on its current trajectory and may end in the zone, but won't be
+    -- considered "occupying".
+    REJECT = 1,
+
+    -- The object will proceed to be dropped in zone and will be deemed "occupying" the zone.
+    ACCEPT = 2,
+}
+
 setmetatable(Zone, {
     ---@param positionOrTriggerOrSavedState tts__VectorShape | tts__ScriptingTrigger | ge_tts__Zone_SavedState
     ---@param nilOrRotation nil | tts__VectorShape
@@ -178,6 +199,15 @@ setmetatable(Zone, {
             return TableUtils.find(occupyingObjects, object) ~= nil
         end
 
+        --- Called when a player attempts to drop and object within this zone. The return value
+        --- indicates whether the zone wishes to accept, reject or ignore the object being dropped.
+        ---@param colorName tts__PlayerColor @Color of the TTS player that dropped the TTS object.
+        ---@param object tts__Object
+        ---@return ge_tts__Zone_FilterResult
+        function self.filterObject(colorName, object)
+            return Zone.Filter.ACCEPT
+        end
+
         --- Called when a TTS object enters this Zone.
         ---@param object tts__Object
         function self.onEnter(object)
@@ -196,17 +226,14 @@ setmetatable(Zone, {
         end
 
         --- Called when a TTS object is dropped within this Zone.
-        ---@param colorName nil|tts__PlayerColor @Color of the TTS player that dropped the TTS object.
+        ---@param colorName nil | tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was dropped.
-        ---@param dynamicallyDropped boolean @true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
-        ---@return boolean
-        function self.onDrop(colorName, object, dynamicallyDropped)
+        function self.onDrop(colorName, object)
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
 
             associateOccupyingObject(self, object)
-            return true
         end
 
         --- Called when a TTS object is picked up from this Zone.
@@ -236,7 +263,7 @@ setmetatable(Zone, {
         ---@param colorName nil|tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
-            self.onDrop(colorName, object, true)
+            self.onDrop(colorName, object)
         end
 
         ---@return table
@@ -462,10 +489,32 @@ local function onObjectDrop(colorName, object)
         end)
 
         for _, zoneDistance in ipairs(zoneDistances) do
-            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') attempting to drop in ' .. tostring(zoneDistance.zone), Logger.DEBUG)
+            local zone = zoneDistance.zone
 
-            if zoneDistance.zone.onDrop(colorName, object, false) then
-                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zoneDistance.zone), Logger.DEBUG)
+            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') attempting to drop in ' .. tostring(zone), Logger.DEBUG)
+
+            local filterResult = zone.filterObject(colorName, object)
+
+            if filterResult == Zone.FilterResult.ACCEPT then
+                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zone), Logger.DEBUG)
+                zone.onDrop(colorName, object)
+                break
+            elseif filterResult == Zone.FilterResult.REJECT then
+                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') rejected by ' .. tostring(zone), Logger.DEBUG)
+
+                -- We only look at one instance (if there is one). If there's multiple because the
+                -- object is a container, we make no attempt to split the container.
+
+                local instance = Instance.getOneInstance(object)
+                local instanceZone = instance and (--[[---@not nil]] instance).getZone()
+
+                if instanceZone and instanceZone ~= zone then
+                    (--[[---@not nil]] instanceZone).drop(colorName, object)
+                elseif object.pick_up_position:sqrMagnitude() ~= 0 then
+                    object.setPositionSmooth(object.pick_up_position)
+                    object.setRotationSmooth(object.pick_up_rotation)
+                end
+
                 break
             end
         end

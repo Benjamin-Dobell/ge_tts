@@ -116,20 +116,27 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             return DropZone.ZONE_TYPE
         end
 
+        --- Called when a player attempts to drop and object within this zone. A drop zone will
+        --- ignore objects that are dropped whilst moving at a high velocity, as it's assumed the
+        --- player is trying to throw the object, not drop it in this zone.
+        ---@param colorName tts__PlayerColor @Color of the TTS player that dropped the TTS object.
+        ---@param object tts__Object
+        ---@return ge_tts__Zone_FilterResult
+        function self.filterObject(colorName, object)
+            if Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
+                return Zone.FilterResult.ACCEPT
+            else
+                return Zone.FilterResult.IGNORE
+            end
+        end
+
         local superOnDrop = self.onDrop
 
         --- Called when a TTS object is dropped within this DropZone.
         ---@param colorName nil|tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was dropped.
-        ---@param dynamicallyDropped boolean @true if running as a result of a call to `drop()`, false otherwise (i.e. running because of a `onDrop` event)
-        ---@return boolean
-        function self.onDrop(colorName, object, dynamicallyDropped)
-            if (not dynamicallyDropped and Vector3.lengthSquared(object.getVelocity()) > MAX_DROP_VELOCITY_SQUARED)
-                or not superOnDrop(colorName, object, false)
-            then
-                return false
-            end
-
+        function self.onDrop(colorName, object)
+            superOnDrop(colorName, object)
 
             local objectRotation = object.getRotation()
             local position = (--[[---@not nil]] self.getScriptingTrigger()).positionToWorld(dropOffset)
@@ -169,8 +176,6 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             if occupantScale then
                 object.scale((--[[---@not nil]] occupantScale) / object.getScale()[1])
             end
-
-            return true
         end
 
         local superInsertOccupyingObject = self.insertOccupyingObject

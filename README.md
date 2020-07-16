@@ -54,7 +54,7 @@ A `Zone` that acts as flexible, extensible and scriptable replacement for TTS sn
 
 `DropZone` also have an optional `occupantScale` which specifies how dropped objects should be scaled (along the X-axis) when they're dropped in the DropZone, aspect ratio is always preserved. Automatic scaling can be used to provide visual queues about important objects, or rather objects placed in important locations/zones.
 
-To extend `DropZone`'s functionality you can "sub-class" `DropZone` and override the `onEnter`, `onLeave`, `onDrop` and `onPickup` functions as desired.
+To extend `DropZone`'s functionality you can "sub-class" `DropZone` and override the `filterObject`, `onEnter`, `onLeave`, `onDrop` and `onPickup` functions as desired.
 
  `DropZone` is itself a sub-class of `Zone`, so for an example of how you can extend a "class" please refer to `DropZone.ttslua` (or `HandZone.ttslua`).
 
