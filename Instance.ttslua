@@ -269,23 +269,27 @@ setmetatable(Instance, {
         end
 
         ---@overload fun(): boolean
-        ---@param colorName nil|tts__PlayerColor
+        ---@param colorName nil | tts__PlayerColor
         ---@return boolean
         function self.reject(colorName)
-            if object then
-                local obj = --[[---@not nil]] object
-
-                if zone then
-                    (--[[---@not nil]] zone).drop(colorName, obj)
-                    return true
-                elseif obj.pick_up_position:sqrMagnitude() ~= 0 then
-                    obj.setPositionSmooth(obj.pick_up_position)
-                    obj.setRotationSmooth(obj.pick_up_rotation)
-                    return true
-                end
+            if not object then
+                return false
             end
 
-            return false
+            local pickupPosition = (--[[---@not nil]] object).pick_up_position
+            local pickupRotation = (--[[---@not nil]] object).pick_up_rotation
+            local rejectZone = self.getZone()
+
+            return self.takeObject({
+                callback = function(instanceObject)
+                    if rejectZone then
+                        (--[[---@not nil]] rejectZone).drop(colorName, instanceObject)
+                    elseif pickupPosition:sqrMagnitude() ~= 0 then
+                        instanceObject.setPositionSmooth(pickupPosition, false, true)
+                        instanceObject.setRotationSmooth(pickupRotation, false, true)
+                    end
+                end
+            })
         end
 
         ---@return ge_tts__Instance_SavedState
