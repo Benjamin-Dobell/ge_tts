@@ -75,6 +75,12 @@ end
 ---@field objectGuid nil | string
 ---@field zoneTriggerGuid nil | string
 
+---@shape ge_tts__Instance_TakeObjectOptions
+---@field callback tts__ObjectCallbackFunction
+---@field position nil | tts__VectorShape
+---@field rotation nil | tts__VectorShape
+---@field smooth nil | boolean
+
 ---@alias ge_tts__Instance_RecoverObject<T> fun(savedState: ge_tts__Instance_SavedState): T
 
 ---@class ge_tts__static_Instance
@@ -192,6 +198,57 @@ setmetatable(Instance, {
         ---@return nil | tts__Object
         function self.getObject()
             return object
+        end
+
+        --- If the instance is currently associated with a container, then the instance's
+        --- corresponding object from within is retrieved. Otherwise, if the instance is directly
+        --- associated with its corresponding object (not in a container) then the callback is
+        --- called is called with that object. In either of these two cases, the orientation will
+        --- be updated according to the provided options.
+        ---@param options ge_tts__Instance_TakeObjectOptions
+        ---@return boolean @Returns false if there's no object associated with this instance i.e. The instance has already been destroyed.
+        function self.takeObject(options)
+            if not object then
+                return false
+            end
+
+            ObjectUtils.getSafeSpawnedObject(--[[---@not nil]] object, function(spawnedObject)
+                local containerPosition = self.getContainerPosition()
+
+                if containerPosition then
+                    spawnedObject.takeObject({
+                        index = containerPosition - 1,
+                        rotation = options.rotation,
+                        position = options.position,
+                        smooth = options.smooth,
+                        callback_function = options.callback
+                    })
+                else
+                    if options.callback then
+                        if options.smooth then
+                            if options.position then
+                                spawnedObject.setPositionSmooth(--[[---@not nil]] options.position)
+                            end
+
+                            if options.rotation then
+                                spawnedObject.setRotationSmooth(--[[---@not nil]] options.rotation)
+                            end
+                        else
+                            if options.position then
+                                spawnedObject.setPosition(--[[---@not nil]] options.position)
+                            end
+
+                            if options.rotation then
+                                spawnedObject.setRotation(--[[---@not nil]] options.rotation)
+                            end
+                        end
+
+                        options.callback(spawnedObject)
+                    end
+                end
+            end)
+
+            return true
         end
 
         ---If the instance is presently within a container, returns the position (starting from 1) within said container, otherwise returns nil.
