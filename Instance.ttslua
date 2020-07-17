@@ -15,21 +15,11 @@ local objectInstancesMap = {}
 ---@param instance ge_tts__Instance
 local function destroyAssociatedObject(instance)
     if instance.getObject() ~= nil then
-        local object = --[[---@type tts__Object]] instance.getObject()
-
-        if ObjectUtils.isContainerTag(object.tag) then
-            local guid = instance.getInstanceGuid()
-
-            object.takeObject({
-                guid = guid,
-                smooth = false,
-                callback_function = function(obj)
-                    obj.destruct()
-                end,
-            })
-        else
-            object.destruct()
-        end
+        instance.takeObject({
+            callback = function(object)
+                object.destruct()
+            end
+        })
     end
 end
 
