@@ -2,7 +2,7 @@ local Coroutine = require('ge_tts/Coroutine')
 
 local LunaJsonDecoder = require('ge_tts/lunajson/decoder')
 local LunaJsonEncoder = require('ge_tts/lunajson/encoder')
-local LunaJsonSAX = require('ge_tts/lunajson/sax')
+local LunaJsonSax = require('ge_tts/lunajson/sax')
 
 local NULL = setmetatable({}, {
     __index = {},
@@ -186,7 +186,7 @@ function Json.decodeAsync(json, options)
             return substring
         end
 
-        local parser = --[[---@type {run: fun(): void}]] LunaJsonSAX.newparser(feed, handler)
+        local parser = --[[---@type {run: fun(): void}]] LunaJsonSax.newparser(feed, handler)
         parser.run()
 
         if not cancelled then
