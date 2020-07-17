@@ -199,7 +199,7 @@ setmetatable(Zone, {
             return TableUtils.find(occupyingObjects, object) ~= nil
         end
 
-        --- Called when a player attempts to drop and object within this zone. The return value
+        --- Called when a player attempts to drop an object within this zone. The return value
         --- indicates whether the zone wishes to accept, reject or ignore the object being dropped.
         ---@param colorName tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object

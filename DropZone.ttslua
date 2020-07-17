@@ -116,7 +116,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             return DropZone.ZONE_TYPE
         end
 
-        --- Called when a player attempts to drop and object within this zone. A drop zone will
+        --- Called when a player attempts to drop an object within this zone. A drop zone will
         --- ignore objects that are dropped whilst moving at a high velocity, as it's assumed the
         --- player is trying to throw the object, not drop it in this zone.
         ---@param colorName tts__PlayerColor @Color of the TTS player that dropped the TTS object.
