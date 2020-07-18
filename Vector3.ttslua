@@ -36,7 +36,7 @@ local RADIANS_RATIO = math.pi / 180
 ---@class ge_tts__static_Vector3
 ---@overload fun(): ge_tts__Vector3
 ---@overload fun(x: number, y: number, z: number): ge_tts__Vector3
----@overload fun(source: tts__VectorShape|number[]): ge_tts__Vector3
+---@overload fun(source: tts__VectorShape): ge_tts__Vector3
 local Vector3 = {}
 
 setmetatable(Vector3, {
