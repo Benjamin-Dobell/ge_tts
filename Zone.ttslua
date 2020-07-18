@@ -205,7 +205,7 @@ setmetatable(Zone, {
         ---@param object tts__Object
         ---@return ge_tts__Zone_FilterResult
         function self.filterObject(colorName, object)
-            return Zone.Filter.ACCEPT
+            return Zone.FilterResult.ACCEPT
         end
 
         --- Called when a TTS object enters this Zone.
