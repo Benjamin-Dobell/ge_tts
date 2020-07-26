@@ -314,7 +314,7 @@ EventManager.addHandler('onObjectSpawn', onObjectSpawn)
 
 ---@return string
 local function onSave()
-    -- Entries can be injecting into pendingSpawns for objects not spawned with safeSpawnObject. However, seems as we weren't responsible for spawning these
+    -- Entries can be injected into pendingSpawns for objects not spawned with safeSpawnObject. However, seems as we weren't responsible for spawning these
     -- objects, we make no attempt to save (and potentially respawn) these objects.
     local pendingJsonSpawns = TableUtils.map(
         TableUtils.select(pendingSpawns, function(json) return json ~= nil end),
