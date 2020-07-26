@@ -233,20 +233,24 @@ function ObjectUtils.safeSpawnContainer(containerState, callback_function)
 end
 
 ---
----Recovers a reference to a spawn spawned object via its GUID.
+---Provides a mechanism to obtain a reference to safe spawning objects, as well as a mechanism to register a callback
+---that will be called when an object (safe spawned or otherwise) has finished spawning.
 ---
----Returns a reference to the safe spawned object or nil if an object matching the provided GUID does not exist in the
----scene. Aside from providing an invalid GUID, this may occur if the object spawned in the past and has since bee
+---Accepts a TTS object, or a GUID (string). Any TTS object may be provided (safe spawned or otherwise), however when
+---providing a GUID, this GUID should only ever correspond with an object that was safe spawned.
+---
+---Returns a TTS object or nil. If nil is returned, no such object exists and the provided callback will never be
+---called. Aside from providing an invalid GUID, this may occur if the object spawned in the past and has since been
 ---deleted.
 ---
----If the object has finished spawning, the provided callback will be called immediately (synchronously), however if
----the object is presently in the process of being spawned, then the callback will be called as soon as the object has
----finished spawning.
+---If the object has already finished spawning, the provided callback will be called immediately (synchronously).
+---Otherwise, the callback will be called as soon as the object has finished spawning.
 ---
+---@overload fun(guid: string): nil | tts__Object
 ---@param guidOrObject string | tts__Object
 ---@param callback nil | fun(object: tts__Object): void
 ---@return nil | tts__Object
-function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
+function ObjectUtils.getSpawnedObject(guidOrObject, callback)
     ---@type string
     local guid
 
@@ -277,7 +281,7 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
     end
 
     if callback then
-        if existingObject and (--[[---@not nil]] existingObject).spawning and not pendingSpawns[guid] then
+        if existingObject ~= nil and (--[[---@not nil]] existingObject).spawning and not pendingSpawns[guid] then
             -- For consistency, we'll handle non-safe spawned objects (e.g. those being pulled from a container) in the same fashion as we would safe spawned
             -- objects i.e. we'll call the provided callback once the object has finished spawning.
             pendingSpawns[guid] = {

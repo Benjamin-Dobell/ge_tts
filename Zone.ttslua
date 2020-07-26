@@ -297,9 +297,9 @@ setmetatable(Zone, {
         if Zone.isSavedState(positionOrTriggerOrSavedState) then
             local data = --[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState
 
-            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
+            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSpawnedObject(data.guid)
             occupyingObjects = TableUtils.map(data.occupyingObjectGuids, function(guid)
-                local object = --[[---@not nil]] ObjectUtils.getSafeSpawnedObject(guid)
+                local object = --[[---@not nil]] ObjectUtils.getSpawnedObject(guid)
                 associateOccupyingObject(self, object)
                 return object
             end)

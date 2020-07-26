@@ -101,9 +101,9 @@ setmetatable(Trigger, {
 
         if Trigger.isSavedState(triggerPositionOrSavedState) then
             local data = --[[---@type ge_tts__Trigger_SavedState]] triggerPositionOrSavedState
-            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(data.guid)
+            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSpawnedObject(data.guid)
         elseif type(triggerPositionOrSavedState) == 'userdata' then
-            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSafeSpawnedObject(--[[---@type string]] triggerPositionOrSavedState)
+            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSpawnedObject(--[[---@type string]] triggerPositionOrSavedState)
         else
             local position = Vector3(triggerPositionOrSavedState)
             local rotation = Vector3(triggerRotation)
