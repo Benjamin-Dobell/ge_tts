@@ -1,4 +1,5 @@
 local Base64 = require('ge_tts/Base64')
+local EventManager = require('ge_tts/EventManager')
 local Json = require('ge_tts/Json')
 local Object = require('ge_tts/Object')
 local SaveManager = require('ge_tts/SaveManager')
@@ -14,7 +15,7 @@ local guidPrefix
 ---@type number
 local guidIndex = 0
 
----@type table<string, {object: tts__Object, json: string, callbacks: tts__ObjectCallbackFunction[]}> @GUID key
+---@type table<string, {object: tts__Object, json: nil | string, callbacks: tts__ObjectCallbackFunction[]}> @GUID key
 local pendingSpawns = {}
 
 ---@param guid string
@@ -64,12 +65,7 @@ local function safeSpawnObject(objectState, guid, callback_function)
     objectState.GUID = guid
 
     local json = Json.encode(objectState)
-    local spawningObject = spawnObjectJSON({
-        json = json,
-        callback_function = function(object)
-            triggerPendingCallbacks(guid, object)
-        end,
-    })
+    local spawningObject = spawnObjectJSON({json = json})
 
     pendingSpawns[guid] = {
         callbacks = {},
@@ -247,7 +243,6 @@ end
 ---the object is presently in the process of being spawned, then the callback will be called as soon as the object has
 ---finished spawning.
 ---
----@overload fun(guid: string): nil | tts__Object
 ---@param guidOrObject string | tts__Object
 ---@param callback nil | fun(object: tts__Object): void
 ---@return nil | tts__Object
@@ -255,12 +250,29 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
     ---@type string
     local guid
 
-    if guidOrObject ~= nil and type(guidOrObject) == 'userdata' then
+    ---@type nil | tts__Object
+    local existingObject = nil
+
+    if type(guidOrObject) == 'userdata' then
         ---@type tts__Object
         local object = --[[---@type tts__Object]] guidOrObject
 
+        if object == nil then
+            return nil
+        end
+
         if object.spawning then
+            existingObject = object
             guid = object.guid
+
+            if callback and not pendingSpawns[guid] then
+                -- For consistency, if we are passed an object that wasn't safe spawned, but is nonetheless spawning (e.g. being pulled from a container), we'll
+                -- monitor onObjectSpawn and call the the provided callback once the object has finished spawning.
+                pendingSpawns[guid] = {
+                    callbacks = {},
+                    object = object,
+                }
+            end
         else
             callback(object)
             return object
@@ -269,14 +281,18 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
         guid = --[[---@type string]] guidOrObject
     end
 
-    local pendingSpawn = pendingSpawns[guid]
+    if callback then
+        local pendingSpawn = pendingSpawns[guid]
 
-    if pendingSpawn and callback then
-        table.insert(pendingSpawn.callbacks, --[[---@not nil]] callback)
-        return pendingSpawn.object
+        if pendingSpawn then
+            table.insert(pendingSpawn.callbacks, --[[---@not nil]] callback)
+            return pendingSpawn.object
+        end
     end
 
-    local existingObject = getObjectFromGUID(guid)
+    if not existingObject then
+        existingObject = getObjectFromGUID(guid)
+    end
 
     if callback and existingObject ~= nil then
         callback(--[[---@type tts__Object]] existingObject)
@@ -285,16 +301,30 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
     return existingObject
 end
 
+---@param object tts__Object
+local function onObjectSpawn(object)
+    triggerPendingCallbacks(object.guid, object)
+end
+
+EventManager.addHandler('onObjectSpawn', onObjectSpawn)
+
 ---@shape __ge_tts__ObjectUtils_SavedStateData
 ---@field guidPrefix string
 ---@field pendingSpawns table<string, string>
 
 ---@return string
 local function onSave()
+    -- Entries can be injecting into pendingSpawns for objects not spawned with safeSpawnObject. However, seems as we weren't responsible for spawning these
+    -- objects, we make no attempt to save (and potentially respawn) these objects.
+    local pendingJsonSpawns = TableUtils.map(
+        TableUtils.select(pendingSpawns, function(json) return json ~= nil end),
+        function(pendingSpawn) return --[[---@not nil]] pendingSpawn.json end
+    )
+
     ---@type __ge_tts__ObjectUtils_SavedStateData
     local data = {
         guidPrefix = guidPrefix,
-        pendingSpawns = TableUtils.map(pendingSpawns, function(pendingSpawn) return pendingSpawn.json end),
+        pendingSpawns = pendingJsonSpawns,
     }
 
     return Json.encode(data)
@@ -325,12 +355,7 @@ local function onLoad(savedState)
         local existingObject = getObjectFromGUID(guid)
 
         if not existingObject then
-            local spawningObject = spawnObjectJSON({
-                json = json,
-                callback_function = function(object)
-                    triggerPendingCallbacks(guid, object)
-                end
-            })
+            local spawningObject = spawnObjectJSON({json = json})
 
             pendingSpawns[guid] = {
                 callbacks = {},
