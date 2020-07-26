@@ -264,15 +264,6 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
         if object.spawning then
             existingObject = object
             guid = object.guid
-
-            if callback and not pendingSpawns[guid] then
-                -- For consistency, if we are passed an object that wasn't safe spawned, but is nonetheless spawning (e.g. being pulled from a container), we'll
-                -- monitor onObjectSpawn and call the the provided callback once the object has finished spawning.
-                pendingSpawns[guid] = {
-                    callbacks = {},
-                    object = object,
-                }
-            end
         else
             callback(object)
             return object
@@ -281,17 +272,26 @@ function ObjectUtils.getSafeSpawnedObject(guidOrObject, callback)
         guid = --[[---@type string]] guidOrObject
     end
 
+    if not existingObject then
+        existingObject = getObjectFromGUID(guid)
+    end
+
     if callback then
+        if existingObject and (--[[---@not nil]] existingObject).spawning and not pendingSpawns[guid] then
+            -- For consistency, we'll handle non-safe spawned objects (e.g. those being pulled from a container) in the same fashion as we would safe spawned
+            -- objects i.e. we'll call the provided callback once the object has finished spawning.
+            pendingSpawns[guid] = {
+                callbacks = {},
+                object = (--[[---@not nil]] existingObject),
+            }
+        end
+
         local pendingSpawn = pendingSpawns[guid]
 
         if pendingSpawn then
             table.insert(pendingSpawn.callbacks, --[[---@not nil]] callback)
             return pendingSpawn.object
         end
-    end
-
-    if not existingObject then
-        existingObject = getObjectFromGUID(guid)
     end
 
     if callback and existingObject ~= nil then
