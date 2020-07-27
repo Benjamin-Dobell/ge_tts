@@ -37,7 +37,7 @@ DropZone.RotationAxis = {
     All = 7
 }
 
----@alias ge_tts__DropZone_Facing false | 1 | 2
+---@alias ge_tts__DropZone_Facing 1 | 2 | 3
 
 setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
     ---@param positionTriggerOrSavedState tts__VectorShape | tts__ScriptingTrigger | ge_tts__DropZone_SavedState
