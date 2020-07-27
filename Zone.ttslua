@@ -1,4 +1,5 @@
 local EventManager = require('ge_tts/EventManager')
+local Grid = require('ge_tts/Grid')
 local Instance = require('ge_tts/Instance')
 local Logger = require('ge_tts/Logger')
 local Object = require('ge_tts/Object')
@@ -466,7 +467,15 @@ local function onObjectDrop(colorName, object)
     ---@type ge_tts__Zone[]
     local objectZones
 
-    if object.isSmoothMoving() then
+    -- TODO: Once TTS provides an object.GetSmoothMovementTarget() or similar we can do away with this craziness...
+    -- When an object is dropped, TTS may smooth move it to another location in certain circumstances. Generally
+    -- speaking there are three cases:
+    --   1. Snapping to a grid.
+    --   2. Snapping to a snap point.
+    --   3. The user pressed Esc, and the object is moving back to its pick_up_position.
+    -- We're going to assume that ge_tts users are using DropZones and not snap points and outright ignore case 2, thus
+    -- if grid snapping isn't enabled, we'll assume case 3 is taking place.
+    if object.isSmoothMoving() and (Grid.snapping == Grid.Snapping.None or not object.use_grid) and object.pick_up_position:sqrMagnitude() ~= 0 then
         objectZones = TableUtils.values(TableUtils.select(scriptingTriggerZoneMap, function(zone, trigger)
             local localPosition = trigger.positionToLocal(object.pick_up_position)
             local scale = trigger.getScale()
