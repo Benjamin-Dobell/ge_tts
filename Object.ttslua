@@ -126,6 +126,7 @@ Object.Tag = {
     Figurine = "Figurine",
     Fog = "Fog",
     FogOfWar = "FogOfWar",
+    Generic = "Generic",
     GoPiece = "GoPiece",
     Hand = "Hand",
     Infinite = "Infinite",
