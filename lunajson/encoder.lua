@@ -2,7 +2,7 @@ local error = error
 local byte, find, format, gsub, match = string.byte, string.find, string.format,  string.gsub, string.match
 local concat = table.concat
 local tostring = tostring
-local pairs, type = pairs, type
+local rawget, pairs, type = rawget, pairs, type
 local setmetatable = setmetatable
 local huge, tiny = 1/0, -1/0
 
@@ -108,7 +108,7 @@ local function newencoder()
 			builder[i] = ']'
 
 		else
-			tmp = o[1]
+			tmp = rawget(o, 1)
 			if tmp ~= nil then -- detected as array
 				builder[i] = '['
 				i = i+1

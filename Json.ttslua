@@ -1,3 +1,6 @@
+-- JSON encoding of Color presently fails due to a bug in Color. Fortunately, we can patch Color to fix it.
+require('ge_tts/GlobalPatches')
+
 local Coroutine = require('ge_tts/Coroutine')
 
 local LunaJsonDecoder = require('ge_tts/lunajson/decoder')
