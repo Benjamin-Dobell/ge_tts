@@ -1,0 +1,188 @@
+local EventManager = require('ge_tts/EventManager')
+local Instance = require('ge_tts/Instance')
+local ObjectUtils = require('ge_tts/ObjectUtils')
+local TableUtils = require('ge_tts/TableUtils')
+
+---@shape ge_tts__InfiniteContainerInstance_SavedState : ge_tts__Instance_SavedState
+---@field spawnedGuids string[]
+
+-- NOTE: We need to explicitly define fields/functions on lambda-style generic classes.
+---@class ge_tts__InfiniteContainerInstance<T : ge_tts__Instance> : ge_tts__Instance
+---@field getObject fun(): nil | tts__Container
+---@field setFilterInstanceEnter fun(callback: (nil | fun(instance: T): boolean)): void
+---@field filterObjectEnter fun(object: tts__Object): boolean
+---@field onObjectLeave fun(object: tts__Object): void
+
+--- The implementer owns the built instance and is responsible for saving its state. The only interaction the infinite container will ever take with these
+--- instances is that it will destroy() them if they re-enter the infinite container. To be notified of this your instances must either override any created
+--- instance's destroy() method, or you can provide a callback on the infinite container with setFilterInstanceEnter().
+---@alias ge_tts__InfiniteContainerInstance_BuildInstance<T : ge_tts__Instance> fun(index: number, object: tts__ObjectState, containerInstance: ge_tts__InfiniteContainerInstance<T>): T
+
+---@class ge_tts__static_InfiniteContainerInstance : ge_tts__static_Instance
+---@overload fun<T : ge_tts__Instance>(savedState: ge_tts__InfiniteContainerInstance_SavedState, instanceBuilder: ge_tts__InfiniteContainerInstance_BuildInstance<T>):  ge_tts__InfiniteContainerInstance<T>
+---@overload fun<T : ge_tts__Instance>(container: tts__Container, instanceBuilder: ge_tts__InfiniteContainerInstance_BuildInstance<T>):  ge_tts__InfiniteContainerInstance<T>
+local InfiniteContainerInstance = {}
+
+InfiniteContainerInstance.INSTANCE_TYPE = 'Infinite Container'
+
+setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance), {
+    ---@generic T : ge_tts__Instance
+    ---@param containerOrSavedState tts__Container | ge_tts__InfiniteContainerInstance_SavedState
+    ---@param buildInstance ge_tts__InfiniteContainerInstance_BuildInstance<T> @When an instance is removed, this function is called to create a new instance that will take its place in the infinite container.
+    __call = function(_, containerOrSavedState, buildInstance)
+        local isSavedState = InfiniteContainerInstance.isSavedState(containerOrSavedState)
+
+        local self = --[[---@type ge_tts__InfiniteContainerInstance<T>]] (
+            isSavedState and Instance(--[[---@type ge_tts__InfiniteContainerInstance_SavedState]] containerOrSavedState)
+                or Instance(--[[---@type tts__Container]] containerOrSavedState)
+        )
+
+        local containedObjectStates = (--[[---@type tts__ContainerState]] (--[[---@not nil]] self.getObject()).getData()).ContainedObjects
+
+        ---@type nil | fun(instance: T): boolean
+        local filterInstanceEnter = nil
+
+        ---@type table<string, true>
+        local spawnedGuidMap = {}
+
+        --- The provided callback will be called if an instance previously taken from this container attempts to
+        --- re-enter the container. If the callback returns true, instance.destroy() will be called, otherwise
+        --- instance.reject() will be called. A nil callback (default) is the same always returning true.
+        ---@param callback nil | fun(instance: T): boolean
+        function self.setFilterInstanceEnter(callback)
+            filterInstanceEnter = callback
+        end
+
+        ---@param object tts__Object
+        ---@return boolean
+        function self.filterObjectEnter(object)
+            if spawnedGuidMap[object.guid] then
+                local instance = --[[---@type T]] Instance.getInstance(object.guid)
+
+                if not filterInstanceEnter or filterInstanceEnter(instance) then
+                    spawnedGuidMap[object.guid] = nil
+                    instance.destroy()
+                elseif not object.isSmoothMoving() then
+                    instance.reject()
+                end
+            else
+                local instance = Instance.getInstance(object.guid)
+
+                if not object.isSmoothMoving() then
+                    if instance then
+                        (--[[---@not nil]] instance).reject()
+                    else
+                        local pickupPosition = object.pick_up_position
+
+                        if pickupPosition:sqrMagnitude() ~= 0 then
+                            object.setPositionSmooth(pickupPosition, false, true)
+                            object.setRotationSmooth(object.pick_up_rotation, false, true)
+                        end
+                    end
+                end
+            end
+
+            return false
+        end
+
+        ---@param object tts__Object
+        function self.onObjectLeave(object)
+            local guid = object.guid
+
+            spawnedGuidMap[guid] = true
+
+            local objectState, index = --[[---@not nil, nil]] TableUtils.detect(containedObjectStates, function(objectState)
+                return objectState.GUID == guid
+            end)
+
+            objectState.GUID = ObjectUtils.nextGuid()
+            buildInstance(index, objectState, self)
+
+            local previousContainer = --[[---@not nil]] self.getObject()
+            local containerGuid = previousContainer.guid
+
+            local containerState = --[[---@type tts__ContainerState]] previousContainer.getData()
+            containerState.ContainedObjects = containedObjectStates
+
+            local instances = Instance.getInstances(previousContainer)
+
+            self.setObject(nil)
+
+            for _, instance in ipairs(instances) do
+                instance.setObject(nil)
+            end
+
+            previousContainer.destruct()
+
+            local newContainer = ObjectUtils.safeRespawnObject(containerState, containerGuid)
+
+            self.setObject(newContainer)
+
+            for _, instance in ipairs(instances) do
+                instance.setObject(newContainer)
+            end
+        end
+
+        ---@return string
+        function self.getInstanceType()
+            return InfiniteContainerInstance.INSTANCE_TYPE
+        end
+
+        local superSave = self.save
+
+        ---@return ge_tts__InfiniteContainerInstance_SavedState
+        function self.save()
+            return --[[---@type ge_tts__InfiniteContainerInstance_SavedState]] TableUtils.merge(superSave(), {
+                spawnedGuids = TableUtils.keys(spawnedGuidMap),
+            })
+        end
+
+        if isSavedState then
+            local savedState = --[[---@type ge_tts__InfiniteContainerInstance_SavedState]] containerOrSavedState
+
+            for _, guid in ipairs(savedState.spawnedGuids) do
+                spawnedGuidMap[guid] = true
+            end
+        else
+            for index, containedObjectState in ipairs(containedObjectStates) do
+                local instance = Instance.getInstance(--[[---@not nil]] containedObjectState.GUID)
+
+                if not instance then
+                    buildInstance(index, containedObjectState, self)
+                end
+            end
+        end
+
+        return self
+    end,
+    __index = Instance,
+}))
+
+---@param container tts__Container
+---@param object tts__Object
+local filterObjectEnterContainer = function(container, object)
+    local instance = Instance.getOneInstance(container)
+
+    if instance and (--[[---@not nil]] instance).getInstanceType() == InfiniteContainerInstance.INSTANCE_TYPE then
+        return (--[[---@type ge_tts__InfiniteContainerInstance<ge_tts__Instance>]] instance).filterObjectEnter(object)
+    end
+
+    -- NOTE: We're intentionally *not* returning *any* value if the event isn't for a InfiniteContainerInstance. If
+    --       multiple handlers are registered with ge_tts' EventManager, it knows not to overwrite previous handlers'
+    --       return values i.e. if another handler already returned false, we don't want to overwrite that return value.
+end
+
+---@param container tts__Container
+---@param object tts__Object
+local onObjectLeaveContainer = function(container, object)
+    local instance = Instance.getOneInstance(container)
+
+    if instance and (--[[---@not nil]] instance).getInstanceType() == InfiniteContainerInstance.INSTANCE_TYPE then
+        (--[[---@type ge_tts__InfiniteContainerInstance<ge_tts__Instance>]] instance).onObjectLeave(object)
+    end
+end
+
+EventManager.addHandler('filterObjectEnterContainer', filterObjectEnterContainer)
+EventManager.addHandler('onObjectLeaveContainer', onObjectLeaveContainer)
+
+return InfiniteContainerInstance
