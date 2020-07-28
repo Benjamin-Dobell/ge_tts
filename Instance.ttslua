@@ -127,7 +127,9 @@ setmetatable(Instance, {
             return Instance.INSTANCE_TYPE
         end
 
-        ---@param obj tts__Object
+        --- Manually changing an instance's associated object is advanced functionality. Unless you really know what
+        --- you're doing, you probably don't want to call this method!
+        ---@param obj nil | tts__Object
         function self.setObject(obj)
             if object ~= obj then
                 if object ~= nil then
@@ -139,10 +141,13 @@ setmetatable(Instance, {
                 end
 
                 object = obj
-                associateObject(self, obj)
 
-                if ObjectUtils.isContainerTag(obj.tag) then
-                    self.onEnterContainer(--[[---@type tts__Container]] obj)
+                if obj then
+                    associateObject(self, --[[---@not nil]] obj)
+
+                    if ObjectUtils.isContainerTag((--[[---@not nil]] obj).tag) then
+                        self.onEnterContainer(--[[---@type tts__Container]] obj)
+                    end
                 end
             end
         end
@@ -340,10 +345,14 @@ setmetatable(Instance, {
                 end
             end
         elseif nilOrContainer then
-            instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
-            object = --[[---@not nil]] nilOrContainer
+            Logger.assert(objectOrGuidOrSavedState, 'Instance cannot be instantiated with a container but no GUID')
 
-            Logger.assert(instanceGuid, 'Instance cannot be instantiated with a container but no GUID')
+            local container = --[[---@not nil]] nilOrContainer
+            local containerInstance = Instance.getInstance(container.guid)
+
+            instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
+            object = container
+            zone = containerInstance and (--[[---@not nil]] containerInstance).getZone()
         else
             Logger.assert(objectOrGuidOrSavedState, 'Instance cannot be instantiated without an associated object')
 
