@@ -22,7 +22,11 @@ local function listen(event)
             end
         end
 
-        return table.unpack(finalResult, 1, finalResult.n)
+        -- The following condition is a work-around for a MoonSharp bug:
+        -- https://github.com/moonsharp-devs/moonsharp/issues/287
+        if finalResult.n > 0 then
+            return table.unpack(finalResult, 1, finalResult.n)
+        end
     end
 
     ---@type function[]
