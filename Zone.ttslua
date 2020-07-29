@@ -114,7 +114,7 @@ local Zone = {}
 
 Zone.ZONE_TYPE = 'Zone'
 
----@alias ge_tts__Zone_FilterResult 0 | 1 | 2
+---@alias ge_tts__Zone_FilterResult 0 | 1 | 2 | 3
 
 Zone.FilterResult = {
     -- The object being dropped will simply be ignored. Depending on the object's trajectory it may
@@ -125,14 +125,18 @@ Zone.FilterResult = {
     -- will be tried.
     IGNORE = 0,
 
+    -- The object will proceed to be dropped in zone and will be deemed "occupying" the zone.
+    ACCEPT = 1,
+
     -- If the object has an associated Instance, it'll be returned to the instance's zone. If not
     -- and the object has a non-zero pick_up_position, it will be returned there. Otherwise, the
     -- object will continue on its current trajectory and may end in the zone, but won't be
     -- considered "occupying".
-    REJECT = 1,
+    REJECT = 2,
 
-    -- The object will proceed to be dropped in zone and will be deemed "occupying" the zone.
-    ACCEPT = 2,
+    -- Will reject the object immediately without giving other intersecting zones an opportunity to
+    -- handle the object.
+    FORCE_REJECT = 3,
 }
 
 setmetatable(Zone, {
@@ -497,6 +501,8 @@ local function onObjectDrop(colorName, object)
             return zoneDistance1.distanceSquared < zoneDistance2.distanceSquared
         end)
 
+        local reject = false
+
         for _, zoneDistance in ipairs(zoneDistances) do
             local zone = zoneDistance.zone
 
@@ -507,24 +513,33 @@ local function onObjectDrop(colorName, object)
             if filterResult == Zone.FilterResult.ACCEPT then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zone), Logger.DEBUG)
                 zone.onDrop(colorName, object)
+                reject = false
                 break
             elseif filterResult == Zone.FilterResult.REJECT then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') rejected by ' .. tostring(zone), Logger.DEBUG)
-
-                -- We only look at one instance (if there is one). If there's multiple because the
-                -- object is a container, we make no attempt to split the container.
-
-                local instance = Instance.getOneInstance(object)
-                local instanceZone = instance and (--[[---@not nil]] instance).getZone()
-
-                if instanceZone and instanceZone ~= zone then
-                    (--[[---@not nil]] instanceZone).drop(colorName, object)
-                elseif object.pick_up_position:sqrMagnitude() ~= 0 then
-                    object.setPositionSmooth(object.pick_up_position)
-                    object.setRotationSmooth(object.pick_up_rotation)
-                end
-
+                reject = true
+            elseif filterResult == Zone.FilterResult.FORCE_REJECT then
+                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') force rejected by ' .. tostring(zone), Logger.DEBUG)
+                reject = true
                 break
+            end
+        end
+
+        if reject then
+            -- We only look at one instance (if there is one). If there's multiple because the
+            -- object is a container, we make no attempt to split the container.
+
+            local instance = Instance.getOneInstance(object)
+            local instanceZone = instance and (--[[---@not nil]] instance).getZone()
+
+            if instanceZone and
+                (TableUtils.find((--[[---@not nil]] instanceZone).getOccupyingObjects(), object)
+                    or (--[[---@not nil]] instanceZone).filterObject(colorName, object) == Zone.FilterResult.ACCEPT)
+            then
+                (--[[---@not nil]] instanceZone).drop(colorName, object)
+            elseif object.pick_up_position:sqrMagnitude() ~= 0 then
+                object.setPositionSmooth(object.pick_up_position)
+                object.setRotationSmooth(object.pick_up_rotation)
             end
         end
     end
