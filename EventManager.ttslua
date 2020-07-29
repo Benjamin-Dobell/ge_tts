@@ -1,6 +1,11 @@
 local TableUtils = require('ge_tts/TableUtils')
 local Logger = require('ge_tts/Logger')
 
+---@type table<string, any>
+local EVENT_DEFAULT_RETURN_VALUES = {
+    filterObjectEnterContainer = true,
+}
+
 ---@type table<string, function[]>
 local eventHandlers = {}
 
@@ -22,10 +27,14 @@ local function listen(event)
             end
         end
 
-        -- The following condition is a work-around for a MoonSharp bug:
-        -- https://github.com/moonsharp-devs/moonsharp/issues/287
         if finalResult.n > 0 then
             return table.unpack(finalResult, 1, finalResult.n)
+        else
+            local defaultValue = EVENT_DEFAULT_RETURN_VALUES[event]
+
+            if defaultValue ~= nil then
+                return defaultValue
+            end
         end
     end
 
