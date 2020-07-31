@@ -147,6 +147,7 @@ Object.Tag = {
     Surface = "Surface",
     Tablet = "Tablet",
     Text = "3D Text",
+    Tile = "Tile",
     Tileset = "Tileset",
     VRUI = "VR UI",
 }
