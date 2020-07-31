@@ -151,6 +151,24 @@ Object.Tag = {
     VRUI = "VR UI",
 }
 
+Object.AssetBundleType = {
+    Generic = 0,
+    Coin = 1,
+    Bag = 2,
+    Figurine = 3,
+    Board = 4,
+    Infinite = 5,
+    Dice = 6,
+}
+
+Object.CardType = {
+    RectangleRounded = 0,
+    Rectangle = 1,
+    HexRounded = 2,
+    Hex = 3,
+    Circle = 4,
+}
+
 Object.DieType = {
     D4 = 0,
     D6 = 1,
@@ -158,6 +176,17 @@ Object.DieType = {
     D10 = 3,
     D12 = 4,
     D20 = 5,
+}
+
+Object.ModelType = {
+    Generic = 0,
+    Coin = 1,
+    Bag = 2,
+    Figurine = 3,
+    Board = 4,
+    Infinite = 5,
+    Dice = 6,
+    Chip = 7,
 }
 
 Object.TileType = {
