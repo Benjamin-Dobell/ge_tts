@@ -5,8 +5,19 @@ local EventManager = require('ge_tts/EventManager')
 ---@type table<string, ge_tts__ChatCommand_Callback>
 local commandCallbacks = {}
 
+local chatCommandPattern = '^~(.+)~%s*(.*)'
+
 ---@class tts__ChatCommands
 local ChatCommand = {}
+
+--- Replaces the current command pattern (default '^~(.+)~%s*(.*)').
+---
+--- The pattern must have two (and only two) capture groups, the first being the command name, and
+--- the second being the value, which once captured will be passed to command callbacks.
+---@param pattern string
+function ChatCommand.setPattern(pattern)
+    chatCommandPattern = pattern
+end
 
 ---@param command string
 ---@param callback ge_tts__ChatCommand_Callback
@@ -22,7 +33,7 @@ end
 ---@param message string
 ---@param player tts__Player
 local function onChat(message, player)
-    local _, _, command, value = message:find('^~(.+)~%s*(.*)')
+    local _, _, command, value = message:find(chatCommandPattern)
 
     if not command then
         return true
