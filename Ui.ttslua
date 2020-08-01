@@ -1,0 +1,101 @@
+local Ui = {}
+
+-- Common
+
+Ui.Alignment = {
+    UpperLeft = "UpperLeft",
+    UpperCenter = "UpperCenter",
+    UpperRight = "UpperRight",
+    MiddleLeft = "MiddleLeft",
+    MiddleCenter = "MiddleCenter",
+    MiddleRight = "MiddleRight",
+    LowerLeft = "LowerLeft",
+    LowerCenter = "LowerCenter",
+    LowerRight = "LowerRight",
+}
+
+Ui.Animation = {
+    Hide = {
+        None = "None",
+        Shrink = "Shrink",
+        FadeOut = "FadeOut",
+        SlideOutLeft = "SlideOut_Left",
+        SlideOutRight = "SlideOut_Right",
+        SlideOutTop = "SlideOut_Top",
+        SlideOutBottom = "SlideOut_Bottom",
+    },
+    Show = {
+        None = "None",
+        Grow = "Grow",
+        FadeIn = "FadeIn",
+        SlideInLeft = "SlideIn_Left",
+        SlideInRight = "SlideIn_Right",
+        SlideInTop = "SlideIn_Top",
+        SlideInBottom = "SlideIn_Bottom",
+    },
+}
+
+Ui.ContentSizeFit = {
+    Vertical = "vertical",
+    Horizontal = "horizontal",
+    Both = "both",
+    None = "none",
+}
+
+Ui.FontStyle = {
+    Normal = "Normal",
+    Bold = "Bold",
+    Italic = "Italic",
+    BoldItalic = "BoldItalic",
+}
+
+Ui.IconAlignment = {
+    Left = "Left",
+    Right = "Right",
+}
+
+Ui.MouseButton = {
+    Left = -1,
+    Right = -2,
+    Middle = -3,
+}
+
+Ui.Navigation = {
+    None = "None",
+    Horizontal = "Horizontal",
+    Vertical = "Vertical",
+    Automatic = "Automatic",
+    Explicit = "Explicit",
+}
+
+Ui.Tag = {
+    Button = "Button",
+    HorizontalLayout = "HorizontalLayout",
+    Panel = "Panel",
+    Text = "Text",
+    VerticalLayout = "VerticalLayout",
+}
+
+-- Elements
+
+Ui.Button = {
+    Transition = {
+        None = "None",
+        ColorTint = "ColorTint",
+        SpriteSwap = "SpriteSwap",
+        Animation = "Animation",
+    }
+}
+
+Ui.Text = {
+    HorizontalOverflow = {
+        Wrap = "Wrap",
+        Overflow = "Overflow",
+    },
+    VerticalOverflow = {
+        Truncate = "Truncate",
+        Overflow = "Overflow",
+    }
+}
+
+return Ui
