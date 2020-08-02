@@ -309,9 +309,10 @@ setmetatable(Zone, {
                 return object
             end)
 
-            -- May be nil if onSave was called before we finished spawning
-            if scriptingTrigger then
-                scriptingTriggerZoneMap[scriptingTrigger] = self
+            scriptingTriggerZoneMap[scriptingTrigger] = self
+
+            for _, object in ipairs(scriptingTrigger.getObjects()) do
+                addObjectIntersectingZone(object, self)
             end
         else
             occupyingObjects = {}
