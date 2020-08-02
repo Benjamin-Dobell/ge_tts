@@ -362,7 +362,10 @@ setmetatable(Instance, {
         end
 
         allInstances[instanceGuid] = self
-        associateObject(self, --[[---@not nil]] object)
+
+        if object then
+            associateObject(self, --[[---@not nil]] object)
+        end
 
         return self
     end
