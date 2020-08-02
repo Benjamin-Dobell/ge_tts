@@ -131,7 +131,7 @@ local function newencoder()
 				local tmp = i
 				for k, v in pairs(o) do
 					if type(k) ~= 'string' then
-						error("non-string key")
+						error('non-string key: ' .. tostring(k) .. ' (' .. type(k) .. ')')
 					end
 					f_string(k)
 					builder[i] = ':'
