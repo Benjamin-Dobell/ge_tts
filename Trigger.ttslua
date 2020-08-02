@@ -35,7 +35,7 @@ end
 local Trigger = {}
 
 ---@shape ge_tts__Trigger_SavedState
----@field __savedState true
+---@field __ss 1
 ---@field guid string
 
 setmetatable(Trigger, {
@@ -85,7 +85,7 @@ setmetatable(Trigger, {
         ---@return table
         function self.save()
             return {
-                __savedState = true,
+                __ss = 1,
                 guid = scriptingTrigger and scriptingTrigger.getGUID(),
             }
         end
@@ -125,7 +125,7 @@ function Trigger.spawnOptions(...)
 end
 
 function Trigger.isSavedState(value)
-    return type(value) == 'table' and (--[[---@type table]] value).__savedState
+    return type(value) == 'table' and (--[[---@type table]] value).__ss == 1
 end
 
 return Trigger

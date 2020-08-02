@@ -12,6 +12,7 @@ local TableUtils = require('ge_tts/TableUtils')
 ---@field setFilterInstanceEnter fun(callback: (nil | fun(instance: T): boolean)): void
 ---@field filterObjectEnter fun(object: tts__Object): boolean
 ---@field onObjectLeave fun(object: tts__Object): void
+---@field save fun(): ge_tts__InfiniteContainerInstance_SavedState
 
 --- The implementer owns the built instance and is responsible for saving its state. The only interaction the infinite container will ever take with these
 --- instances is that it will destroy() them if they re-enter the infinite container. To be notified of this your instances must either override any created

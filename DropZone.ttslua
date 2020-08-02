@@ -198,8 +198,6 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             return --[[---@type ge_tts__DropZone_SavedState]] TableUtils.merge(superSave(), {
                 occupantScale = occupantScale,
                 rotationEnabled = rotationEnabled,
-                occupantScale = occupantScale,
-                rotationEnabled = rotationEnabled,
                 rotationAxis = rotationAxis,
                 facing = facing,
                 dropOffset = dropOffset.toData()

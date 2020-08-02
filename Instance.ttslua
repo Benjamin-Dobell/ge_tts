@@ -292,7 +292,7 @@ setmetatable(Instance, {
             local trigger = zone and (--[[---@not nil]] zone).getScriptingTrigger()
 
             return {
-                __savedState = true,
+                __ss = 1,
                 instanceGuid = instanceGuid,
                 objectGuid = object and (--[[---@not nil]] object).getGUID(),
                 zoneTriggerGuid = trigger ~= nil and (--[[---@not nil]] trigger).getGUID() or nil,
@@ -374,7 +374,7 @@ setmetatable(Instance, {
 ---@param value any
 ---@return boolean
 function Instance.isSavedState(value)
-    return type(value) == 'table' and (--[[---@type table]] value).__savedState
+    return type(value) == 'table' and (--[[---@type table]] value).__ss == 1
 end
 
 ---@param guid string

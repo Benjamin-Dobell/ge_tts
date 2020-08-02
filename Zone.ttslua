@@ -101,7 +101,7 @@ end
 ---@class ge_tts__Zone
 
 ---@shape ge_tts__Zone_SavedState
----@field __savedState true
+---@field __ss 1
 ---@field guid string
 ---@field occupyingObjectGuids string[]
 
@@ -274,7 +274,7 @@ setmetatable(Zone, {
         ---@return table
         function self.save()
             return {
-                __savedState = true,
+                __ss = 1,
                 guid = scriptingTrigger and scriptingTrigger.getGUID(),
                 occupyingObjectGuids = TableUtils.map(occupyingObjects, function(object) return object.getGUID() end)
             }
@@ -344,7 +344,7 @@ setmetatable(Zone, {
 ---@param value any
 ---@return boolean
 function Zone.isSavedState(value)
-    return type(value) == 'table' and (--[[---@type table]] value).__savedState ~= nil
+    return type(value) == 'table' and (--[[---@type table]] value).__ss == 1
 end
 
 ---Returns a list of Zones that `object` is inside.
