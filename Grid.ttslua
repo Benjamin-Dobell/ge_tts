@@ -1,3 +1,5 @@
+local SaveManager = require('ge_tts/SaveManager')
+
 local GlobalGrid = Grid
 
 ---@class ge_tts__Grid : tts__GlobalGrid
@@ -47,5 +49,23 @@ setmetatable(Grid, {
         GlobalGrid[key] = value
     end
 })
+
+
+---@return string
+local function onSave()
+    return tostring(snapping)
+end
+
+---@param savedState string
+local function onLoad(savedState)
+    if savedState ~= '' then
+        snapping = tonumber(savedState)
+    end
+end
+
+local MODULE_NAME = 'ge_tts/Grid'
+
+SaveManager.registerOnSave(MODULE_NAME, onSave)
+SaveManager.registerOnLoad(MODULE_NAME, onLoad)
 
 return Grid
