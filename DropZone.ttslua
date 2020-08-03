@@ -123,7 +123,9 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@param object tts__Object
         ---@return ge_tts__Zone_FilterResult
         function self.filterObject(colorName, object)
-            if Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
+            -- TODO: Once released, use object.getSmoothMoveTargetPosition() API. For now, we assume if the object is
+            -- smooth moving that it's explicitly doing so into the zone i.e. we shouldn't ignore it.
+            if object.isSmoothMoving() or Vector3.lengthSquared(object.getVelocity()) < MAX_DROP_VELOCITY_SQUARED then
                 return Zone.FilterResult.ACCEPT
             else
                 return Zone.FilterResult.IGNORE
