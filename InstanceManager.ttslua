@@ -1,0 +1,273 @@
+local Json = require('ge_tts/Json')
+local TableUtils = require('ge_tts/TableUtils')
+
+local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
+
+---@class ge_tts__static_InstanceManager
+local InstanceManager = {}
+
+---@class ge_tts__InstanceManager
+
+---@shape __ge_tts__ObjectState
+---@field json nil | string
+---@field instanceStates table<string, __ge_tts__InstanceState>
+
+---@shape __ge_tts__InstanceState
+---@field json nil | string
+---@field object nil | tts__Object
+
+---@type nil | ge_tts__InstanceManager
+local currentInstanceManager = nil
+
+setmetatable(InstanceManager, {
+    __call = function()
+        local self = --[[---@type ge_tts__InstanceManager]] {}
+
+        local Instance = require('ge_tts/Instance') -- Required here to prevent top-level cyclical requires.
+
+        ---@type table<tts__Object, __ge_tts__ObjectState>
+        local objectStateMap = {}
+
+        ---@type table<string, __ge_tts__InstanceState>
+        local instanceStateMap = {}
+
+        ---@param object tts__Object
+        ---@return __ge_tts__ObjectState
+        local function getObjectState(object)
+            local objectState = objectStateMap[(--[[---@not nil]] object)]
+
+            if not objectState then
+                objectState = {
+                    instanceStates = {}
+                }
+                objectStateMap[(--[[---@not nil]] object)] = objectState
+            end
+
+            return objectState
+        end
+
+        ---@param instanceGuid string
+        ---@return __ge_tts__InstanceState
+        local function getInstanceState(instanceGuid)
+            local instanceState = instanceStateMap[instanceGuid]
+
+            if not instanceState then
+                instanceState = {}
+                instanceStateMap[instanceGuid] = instanceState
+            end
+
+            return instanceState
+        end
+
+        ---@param instance ge_tts__Instance
+        function self.invalidateSavedState(instance)
+            local instanceGuid = instance.getInstanceGuid()
+            local instanceState = getInstanceState(instanceGuid)
+            instanceState.json = nil
+
+            local previousObject = instanceState.object
+            local currentObject = instance.safeGetObject()
+
+            if previousObject ~= currentObject then
+                if previousObject then
+                    local previousObjectState = getObjectState(--[[---@not nil]] previousObject)
+
+                    previousObjectState.json = nil
+                    previousObjectState.instanceStates[instanceGuid] = nil
+
+                    if not next(previousObjectState.instanceStates) then
+                        objectStateMap[--[[---@not nil]] previousObject] = nil
+                    end
+                end
+
+                if currentObject then
+                    local currentObjectState = getObjectState(--[[---@not nil]] currentObject)
+                    currentObjectState.json = nil
+                    currentObjectState.instanceStates[instanceGuid] = instanceState
+                end
+            else
+                local objectState = getObjectState(--[[---@not nil]] currentObject)
+                objectState.json = nil
+            end
+        end
+
+        ---@param instance ge_tts__Instance
+        function self.onInstanceDestroyed(instance)
+            local instanceGuid = instance.getInstanceGuid()
+            local instanceState = instanceStateMap[instanceGuid]
+
+            if not instanceState then
+                return
+            end
+
+            local previousObject = instanceState.object
+
+            if previousObject then
+                local previousObjectState = getObjectState(--[[---@not nil]] previousObject)
+
+                previousObjectState.json = nil
+                previousObjectState.instanceStates[instanceGuid] = nil
+
+                if not next(previousObjectState.instanceStates) then
+                    objectStateMap[--[[---@not nil]] previousObject] = nil
+                end
+            end
+
+            instanceStateMap[instanceGuid] = nil
+        end
+
+        ---@param instance ge_tts__Instance
+        ---@return string
+        function self.saveInstanceState(instance)
+            local state = getInstanceState(instance.getInstanceGuid())
+
+            if not state.json then
+                self.invalidateSavedState(instance)
+                state.json = Json.encode(instance.save())
+            end
+
+            return instance.getInstanceGuid()
+        end
+
+        ---@param instanceGuid string
+        ---@return any
+        function self.loadInstanceState(instanceGuid)
+            local instanceState = instanceStateMap[instanceGuid]
+
+            if not instanceState or not instanceState.json then
+                error("No instance state available for instance " .. instanceGuid)
+            end
+
+            return Json.decode(--[[---@not nil]] instanceState.json)
+        end
+
+        --- Persists instance states to associated objects.
+        function self.save()
+            for object, objectState in pairs(objectStateMap) do
+                if not objectState.json then
+                    local json = Json.encode(TableUtils.map(objectState.instanceStates, function(instanceState, instanceGuid)
+                        if not instanceState.json then
+                            local instance = Instance.getInstance(instanceGuid)
+
+                            if instance then
+                                -- Typically mods will be calling InstanceManager.saveInstanceState() themselves. However, if an instance owns another instance
+                                -- it only needs to encode the instance GUID, which never changes. We don't want to require children instances invalidate their
+                                -- parent instance's state just to trigger a resave. As such, we do *also* auto-save instances, but we *don't* handle instance
+                                -- object/container changes at this point. The auto-save functionality is purely to handle parent-child instance relationships.
+                                instanceState.json = Json.encode((--[[---@not nil]] instance).save())
+                            end
+                        end
+
+                        return instanceState.json
+                    end))
+
+                    objectState.json = json
+
+                    if object ~= nil then
+                        if object.script_code == '' then
+                            object.script_code = '--'
+                        end
+
+                        object.script_state = SAVE_STATE_IDENTIFIER .. json
+                    end
+                end
+            end
+        end
+
+        function self.load()
+            for _, object in ipairs(getAllObjects()) do
+                local savedState = object.script_state
+
+                if savedState:sub(1, SAVE_STATE_IDENTIFIER:len()) == SAVE_STATE_IDENTIFIER then
+                    local objectJson = savedState:sub(SAVE_STATE_IDENTIFIER:len() + 1)
+
+                    local objectState = getObjectState(object)
+                    objectState.json = objectJson
+
+                    local instanceStates = --[[---@type table<string, string>]] Json.decode(objectJson)
+
+                    for instanceGuid, instanceJson in pairs(instanceStates) do
+                        local instanceState = getInstanceState(instanceGuid)
+                        instanceState.object = object
+                        instanceState.json = instanceJson
+
+                        objectState.instanceStates[instanceGuid] = instanceState
+                    end
+                end
+            end
+        end
+
+        function self.destroy()
+            objectStateMap = {}
+            instanceStateMap = {}
+
+            if currentInstanceManager then
+                currentInstanceManager = nil
+            end
+        end
+
+        return self
+    end,
+})
+
+---@return nil | ge_tts__InstanceManager
+function InstanceManager.get()
+    return currentInstanceManager
+end
+
+---@param Instance ge_tts__InstanceManager
+function InstanceManager.set(manager)
+    currentInstanceManager = manager
+end
+
+---@param instance ge_tts__Instance
+function InstanceManager.invalidateSavedState(instance)
+    if currentInstanceManager then
+        return (--[[---@not nil]] currentInstanceManager).invalidateSavedState(instance)
+    end
+end
+
+---@param instance ge_tts__Instance
+function InstanceManager.onInstanceDestroyed(instance)
+    if currentInstanceManager then
+        return (--[[---@not nil]] currentInstanceManager).onInstanceDestroyed(instance)
+    end
+end
+
+---@param instance ge_tts__Instance
+---@return string
+function InstanceManager.saveInstanceState(instance)
+    if not currentInstanceManager then
+        error("InstanceManager not set")
+    end
+
+    return (--[[---@not nil]] currentInstanceManager).saveInstanceState(instance)
+end
+
+---@param instanceGuid string
+---@return any
+function InstanceManager.loadInstanceState(instanceGuid)
+    if not currentInstanceManager then
+        error("InstanceManager not set")
+    end
+
+    return (--[[---@not nil]] currentInstanceManager).loadInstanceState(instanceGuid)
+end
+
+function InstanceManager.save()
+    if not currentInstanceManager then
+        error("InstanceManager not set")
+    end
+
+    (--[[---@not nil]] currentInstanceManager).save()
+end
+
+function InstanceManager.load()
+    if not currentInstanceManager then
+        error("InstanceManager not set")
+    end
+
+    (--[[---@not nil]] currentInstanceManager).load()
+end
+
+return InstanceManager

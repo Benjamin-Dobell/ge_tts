@@ -62,6 +62,8 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
 
                 if not filterInstanceEnter or filterInstanceEnter(instance) then
                     spawnedGuidMap[object.guid] = nil
+                    self.invalidateSavedState()
+
                     instance.destroy()
                 elseif not object.isSmoothMoving() then
                     instance.reject()
@@ -91,6 +93,7 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
             local guid = object.guid
 
             spawnedGuidMap[guid] = true
+            self.invalidateSavedState()
 
             local objectState, index = --[[---@not nil, nil]] TableUtils.detect(containedObjectStates, function(objectState)
                 return objectState.GUID == guid

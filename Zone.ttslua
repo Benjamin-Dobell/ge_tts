@@ -243,6 +243,7 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
             end
 
             disassociateOccupyingObject(self, object)
+            self.invalidateSavedState()
         end
 
         --- Called when a TTS object is dropped within this Zone.
@@ -254,6 +255,7 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
             end
 
             associateOccupyingObject(self, object)
+            self.invalidateSavedState()
         end
 
         --- Called when a TTS object is picked up from this Zone.
@@ -267,6 +269,7 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
             end
 
             disassociateOccupyingObject(self, object)
+            self.invalidateSavedState()
         end
 
         --- Used programmatically when `object` should be made a direct occupant, but not dropped by a player.
@@ -277,6 +280,7 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
             end
 
             associateOccupyingObject(self, object)
+            self.invalidateSavedState()
         end
 
         --- Can be called to dynamically drop a TTS object in this Zone.

@@ -1,4 +1,5 @@
 local EventManager = require('ge_tts/EventManager')
+local InstanceManager = require('ge_tts/InstanceManager')
 local Logger = require('ge_tts/Logger')
 local Object = require('ge_tts/Object')
 local ObjectUtils = require('ge_tts/ObjectUtils')
@@ -29,7 +30,7 @@ local function associateObject(instance, object)
     objectInstancesMap[object] = associated
 
     Logger.log(
-        instance.toString() .. ' associated with ' .. object.tag .. ' (' .. tostring(object.getGUID()) .. ')',
+        'Instance ' .. instance.toString() .. ' associated with ' .. object.tag .. ' (' .. tostring(object.getGUID()) .. ')',
         Logger.VERBOSE
     )
 end
@@ -45,13 +46,13 @@ local function disassociateObject(instance, object)
         objectInstancesMap[object] = #associated > 0 and associated or nil
 
         Logger.log(
-            instance.toString() .. ' disassociated from ' .. object.tag .. ' ('
+            'Instance ' .. instance.toString() .. ' disassociated from ' .. object.tag .. ' ('
                 .. tostring(object.getGUID()) .. ')',
             Logger.VERBOSE
         )
     else
         Logger.log(
-            'Tried to disassociate ' .. instance.toString() .. ' from ' .. object.tag
+            'Tried to disassociate instance ' .. instance.toString() .. ' from ' .. object.tag
                 .. ' (' .. tostring(object.getGUID()) .. ') but they were not associated.',
             Logger.WARNING
         )
@@ -126,6 +127,10 @@ setmetatable(Instance, {
         ---@return string
         function self.getType()
             return Instance.TYPE
+        end
+
+        function self.invalidateSavedState()
+            InstanceManager.invalidateSavedState(self)
         end
 
         --- Manually changing an instance's associated object is advanced functionality. Unless you really know what
@@ -247,7 +252,9 @@ setmetatable(Instance, {
         function self.setZone(newZone)
             if zone ~= newZone then
                 zone = newZone
-                Logger.log(self.toString() .. ' zone set to ' .. tostring(zone), Logger.VERBOSE)
+                Logger.log('Instance ' .. self.toString() .. ' zone set to ' .. tostring(zone), Logger.VERBOSE)
+
+                self.invalidateSavedState()
             end
         end
 
@@ -341,6 +348,8 @@ setmetatable(Instance, {
             object = nil
             destroyed = true
 
+            self.invalidateSavedState()
+
             Logger.log('Instance ' .. self.toString() .. ' destroyed.', Logger.DEBUG)
         end
 
@@ -398,6 +407,8 @@ setmetatable(Instance, {
         if object then
             associateObject(self, --[[---@not nil]] object)
         end
+
+        self.invalidateSavedState()
 
         return self
     end
@@ -481,7 +492,7 @@ local function onObjectDestroy(object)
 
         for _, instance in ipairs(instances) do
             Logger.log(
-                'Destroying ' .. instance.toString() .. ' as its associated ' .. object.tag .. ' ('
+                'Destroying instance ' .. instance.toString() .. ' as its associated ' .. object.tag .. ' ('
                     .. tostring(object.getGUID()) .. ') is being destroyed',
                 Logger.DEBUG
             )
@@ -499,7 +510,7 @@ EventManager.addHandler('onObjectDestroy', onObjectDestroy)
 ---@param object tts__Object
 local function onObjectEnterContainer(container, object)
     Logger.log(
-        object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ')',
+        'Instance ' .. object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ')',
         Logger.DEBUG
     )
     local instances = objectInstancesMap[object]
@@ -510,7 +521,7 @@ local function onObjectEnterContainer(container, object)
         if container.tag == Object.Tag.Infinite then
             for _, instance in ipairs(instances) do
                 Logger.log(
-                    instance.toString() .. ' is being destroyed as it entered infinite bag ('
+                    'Instance ' .. instance.toString() .. ' is being destroyed as it entered infinite bag ('
                         .. tostring(container.getGUID()) .. ')',
                     Logger.DEBUG
                 )
@@ -520,7 +531,7 @@ local function onObjectEnterContainer(container, object)
         else
             for _, instance in ipairs(instances) do
                 Logger.log(
-                    instance.toString() .. ' entered ' .. container.tag .. ' ('
+                    'Instance ' .. instance.toString() .. ' entered ' .. container.tag .. ' ('
                         .. tostring(container.getGUID()) .. ')',
                     Logger.DEBUG
                 )
@@ -538,7 +549,7 @@ local function onObjectLeaveContainer(container, object)
     local instance = allInstances[object.guid]
 
     if instance then
-        Logger.log(instance.toString() .. ' left ' .. container.tag .. ' ('
+        Logger.log('Instance ' .. instance.toString() .. ' left ' .. container.tag .. ' ('
             .. tostring(container.getGUID()) .. ')', Logger.DEBUG)
         instance.setObject(object)
     end

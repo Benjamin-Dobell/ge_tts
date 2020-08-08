@@ -80,6 +80,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@param axis number
         function self.setRotationAxis(axis)
             rotationAxis = axis
+            self.invalidateSavedState()
         end
 
         ---@return boolean
@@ -90,6 +91,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@param enabled boolean
         function self.setRotationEnabled(enabled)
             rotationEnabled = enabled
+            self.invalidateSavedState()
         end
 
         ---@return ge_tts__DropZone_Facing
@@ -100,6 +102,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@param face ge_tts__DropZone_Facing
         function self.setFacing(face)
             facing = face
+            self.invalidateSavedState()
         end
 
         ---@return ge_tts__Vector3
@@ -110,6 +113,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@param offset tts__VectorShape
         function self.setDropOffset(offset)
             dropOffset = Vector3(offset)
+            self.invalidateSavedState()
         end
 
         function self.getType()
