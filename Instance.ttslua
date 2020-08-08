@@ -289,7 +289,7 @@ setmetatable(Instance, {
 
         ---@return ge_tts__Instance_SavedState
         function self.save()
-            local trigger = zone and (--[[---@not nil]] zone).getScriptingTrigger()
+            local trigger = zone and (--[[---@not nil]] zone).getObject()
 
             return {
                 __ss = 1,

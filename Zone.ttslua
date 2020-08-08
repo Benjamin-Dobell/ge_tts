@@ -104,14 +104,13 @@ local function spawn(position, rotation, scale, callback)
     return --[[---@type tts__ScriptingTrigger]] ObjectUtils.safeSpawnObject(jsonTable, --[[---@type fun(o: tts__Object): void]] callback)
 end
 
----@class ge_tts__Zone
+---@class ge_tts__Zone : ge_tts__Instance
+---@field getObject fun(): tts__ScriptingTrigger
 
----@shape ge_tts__Zone_SavedState
----@field __ss 1
----@field guid string
+---@shape ge_tts__Zone_SavedState : ge_tts__Instance_SavedState
 ---@field occupyingObjectGuids string[]
 
----@class ge_tts__static_Zone
+---@class ge_tts__static_Zone : ge_tts__static_Instance
 ---@overload fun(position: tts__VectorShape, rotation: tts__VectorShape, scale: tts__VectorShape): ge_tts__Zone
 ---@overload fun(scriptingTrigger: tts__ScriptingTrigger): ge_tts__Zone
 ---@overload fun(savedState: ge_tts__Zone_SavedState): ge_tts__Zone
@@ -145,24 +144,39 @@ Zone.FilterResult = {
     FORCE_REJECT = 3,
 }
 
-setmetatable(Zone, {
+setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
     ---@param positionOrTriggerOrSavedState tts__VectorShape | tts__ScriptingTrigger | ge_tts__Zone_SavedState
     ---@param nilOrRotation nil | tts__VectorShape
     ---@param nilOrScale nil | tts__VectorShape
     __call = function(_, positionOrTriggerOrSavedState, nilOrRotation, nilOrScale)
-        local self = --[[---@type ge_tts__Zone]] {}
+        local isSavedState = Zone.isSavedState(positionOrTriggerOrSavedState)
 
-        setmetatable(self, {
-            __tostring = function(_)
-                return self.toString()
+        ---@type ge_tts__Zone
+        local self
+
+        if isSavedState then
+            self = --[[---@type ge_tts__Zone]] Instance(--[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState)
+        else
+            ---@type tts__ScriptingTrigger
+            local scriptingTrigger
+
+            if type(positionOrTriggerOrSavedState) == 'table' then
+                local position = Vector3(--[[---@type tts__VectorShape]] positionOrTriggerOrSavedState)
+                local rotation = Vector3(--[[---@not nil]] nilOrRotation)
+                local scale = Vector3(--[[---@not nil]] nilOrScale)
+
+                scriptingTrigger = spawn(position, rotation, scale, function()
+                    self.onSpawned()
+                end)
+            elseif type(positionOrTriggerOrSavedState) == 'userdata' then
+                scriptingTrigger = --[[---@type tts__ScriptingTrigger]] positionOrTriggerOrSavedState
             end
-        })
 
-        ---@type tts__ScriptingTrigger
-        local scriptingTrigger
+            self = --[[---@type ge_tts__Zone]] Instance(scriptingTrigger)
+        end
 
         ---@type tts__Object[]
-        local occupyingObjects
+        local occupyingObjects = {}
 
         ---An identifier for this type of zone.
         ---
@@ -181,22 +195,17 @@ setmetatable(Zone, {
 
         ---@return ge_tts__Vector3
         function self.getPosition()
-            return Vector3(scriptingTrigger.getPosition())
+            return Vector3(self.getObject().getPosition())
         end
 
         ---@return ge_tts__Vector3
         function self.getRotation()
-            return Vector3(scriptingTrigger.getRotation())
+            return Vector3(self.getObject().getRotation())
         end
 
         ---@return ge_tts__Vector3
         function self.getScale()
-            return Vector3(scriptingTrigger.getScale())
-        end
-
-        ---@return tts__ScriptingTrigger @Associated TTS scripting trigger
-        function self.getScriptingTrigger()
-            return scriptingTrigger
+            return Vector3(self.getObject().getScale())
         end
 
         ---@return tts__Object[] @TTS objects that have been dropped in the zone
@@ -277,17 +286,24 @@ setmetatable(Zone, {
             self.onDrop(colorName, object)
         end
 
-        ---@return table
-        function self.save()
-            return {
-                __ss = 1,
-                guid = scriptingTrigger and scriptingTrigger.getGUID(),
-                occupyingObjectGuids = TableUtils.map(occupyingObjects, function(object) return object.getGUID() end)
-            }
+        ---@return string
+        function self.getInstanceType()
+            return self.getZoneType()
         end
 
-        function self.destruct()
-            scriptingTriggerZoneMap[scriptingTrigger] = nil
+        local superSave = self.save
+
+        ---@return ge_tts__Zone_SavedState
+        function self.save()
+            return --[[---@type ge_tts__Zone_SavedState]] TableUtils.merge(superSave(), {
+                occupyingObjectGuids = TableUtils.map(occupyingObjects, function(object) return object.getGUID() end)
+            })
+        end
+
+        local superDestroy = self.destroy
+
+        function self.destroy()
+            scriptingTriggerZoneMap[self.getObject()] = nil
 
             for _, object in ipairs(occupyingObjects) do
                 disassociateOccupyingObject(self, object, true)
@@ -297,61 +313,31 @@ setmetatable(Zone, {
                 removeObjectIntersectingZone(object, self)
             end
 
-            scriptingTrigger.destruct()
+            occupyingObjects = {}
+
+            superDestroy()
         end
 
-        ---@return string
-        function self.toString()
-            return self.getZoneType() .. ' (' .. tostring(scriptingTrigger.getGUID()) .. ')'
-        end
+        scriptingTriggerZoneMap[self.getObject()] = self
 
         if Zone.isSavedState(positionOrTriggerOrSavedState) then
             local data = --[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState
 
-            scriptingTrigger = --[[---@type tts__ScriptingTrigger]] ObjectUtils.getSpawnedObject(data.guid)
             occupyingObjects = TableUtils.map(data.occupyingObjectGuids, function(guid)
                 local object = --[[---@not nil]] ObjectUtils.getSpawnedObject(guid)
                 associateOccupyingObject(self, object)
                 return object
             end)
+        end
 
-            scriptingTriggerZoneMap[scriptingTrigger] = self
-
-            for _, object in ipairs(scriptingTrigger.getObjects()) do
-                addObjectIntersectingZone(object, self)
-            end
-        else
-            occupyingObjects = {}
-
-            if type(positionOrTriggerOrSavedState) == 'table' then
-                local position = Vector3(--[[---@type tts__VectorShape]] positionOrTriggerOrSavedState)
-                local rotation = Vector3(--[[---@not nil]] nilOrRotation)
-                local scale = Vector3(--[[---@not nil]] nilOrScale)
-
-                scriptingTrigger = spawn(position, rotation, scale, function()
-                    self.onSpawned()
-                end)
-
-                scriptingTriggerZoneMap[scriptingTrigger] = self
-            elseif type(positionOrTriggerOrSavedState) == 'userdata' then
-                scriptingTrigger = --[[---@type tts__ScriptingTrigger]] positionOrTriggerOrSavedState
-            end
-
-            if type(positionOrTriggerOrSavedState) == 'userdata' then
-
-            end
-
+        for _, object in ipairs(self.getObject().getObjects()) do
+            addObjectIntersectingZone(object, self)
         end
 
         return self
     end,
-})
-
----@param value any
----@return boolean
-function Zone.isSavedState(value)
-    return type(value) == 'table' and (--[[---@type table]] value).__ss == 1
-end
+    __index = Instance,
+}))
 
 ---Returns a list of Zones that `object` is inside.
 ---Returned Zones are zones that the `object` is presently inside of, and *not* strictly zones in which `object` has
@@ -502,7 +488,7 @@ local function onObjectDrop(colorName, object)
         local objectPosition = cancelling and object.pick_up_position or object.getPosition()
 
         local zoneDistances = TableUtils.map(objectZones,  function(zone)
-            local distanceSquared = Vector3.distanceSquared(objectPosition, (--[[---@not nil]] zone.getScriptingTrigger()).getPosition())
+            local distanceSquared = Vector3.distanceSquared(objectPosition, zone.getObject().getPosition())
             return {distanceSquared = distanceSquared, zone = zone}
         end)
 
@@ -565,7 +551,7 @@ local function onObjectDestroy(object)
     if zones then
         for _, zone in ipairs(zones) do
             Logger.log(
-                object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from ' .. tostring(zone) .. ' as it\'s being destroyed',
+                object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from intersecting ' .. tostring(zone) .. ' as it\'s being destroyed',
                 Logger.DEBUG
             )
             zone.onLeave(object)
@@ -579,7 +565,7 @@ local function onObjectDestroy(object)
 
     if occupiedZone then
         Logger.log(
-            object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from ' .. tostring(occupiedZone) .. ' as it\'s being destroyed',
+            object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from occupying ' .. tostring(occupiedZone) .. ' as it\'s being destroyed',
             Logger.DEBUG
         )
         occupiedZone.onLeave(object)
