@@ -19,7 +19,7 @@ local Vector3 = require('ge_tts/Vector3')
 ---@field INSTANCE_TYPE string
 local DieInstance = {}
 
-DieInstance.INSTANCE_TYPE = 'Die'
+DieInstance.TYPE = 'Die'
 
 setmetatable(DieInstance, {
     ---@param objectOrGuidOrSavedState tts__Object | string | ge_tts__Instance_SavedState
@@ -32,8 +32,8 @@ setmetatable(DieInstance, {
         end)
 
         ---@return string
-        function self.getInstanceType()
-            return DieInstance.INSTANCE_TYPE
+        function self.getType()
+            return DieInstance.TYPE
         end
 
         ---@param value number|string

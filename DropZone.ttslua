@@ -22,7 +22,7 @@ local MAX_DROP_VELOCITY_SQUARED = 5 * 5 -- 5 in/sec
 ---@overload fun(positionTriggerOrSavedState: tts__VectorShape | tts__ScriptingTrigger | ge_tts__DropZone_SavedState, nilOrRotationOrOccupantScale: nil | number | tts__VectorShape, nilOrScale: nil | tts__VectorShape, nilOrOccupantScale: nil | number): ge_tts__DropZone
 local DropZone = {}
 
-DropZone.ZONE_TYPE = 'DropZone'
+DropZone.TYPE = 'DropZone'
 
 DropZone.Facing = {
     UP = 1,
@@ -112,8 +112,8 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             dropOffset = Vector3(offset)
         end
 
-        function self.getZoneType()
-            return DropZone.ZONE_TYPE
+        function self.getType()
+            return DropZone.TYPE
         end
 
         --- Called when a player attempts to drop an object within this zone. A drop zone will

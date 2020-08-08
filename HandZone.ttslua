@@ -23,7 +23,7 @@ end
 ---@overload fun(ownerOrSavedState: tts__Player | ge_tts__HandZone_SavedState, nilOrHandIndex: nil | number): ge_tts__HandZone
 local HandZone = {}
 
-HandZone.ZONE_TYPE = 'HandZone'
+HandZone.TYPE = 'HandZone'
 
 setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
     ---@param ownerOrSavedState tts__Player | ge_tts__HandZone_SavedState
@@ -51,8 +51,8 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
             return handIndex
         end
 
-        function self.getZoneType()
-            return HandZone.ZONE_TYPE
+        function self.getType()
+            return HandZone.TYPE
         end
 
         local superOnEnter = self.onEnter

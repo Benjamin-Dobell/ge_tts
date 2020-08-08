@@ -82,7 +82,7 @@ end
 ---@field INSTANCE_TYPE string
 local Instance = {}
 
-Instance.INSTANCE_TYPE = 'Instance'
+Instance.TYPE = 'Instance'
 
 setmetatable(Instance, {
     ---@param objectOrGuidOrSavedState tts__Object | string | ge_tts__Instance_SavedState
@@ -123,8 +123,8 @@ setmetatable(Instance, {
         ---Subclasses that wish to have their own instance type should override this method.
         ---
         ---@return string
-        function self.getInstanceType()
-            return Instance.INSTANCE_TYPE
+        function self.getType()
+            return Instance.TYPE
         end
 
         --- Manually changing an instance's associated object is advanced functionality. Unless you really know what
@@ -260,7 +260,7 @@ setmetatable(Instance, {
         ---The zone type of the most presently, or most recently, occupied zone.
         ---@return nil | string
         function self.getZoneType()
-            return zone and (--[[---@not nil]] zone).getZoneType()
+            return zone and (--[[---@not nil]] zone).getType()
         end
 
         ---@overload fun(): boolean
@@ -314,7 +314,7 @@ setmetatable(Instance, {
 
         ---@return string
         function self.toString()
-            return self.getInstanceType() .. " (" .. instanceGuid .. ")"
+            return self.getType() .. " (" .. instanceGuid .. ")"
         end
 
         function self.onSpawned()

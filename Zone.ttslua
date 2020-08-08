@@ -117,7 +117,7 @@ end
 ---@overload fun(positionOrTriggerOrSavedState: tts__VectorShape | tts__ScriptingTrigger | ge_tts__Zone_SavedState, nilOrRotation: nil | tts__VectorShape, nilOrScale: nil | tts__VectorShape): ge_tts__Zone
 local Zone = {}
 
-Zone.ZONE_TYPE = 'Zone'
+Zone.TYPE = 'Zone'
 
 ---@alias ge_tts__Zone_FilterResult 0 | 1 | 2 | 3
 
@@ -183,10 +183,10 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         ---This is convenience method. Aside from logging, ge_tts does not use this method. However, it may be useful
         ---for your game to be able to discern one type of zone from another.
         ---
-        ---Subclasses may either set ZONE_TYPE on the class (static) table, or alternatively, override this method.
+        ---Subclasses may either set TYPE on the class (static) table, or alternatively, override this method.
         ---@return string
-        function self.getZoneType()
-            return Zone.ZONE_TYPE
+        function self.getType()
+            return Zone.TYPE
         end
 
         -- Callback for sub-classes to override.
@@ -284,11 +284,6 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
             self.onDrop(colorName, object)
-        end
-
-        ---@return string
-        function self.getInstanceType()
-            return self.getZoneType()
         end
 
         local superSave = self.save

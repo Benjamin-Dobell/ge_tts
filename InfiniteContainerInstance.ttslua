@@ -24,7 +24,7 @@ local TableUtils = require('ge_tts/TableUtils')
 ---@overload fun<T : ge_tts__Instance>(container: tts__Container, instanceBuilder: ge_tts__InfiniteContainerInstance_BuildInstance<T>):  ge_tts__InfiniteContainerInstance<T>
 local InfiniteContainerInstance = {}
 
-InfiniteContainerInstance.INSTANCE_TYPE = 'Infinite Container'
+InfiniteContainerInstance.TYPE = 'Infinite Container'
 
 setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance), {
     ---@generic T : ge_tts__Instance
@@ -125,8 +125,8 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
         end
 
         ---@return string
-        function self.getInstanceType()
-            return InfiniteContainerInstance.INSTANCE_TYPE
+        function self.getType()
+            return InfiniteContainerInstance.TYPE
         end
 
         local superSave = self.save
@@ -164,7 +164,7 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
 local filterObjectEnterContainer = function(container, object)
     local instance = Instance.getOneInstance(container)
 
-    if instance and (--[[---@not nil]] instance).getInstanceType() == InfiniteContainerInstance.INSTANCE_TYPE then
+    if instance and (--[[---@not nil]] instance).getType() == InfiniteContainerInstance.TYPE then
         return (--[[---@type ge_tts__InfiniteContainerInstance<ge_tts__Instance>]] instance).filterObjectEnter(object)
     end
 
@@ -178,7 +178,7 @@ end
 local onObjectLeaveContainer = function(container, object)
     local instance = Instance.getOneInstance(container)
 
-    if instance and (--[[---@not nil]] instance).getInstanceType() == InfiniteContainerInstance.INSTANCE_TYPE then
+    if instance and (--[[---@not nil]] instance).getType() == InfiniteContainerInstance.TYPE then
         (--[[---@type ge_tts__InfiniteContainerInstance<ge_tts__Instance>]] instance).onObjectLeave(object)
     end
 end
