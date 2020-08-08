@@ -25,7 +25,7 @@ end
 ---@alias ge_tts__JsonObject table<string, ge_tts__JsonValue>
 ---@alias ge_tts__JsonArray ge_tts__JsonValue[]
 ---@alias ge_tts__JsonContainer ge_tts__JsonObject | ge_tts__JsonArray
----@alias ge_tts__JsonValue ge_tts__JsonContainer | number | string | boolean | nil
+---@alias ge_tts__JsonValue ge_tts__JsonContainer | number | string | boolean | nil | ge_tts__JsonNull
 
 ---@alias __ge_tts__JsonNodeTypeObject 0
 ---@alias __ge_tts__JsonNodeTypeArray 1
@@ -43,7 +43,7 @@ local NODE_KEY = 2
 ---@alias __ge_tts__JsonNodeType __ge_tts__JsonNodeTypeObject | __ge_tts__JsonNodeTypeArray | __ge_tts__JsonNodeTypeKey
 
 ---@alias __ge_tts__JsonObjectNode {[1]: __ge_tts__JsonNodeTypeObject, [2]: ge_tts__JsonObject}
----@alias __ge_tts__JsonArrayNode {[1]: __ge_tts__JsonNodeTypeArray, [2]: ge_tts__JsonArray}
+---@alias __ge_tts__JsonArrayNode {[1]: __ge_tts__JsonNodeTypeArray, [2]: ge_tts__JsonArray, [3]: number}
 ---@alias __ge_tts__JsonKeyNode {[1]: __ge_tts__JsonNodeTypeKey, [2]: string }
 
 
@@ -99,8 +99,11 @@ function Json.decodeAsync(json, options)
 
                     currentNode = parentNode
                 elseif nodeType == NODE_ARRAY then
-                    local array = (--[[---@type __ge_tts__JsonArrayNode]] currentNode)[2]
-                    table.insert(array, value)
+                    local arrayNode = --[[---@type __ge_tts__JsonArrayNode]] currentNode
+
+                    local array = arrayNode[2]
+                    arrayNode[3] = arrayNode[3] + 1 -- Update length
+                    array[arrayNode[3]] = value
                 end
             else
                 result = value
@@ -130,7 +133,7 @@ function Json.decodeAsync(json, options)
                     table.insert(stack, --[[---@not nil]] currentNode)
                 end
 
-                currentNode = {NODE_ARRAY , {}}
+                currentNode = {NODE_ARRAY , {}, 0}
             end,
             endarray = function()
                 local objectNode = (--[[---@type __ge_tts__JsonArrayNode]] currentNode)
