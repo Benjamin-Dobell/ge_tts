@@ -47,6 +47,12 @@ end
 ---@param zone ge_tts__Zone
 ---@param object tts__Object
 local function associateOccupyingObject(zone, object)
+    local previousOccupiedZone = objectOccupyingZoneMap[object]
+
+    if previousOccupiedZone then
+        previousOccupiedZone.onLeave(object)
+    end
+
     objectOccupyingZoneMap[object] = zone
 
     for _, instance in ipairs(Instance.getInstances(object)) do
