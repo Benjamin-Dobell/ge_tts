@@ -6,10 +6,6 @@ local Vector3 = require('ge_tts/Vector3')
 
 ---@class ge_tts__DieInstance : ge_tts__Instance
 
----@shape ge_tts__DieInstance_SavedState : ge_tts__Instance_SavedState
----@field heroName string
----@field heroSet string
-
 ---@class ge_tts__static_DieInstance
 ---@overload fun(savedState: ge_tts__Instance_SavedState): ge_tts__Instance
 ---@overload fun(object: tts__Object): ge_tts__Instance
@@ -27,7 +23,7 @@ setmetatable(DieInstance, {
     __call = function(_, objectOrGuidOrSavedState, nilOrContainer)
         local self = --[[---@type ge_tts__DieInstance]] Instance(objectOrGuidOrSavedState, nilOrContainer)
 
-        ObjectUtils.getSpawnedObject(--[[---@type tts__Object]] self.getObject(), function(object)
+        ObjectUtils.getSpawnedObject(self.getObject(), function(object)
             object.registerCollisions()
         end)
 

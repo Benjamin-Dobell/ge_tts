@@ -298,6 +298,10 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         local superDestroy = self.destroy
 
         function self.destroy()
+            if self.isDestroyed() then
+                return
+            end
+
             scriptingTriggerZoneMap[self.getObject()] = nil
 
             for _, object in ipairs(occupyingObjects) do

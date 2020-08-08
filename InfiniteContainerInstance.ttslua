@@ -8,7 +8,7 @@ local TableUtils = require('ge_tts/TableUtils')
 
 -- NOTE: We need to explicitly define fields/functions on lambda-style generic classes.
 ---@class ge_tts__InfiniteContainerInstance<T : ge_tts__Instance> : ge_tts__Instance
----@field getObject fun(): nil | tts__Container
+---@field getObject fun(): tts__Container
 ---@field setFilterInstanceEnter fun(callback: (nil | fun(instance: T): boolean)): void
 ---@field filterObjectEnter fun(object: tts__Object): boolean
 ---@field onObjectLeave fun(object: tts__Object): void
@@ -38,7 +38,7 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
                 or Instance(--[[---@type tts__Container]] containerOrSavedState)
         )
 
-        local containedObjectStates = (--[[---@type tts__ContainerState]] (--[[---@not nil]] self.getObject()).getData()).ContainedObjects
+        local containedObjectStates = (--[[---@type tts__ContainerState]] self.getObject().getData() ).ContainedObjects
 
         ---@type nil | fun(instance: T): boolean
         local filterInstanceEnter = nil
@@ -99,7 +99,7 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
             objectState.GUID = ObjectUtils.nextGuid()
             buildInstance(index, objectState, self)
 
-            local previousContainer = --[[---@not nil]] self.getObject()
+            local previousContainer = self.getObject()
             local containerGuid = previousContainer.guid
 
             local containerState = --[[---@type tts__ContainerState]] previousContainer.getData()

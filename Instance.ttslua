@@ -14,13 +14,11 @@ local objectInstancesMap = {}
 
 ---@param instance ge_tts__Instance
 local function destroyAssociatedObject(instance)
-    if instance.getObject() ~= nil then
-        instance.takeObject({
-            callback = function(object)
-                object.destruct()
-            end
-        })
-    end
+    instance.takeObject({
+        callback = function(object)
+            object.destruct()
+        end
+    })
 end
 
 ---@param instance ge_tts__Instance
@@ -105,6 +103,9 @@ setmetatable(Instance, {
         ---@type nil | ge_tts__Zone
         local zone = nil
 
+        ---@type boolean
+        local destroyed = false
+
         ---@param container tts__Container
         self.onEnterContainer = function(container)
         end
@@ -149,12 +150,25 @@ setmetatable(Instance, {
                         self.onEnterContainer(--[[---@type tts__Container]] obj)
                     end
                 end
+
+                self.invalidateSavedState()
             end
         end
 
-        --- Returns the associated object, or nil if the associated object and this Instance have been destroyed.
-        ---@return nil | tts__Object
+        --- Returns the associated object. If the object is nil or destroyed, raises an error.
+        ---@return tts__Object
         function self.getObject()
+            self.ensureValid()
+            return --[[---@not nil]] object
+        end
+
+        --- Returns the associated object irrespective of the instances' current state. Therefore,
+        --- the value returned may be nil.
+        ---
+        --- This is mostly for internal use. Generally you should only be interacting with
+        --- non-destroyed instances. In which case, regular getObject() will work fine.
+        ---@return nil | tts__Object
+        function self.safeGetObject()
             return object
         end
 
@@ -164,11 +178,8 @@ setmetatable(Instance, {
         --- called is called with that object. In either of these two cases, the orientation will
         --- be updated according to the provided options.
         ---@param options ge_tts__Instance_TakeObjectOptions
-        ---@return boolean @Returns false if there's no object associated with this instance i.e. The instance has already been destroyed.
         function self.takeObject(options)
-            if not object then
-                return false
-            end
+            self.ensureValid()
 
             ObjectUtils.getSpawnedObject(--[[---@not nil]] object, function(spawnedObject)
                 local containerPosition = self.getContainerPosition()
@@ -250,7 +261,7 @@ setmetatable(Instance, {
         ---If you're specifically interested in whether an instance is currently occupying a zone, this can be obtained
         ---with:
         ---
-        ---    instance.getObject() and Zone.getObjectOccupyingZone(instance.getObject())
+        ---    Zone.getObjectOccupyingZone(instance.getObject())
         ---
         ---@return nil | ge_tts__Zone
         function self.getZone()
@@ -299,7 +310,27 @@ setmetatable(Instance, {
             }
         end
 
+        --- Throws an error if the instance has a nil object. Typically this means it has been destroyed.
+        function self.ensureValid()
+            if object == nil then
+                if destroyed then
+                    error("Instance has been destroyed")
+                else
+                    error("Instance accessed whilst in invalid state. Are you using setObject()? Have you overridden destroy() and forgotten to call through to the super implementation?")
+                end
+            end
+        end
+
+        ---@return boolean
+        function self.isDestroyed()
+            return destroyed
+        end
+
         function self.destroy()
+            if destroyed then
+                return
+            end
+
             allInstances[instanceGuid] = nil
 
             if object ~= nil then
@@ -308,8 +339,9 @@ setmetatable(Instance, {
             end
 
             object = nil
+            destroyed = true
 
-            Logger.log(self.toString() .. ' destroyed.', Logger.DEBUG)
+            Logger.log('Instance ' .. self.toString() .. ' destroyed.', Logger.DEBUG)
         end
 
         ---@return string
@@ -433,12 +465,10 @@ end
 
 ---@param object tts__Object
 local function onObjectSpawn(object)
-    if not ObjectUtils.isContainerTag(object.tag) then
-        local instances = objectInstancesMap[object]
+    local instance = allInstances[object.guid]
 
-        if instances then
-            instances[1].onSpawned()
-        end
+    if instance then
+        (--[[---@not nil]] instance).onSpawned()
     end
 end
 

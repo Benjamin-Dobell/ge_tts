@@ -141,7 +141,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             superOnDrop(colorName, object)
 
             local objectRotation = object.getRotation()
-            local position = (--[[---@not nil]] self.getScriptingTrigger()).positionToWorld(dropOffset)
+            local position = (self.getObject()).positionToWorld(dropOffset)
 
             object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z })
 
