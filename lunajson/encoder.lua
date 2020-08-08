@@ -6,14 +6,7 @@ local rawget, pairs, type = rawget, pairs, type
 local setmetatable = setmetatable
 local huge, tiny = 1/0, -1/0
 
-local f_string_esc_pat
-if _VERSION == "Lua 5.1" then
-	-- use the cluttered pattern because lua 5.1 does not handle \0 in a pattern correctly
-	f_string_esc_pat = '[^ -!#-[%]^-\255]'
-else
-	f_string_esc_pat = '[\0-\31"\\]'
-end
-
+local f_string_esc_pat = '[^ -!#-[%]^-\255]'
 local _ENV = nil
 
 
