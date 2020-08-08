@@ -1,4 +1,3 @@
-local EventManager = require('ge_tts/EventManager')
 local Logger = require('ge_tts/Logger')
 local TableUtils = require('ge_tts/TableUtils')
 
@@ -9,7 +8,7 @@ local SaveManager = {}
 
 ---@shape __ge_tts__SaveManager_Callbacks
 ---@field onLoads (fun(savedState: string): void)[]
----@field onSave nil | (fun(): string)
+---@field onSave nil | (fun(): nil | string)
 
 local ORIGINAL_PSEUDO_MODULE_NAME = '__originalSavedState'
 
@@ -53,7 +52,7 @@ end
 ---several Lua modules/files to independently maintain their own savedState.
 ---
 ---@param moduleName string
----@param onSave fun(): string
+---@param onSave fun(): nil | string
 function SaveManager.registerOnSave(moduleName, onSave)
     Logger.assert(type(moduleName) == 'string' and moduleName ~= '', 'moduleName must be specified')
 
@@ -145,11 +144,13 @@ function onSave()
 
     for moduleName, moduleCallbacks in pairs(callbacks) do
         if moduleCallbacks.onSave then
-            local moduleSavedState = (--[[---@not nil]]  moduleCallbacks.onSave)() or ''
+            local moduleSavedState = (--[[---@not nil]]  moduleCallbacks.onSave)()
 
-            Logger.assert(type(moduleSavedState) == 'string', moduleName .. "'s onSave returned a " .. type(moduleSavedState) .. ', a string is required.')
+            if moduleSavedState ~= nil then
+                Logger.assert(type(moduleSavedState) == 'string', moduleName .. "'s onSave returned a " .. type(moduleSavedState) .. ', a string is required.')
 
-            savedState = savedState .. moduleName:len() .. ' ' .. moduleName .. ' ' .. moduleSavedState:len() .. ' ' .. moduleSavedState
+                savedState = savedState .. moduleName:len() .. ' ' .. moduleName .. ' ' .. (--[[---@not nil]] moduleSavedState):len() .. ' ' .. moduleSavedState
+            end
         end
     end
 
