@@ -141,7 +141,7 @@ function Json.decodeAsync(json, options)
                 currentNode = table.remove(stack)
 
                 if options.encodeArrayLength then
-                    array[0] = #array
+                    array[0] = objectNode[3]
                 end
 
                 addValue(array)
