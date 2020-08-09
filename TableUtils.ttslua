@@ -13,7 +13,7 @@ local TableUtils = {}
 ---@param tab table
 ---@return boolean
 TableUtils.isArray = function(tab)
-    return tab[1] ~= nil
+    return tab[1] ~= nil or type(tab[0]) == 'number'
 end
 
 ---@overload fun<V, MappedV>(tab: V[], func: fun(value: V, key: number): MappedV): MappedV[]
