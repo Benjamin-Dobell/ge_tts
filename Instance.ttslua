@@ -543,7 +543,7 @@ local function onObjectEnterContainer(container, object)
     end
 end
 
--- When a card leaves a container we want to find the associated Instance and associate them.
+-- When an object leaves a container we want to find the associated Instance and associate them.
 ---@param container tts__Container
 ---@param object tts__Object
 local function onObjectLeaveContainer(container, object)

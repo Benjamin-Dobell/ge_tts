@@ -412,38 +412,6 @@ EventManager.addHandler('onObjectEnterContainer', onObjectEnterContainer)
 EventManager.addHandler('onObjectLeaveContainer', onObjectLeaveContainer)
 
 
----@param scriptingTrigger tts__ScriptingTrigger
----@param object tts__Object
-local function onObjectEnterScriptingZone(scriptingTrigger, object)
-    local zone = scriptingTriggerZoneMap[scriptingTrigger]
-
-    if zone then
-        Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. tostring(zone), Logger.DEBUG)
-        addObjectIntersectingZone(object, zone)
-        zone.onEnter(object)
-
-        if object.spawning and not object.isSmoothMoving() and not object.held_by_color and not TableUtils.find(zone.getOccupyingObjects(), object) then
-            zone.drop(nil, object)
-        end
-    end
-end
-
----@param scriptingTrigger tts__ScriptingTrigger
----@param object tts__Object
-local function onObjectLeaveScriptingZone(scriptingTrigger, object)
-    local zone = scriptingTriggerZoneMap[scriptingTrigger]
-
-    if zone then
-        Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') left ' .. tostring(zone), Logger.DEBUG)
-        removeObjectIntersectingZone(object, zone)
-        zone.onLeave(object)
-    end
-end
-
-EventManager.addHandler('onObjectEnterScriptingZone', onObjectEnterScriptingZone)
-EventManager.addHandler('onObjectLeaveScriptingZone', onObjectLeaveScriptingZone)
-
-
 ---@param colorName tts__PlayerColor
 ---@param object tts__Object
 local function onObjectPickUp(colorName, object)
@@ -545,6 +513,56 @@ end
 
 EventManager.addHandler('onObjectPickUp', onObjectPickUp)
 EventManager.addHandler('onObjectDrop', onObjectDrop)
+
+
+---@param scriptingTrigger tts__ScriptingTrigger
+---@param object tts__Object
+local function onObjectEnterScriptingZone(scriptingTrigger, object)
+    local zone = scriptingTriggerZoneMap[scriptingTrigger]
+
+    if zone then
+        Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. tostring(zone), Logger.DEBUG)
+        addObjectIntersectingZone(object, zone)
+        zone.onEnter(object)
+
+        -- Here we attempt to detect objects that were pulled out of a container and dropped straight in a scripting zone using the UI.
+        if object.spawning and not object.isSmoothMoving() and not object.held_by_color and not objectOccupyingZoneMap[object] then
+            local players = Player.getPlayers()
+            local objectPosition = object.getPosition()
+
+            ---@type tts__PlayerColor
+            local closestPlayerColor
+            local closestPlayerDistanceSq = math.huge
+
+            for _, player in ipairs(players) do
+                local pointerPosition = player.getPointerPosition()
+                local distanceSq = Vector3.distanceSquared(objectPosition, pointerPosition)
+
+                if distanceSq < closestPlayerDistanceSq then
+                    closestPlayerColor = player.color
+                    closestPlayerDistanceSq = distanceSq
+                end
+            end
+
+            onObjectDrop(closestPlayerColor, object)
+        end
+    end
+end
+
+---@param scriptingTrigger tts__ScriptingTrigger
+---@param object tts__Object
+local function onObjectLeaveScriptingZone(scriptingTrigger, object)
+    local zone = scriptingTriggerZoneMap[scriptingTrigger]
+
+    if zone then
+        Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') left ' .. tostring(zone), Logger.DEBUG)
+        removeObjectIntersectingZone(object, zone)
+        zone.onLeave(object)
+    end
+end
+
+EventManager.addHandler('onObjectEnterScriptingZone', onObjectEnterScriptingZone)
+EventManager.addHandler('onObjectLeaveScriptingZone', onObjectLeaveScriptingZone)
 
 
 ---@param object tts__Object
