@@ -85,7 +85,7 @@ setmetatable(InstanceManager, {
                     currentObjectState.json = nil
                     currentObjectState.instanceStates[instanceGuid] = instanceState
                 end
-            else
+            elseif currentObject then
                 local objectState = getObjectState(--[[---@not nil]] currentObject)
                 objectState.json = nil
             end
