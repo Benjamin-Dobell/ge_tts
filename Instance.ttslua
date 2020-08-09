@@ -349,6 +349,7 @@ setmetatable(Instance, {
             destroyed = true
 
             self.invalidateSavedState()
+            InstanceManager.onInstanceDestroyed(self)
 
             Logger.log('Instance ' .. self.toString() .. ' destroyed.', Logger.DEBUG)
         end
