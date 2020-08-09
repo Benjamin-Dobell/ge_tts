@@ -2,6 +2,7 @@
 require('ge_tts/GlobalPatches')
 
 local Coroutine = require('ge_tts/Coroutine')
+local TableUtils = require('ge_tts/TableUtils')
 
 local LunaJsonDecoder = require('ge_tts/lunajson/decoder')
 local LunaJsonEncoder = require('ge_tts/lunajson/encoder')
@@ -51,13 +52,25 @@ local NODE_KEY = 2
 
 ---@shape ge_tts__Json_DecodeOptions
 ---@field encodeArrayLength nil | boolean @Default false. When true, array lengths are encoded as the zeroth element. Thus an empty array can be discerned from an empty table.
----@field nullIdentification nil | boolean @Default false. When true, null values in an array/object are represented by JSON.null() rather than being omitted.
+---@field nullIdentification nil | boolean @Default true. When true, null values in an array/object are represented by JSON.null() rather than being omitted.
 
 ---@shape ge_tts__Json_DecodeAsyncOptions : ge_tts__Json_DecodeOptions
 ---@field onCompletion fun(data: ge_tts__JsonValue): void
 ---@field onError fun(message: string): void
 ---@field charactersPerChunk nil | number @Default 2048 (2 KiB)
 ---@field framesBetweenChunks nil | number @Default 1
+
+---@type ge_tts__Json_DecodeOptions
+local defaultDecodeOptions = {
+    encodeArrayLength = false,
+    nullIdentification = true,
+}
+
+--- Sets the default decoding options used by decode and decodeAsync when called with options omitted.
+---@param decodeOptions ge_tts__Json_DecodeOptions
+function Json.setDefaultDecodeOptions(decodeOptions)
+    defaultDecodeOptions = decodeOptions
+end
 
 --- Parses JSON in a pseudo-async fashion using co-operative multi-tasking (i.e. coroutines).
 ---
@@ -70,6 +83,8 @@ local NODE_KEY = 2
 ---@return fun(): void
 function Json.decodeAsync(json, options)
     local cancelled = false
+
+    options = TableUtils.merge(--[[---@type ge_tts__Json_DecodeAsyncOptions]] defaultDecodeOptions, options)
 
     Coroutine.start(function()
         ---@type __ge_tts__JsonNode[]
@@ -214,9 +229,9 @@ local decode = LunaJsonDecoder()
 ---@param options nil | ge_tts__Json_DecodeOptions
 ---@return ge_tts__JsonValue
 function Json.decode(json, options)
-    local decodeOptions = --[[---@not nil]] options or {}
+    local decodeOptions = TableUtils.merge(defaultDecodeOptions, --[[---@not nil]] options or {})
     local nullValue = decodeOptions.nullIdentification and Json.null() or nil
-    return decode(json, 0, nullValue, decodeOptions.encodeArrayLength)
+    return decode(json, 0, nullValue, decodeOptions.encodeArrayLength or false)
 end
 
 local encode = LunaJsonEncoder()
