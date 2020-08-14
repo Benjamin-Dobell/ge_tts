@@ -1,6 +1,6 @@
-local TableUtils = require('ge_tts/TableUtils')
-local Logger = require('ge_tts/Logger')
-local Json = require('ge_tts/Json')
+local TableUtils = require('ge_tts.TableUtils')
+local Logger = require('ge_tts.Logger')
+local Json = require('ge_tts.Json')
 
 local MAX_RETRIES = 5
 

@@ -1,5 +1,5 @@
-local TableUtils = require('ge_tts/TableUtils')
-local Logger = require('ge_tts/Logger')
+local TableUtils = require('ge_tts.TableUtils')
+local Logger = require('ge_tts.Logger')
 
 ---@type table<string, any>
 local EVENT_DEFAULT_RETURN_VALUES = {

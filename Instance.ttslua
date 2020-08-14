@@ -1,9 +1,9 @@
-local EventManager = require('ge_tts/EventManager')
-local InstanceManager = require('ge_tts/InstanceManager')
-local Logger = require('ge_tts/Logger')
-local Object = require('ge_tts/Object')
-local ObjectUtils = require('ge_tts/ObjectUtils')
-local TableUtils = require('ge_tts/TableUtils')
+local EventManager = require('ge_tts.EventManager')
+local InstanceManager = require('ge_tts.InstanceManager')
+local Logger = require('ge_tts.Logger')
+local Object = require('ge_tts.Object')
+local ObjectUtils = require('ge_tts.ObjectUtils')
+local TableUtils = require('ge_tts.TableUtils')
 
 ---@class ge_tts__Instance
 
@@ -382,7 +382,7 @@ setmetatable(Instance, {
                     --       recent zone *and* that most recent zone restores second, we'll lose our reference.
                     --
                     --       We're requiring here to avoid top-level (illegal) cyclical requires.
-                    zone = require('ge_tts/Zone').getScriptingTriggerZone(--[[---@type tts__ScriptingTrigger]] trigger)
+                    zone = require('ge_tts.Zone').getScriptingTriggerZone(--[[---@type tts__ScriptingTrigger]] trigger)
                 end
             end
         elseif nilOrContainer then

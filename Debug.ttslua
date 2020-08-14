@@ -1,4 +1,4 @@
-local ChatCommands = require('ge_tts/ChatCommands')
+local ChatCommands = require('ge_tts.ChatCommands')
 
 ---@class tts__Debug
 local Debug = {}
@@ -11,7 +11,7 @@ function Debug.createGlobals(prefix)
 
         -- First directory is the "scripts", which we don't want.
         for packageName, package in pairs(_LOADED) do
-            if packageName:sub(1, 7) == 'ge_tts/' then
+            if packageName:sub(1, 7) == 'ge_tts.' then
                 local identifier = prefix .. packageName:sub(8):gsub('/', '__')
                 _G[identifier] = package
             end

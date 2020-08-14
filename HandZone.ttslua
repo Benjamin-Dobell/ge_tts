@@ -1,6 +1,6 @@
-local ObjectUtils = require('ge_tts/ObjectUtils')
-local TableUtils = require('ge_tts/TableUtils')
-local Zone = require('ge_tts/Zone')
+local ObjectUtils = require('ge_tts.ObjectUtils')
+local TableUtils = require('ge_tts.TableUtils')
+local Zone = require('ge_tts.Zone')
 
 ---@class ge_tts__HandZone : ge_tts__Zone
 
@@ -65,6 +65,15 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
             if not self.isObjectOccupying(object) and TableUtils.find(owner.getHandObjects(handIndex), object) then
                 self.onDrop(owner.color, object)
             end
+        end
+
+        --- Called when a player attempts to drop an object within this zone. The return value
+        --- indicates whether the zone wishes to accept, reject or ignore the object being dropped.
+        ---@param colorName tts__PlayerColor @Color of the TTS player that dropped the TTS object.
+        ---@param object tts__Object
+        ---@return ge_tts__Zone_FilterResult
+        function self.filterObject(colorName, object)
+            return object.use_hands and HandZone.FilterResult.ACCEPT or HandZone.FilterResult.IGNORE
         end
 
         local superDrop = self.drop

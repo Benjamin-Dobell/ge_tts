@@ -1,5 +1,5 @@
-local TableUtils = require('ge_tts/TableUtils')
-local DropZone = require('ge_tts/DropZone')
+local TableUtils = require('ge_tts.TableUtils')
+local DropZone = require('ge_tts.DropZone')
 
 ---@class ge_tts__PlayerDropZone : ge_tts__DropZone
 

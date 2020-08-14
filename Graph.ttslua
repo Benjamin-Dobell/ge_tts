@@ -1,4 +1,4 @@
-local TableUtils = require('ge_tts/TableUtils')
+local TableUtils = require('ge_tts.TableUtils')
 local Graph = {}
 
 ---@param node any

@@ -1,7 +1,7 @@
 -- Base64 implementation originally based on https://github.com/iskolbin/lbase64 (public domain),
 -- but modified for simplicity, TTS and to work with number[] buffers, rather than strings.
 
-local TableUtils = require('ge_tts/TableUtils')
+local TableUtils = require('ge_tts.TableUtils')
 
 ---@class ge_tts__Base64
 local Base64 = {}

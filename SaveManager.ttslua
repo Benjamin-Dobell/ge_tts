@@ -1,5 +1,5 @@
-local Logger = require('ge_tts/Logger')
-local TableUtils = require('ge_tts/TableUtils')
+local Logger = require('ge_tts.Logger')
+local TableUtils = require('ge_tts.TableUtils')
 
 local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
 
@@ -162,13 +162,13 @@ function onSave()
     return savedState
 end
 
-local GE_MODULE_PREFIX = 'ge_tts/'
+local GE_MODULE_PREFIX = 'ge_tts.'
 
 ---@param savedState string
 function onLoad(savedState)
     savedState = savedState or ''
 
-    Logger.assert(savedState == '' or  savedState:sub(1, SAVE_STATE_IDENTIFIER:len()) == SAVE_STATE_IDENTIFIER, "When working with ge_tts, you must use ge_tts/SaveManager instead of writing directly to script_state.")
+    Logger.assert(savedState == '' or  savedState:sub(1, SAVE_STATE_IDENTIFIER:len()) == SAVE_STATE_IDENTIFIER, "When working with ge_tts, you must use ge_tts.SaveManager instead of writing directly to script_state.")
 
     local savedStateLength = savedState:len()
     local moduleNameOffset = SAVE_STATE_IDENTIFIER:len() + 1

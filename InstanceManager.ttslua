@@ -1,5 +1,5 @@
-local Json = require('ge_tts/Json')
-local TableUtils = require('ge_tts/TableUtils')
+local Json = require('ge_tts.Json')
+local TableUtils = require('ge_tts.TableUtils')
 
 local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
 
@@ -23,7 +23,7 @@ setmetatable(InstanceManager, {
     __call = function()
         local self = --[[---@type ge_tts__InstanceManager]] {}
 
-        local Instance = require('ge_tts/Instance') -- Required here to prevent top-level cyclical requires.
+        local Instance = require('ge_tts.Instance') -- Required here to prevent top-level cyclical requires.
 
         ---@type table<tts__Object, __ge_tts__ObjectState>
         local objectStateMap = {}

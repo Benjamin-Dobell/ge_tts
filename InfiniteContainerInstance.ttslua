@@ -1,7 +1,7 @@
-local EventManager = require('ge_tts/EventManager')
-local Instance = require('ge_tts/Instance')
-local ObjectUtils = require('ge_tts/ObjectUtils')
-local TableUtils = require('ge_tts/TableUtils')
+local EventManager = require('ge_tts.EventManager')
+local Instance = require('ge_tts.Instance')
+local ObjectUtils = require('ge_tts.ObjectUtils')
+local TableUtils = require('ge_tts.TableUtils')
 
 ---@shape ge_tts__InfiniteContainerInstance_SavedState : ge_tts__Instance_SavedState
 ---@field spawnedGuids string[]

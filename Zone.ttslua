@@ -1,11 +1,11 @@
-local EventManager = require('ge_tts/EventManager')
-local Grid = require('ge_tts/Grid')
-local Instance = require('ge_tts/Instance')
-local Logger = require('ge_tts/Logger')
-local Object = require('ge_tts/Object')
-local ObjectUtils = require('ge_tts/ObjectUtils')
-local TableUtils = require('ge_tts/TableUtils')
-local Vector3 = require('ge_tts/Vector3')
+local EventManager = require('ge_tts.EventManager')
+local Grid = require('ge_tts.Grid')
+local Instance = require('ge_tts.Instance')
+local Logger = require('ge_tts.Logger')
+local Object = require('ge_tts.Object')
+local ObjectUtils = require('ge_tts.ObjectUtils')
+local TableUtils = require('ge_tts.TableUtils')
+local Vector3 = require('ge_tts.Vector3')
 
 ---@type table<tts__ScriptingTrigger, ge_tts__Zone>
 local scriptingTriggerZoneMap = {}

@@ -1,12 +1,12 @@
 -- JSON encoding of Color presently fails due to a bug in Color. Fortunately, we can patch Color to fix it.
-require('ge_tts/GlobalPatches')
+require('ge_tts.GlobalPatches')
 
-local Coroutine = require('ge_tts/Coroutine')
-local TableUtils = require('ge_tts/TableUtils')
+local Coroutine = require('ge_tts.Coroutine')
+local TableUtils = require('ge_tts.TableUtils')
 
-local LunaJsonDecoder = require('ge_tts/lunajson/decoder')
-local LunaJsonEncoder = require('ge_tts/lunajson/encoder')
-local LunaJsonSax = require('ge_tts/lunajson/sax')
+local LunaJsonDecoder = require('ge_tts.lunajson/decoder')
+local LunaJsonEncoder = require('ge_tts.lunajson/encoder')
+local LunaJsonSax = require('ge_tts.lunajson/sax')
 
 ---@class ge_tts__JsonNull
 local NULL = setmetatable({}, {

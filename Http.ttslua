@@ -1,7 +1,7 @@
-local Base64 = require('ge_tts/Base64')
-local Logger = require('ge_tts/Logger')
-local Json = require('ge_tts/Json')
-local TableUtils = require('ge_tts/TableUtils')
+local Base64 = require('ge_tts.Base64')
+local Logger = require('ge_tts.Logger')
+local Json = require('ge_tts.Json')
+local TableUtils = require('ge_tts.TableUtils')
 
 ---@shape ge_tts__Http_Response
 ---@field statusCode number

@@ -1,4 +1,4 @@
-local SaveManager = require('ge_tts/SaveManager')
+local SaveManager = require('ge_tts.SaveManager')
 
 local GlobalGrid = Grid
 
@@ -63,7 +63,7 @@ local function onLoad(savedState)
     end
 end
 
-local MODULE_NAME = 'ge_tts/Grid'
+local MODULE_NAME = 'ge_tts.Grid'
 
 SaveManager.registerOnSave(MODULE_NAME, onSave)
 SaveManager.registerOnLoad(MODULE_NAME, onLoad)

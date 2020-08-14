@@ -1,6 +1,6 @@
-local TableUtils = require('ge_tts/TableUtils')
-local Vector3 = require('ge_tts/Vector3')
-local Zone = require('ge_tts/Zone')
+local TableUtils = require('ge_tts.TableUtils')
+local Vector3 = require('ge_tts.Vector3')
+local Zone = require('ge_tts.Zone')
 
 local MAX_DROP_VELOCITY_SQUARED = 5 * 5 -- 5 in/sec
 
