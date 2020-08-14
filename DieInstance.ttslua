@@ -12,7 +12,7 @@ local Vector3 = require('ge_tts/Vector3')
 ---@overload fun(guid: string, container: tts__Container): ge_tts__Instance
 ---@overload fun(objectOrSavedState: tts__Object | ge_tts__Instance_SavedState): ge_tts__Instance
 ---@overload fun(objectOrGuidOrSavedState: tts__Object | string | ge_tts__Instance_SavedState, nilOrContainer: nil | tts__Container): ge_tts__Instance
----@field INSTANCE_TYPE string
+---@field TYPE string
 local DieInstance = {}
 
 DieInstance.TYPE = 'Die'
