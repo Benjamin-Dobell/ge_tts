@@ -129,7 +129,7 @@ end
 ---@generic K, V
 ---@param tab table<K, V>
 ---@param value any
----@return nil|K
+---@return nil | K
 TableUtils.find = function(tab, value)
     if TableUtils.isArray(tab) then
         for i, v in ipairs(--[[---@type any[] ]] tab) do
@@ -151,7 +151,7 @@ end
 ---@generic K, V
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): boolean
----@return nil|V, nil|K
+---@return nil | V, nil | K
 TableUtils.detect = function(tab, func)
     if TableUtils.isArray(tab) then
         for i, v in ipairs(--[[---@type V[] ]] tab) do

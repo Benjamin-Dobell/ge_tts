@@ -6,7 +6,7 @@ local TableUtils = require('ge_tts/TableUtils')
 ---@shape ge_tts__Http_Response
 ---@field statusCode number
 ---@field headers table<string, string>
----@field body string|number[]|table
+---@field body string | number[] | table
 
 ---@alias ge_tts__Http_Callback fun(response: nil | ge_tts__Http_Response, error: nil | string): void
 ---

@@ -139,7 +139,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         local superOnDrop = self.onDrop
 
         --- Called when a TTS object is dropped within this DropZone.
-        ---@param colorName nil|tts__PlayerColor @Color of the TTS player that dropped the TTS object.
+        ---@param colorName nil | tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was dropped.
         function self.onDrop(colorName, object)
             superOnDrop(colorName, object)

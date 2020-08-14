@@ -284,7 +284,7 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         end
 
         --- Can be called to dynamically drop a TTS object in this Zone.
-        ---@param colorName nil|tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
+        ---@param colorName nil | tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
             self.onDrop(colorName, object)

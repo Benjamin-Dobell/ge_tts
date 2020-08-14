@@ -32,13 +32,13 @@ setmetatable(DieInstance, {
             return DieInstance.TYPE
         end
 
-        ---@param value number|string
-        ---@param playerColor nil|tts__PlayerColor
+        ---@param value number | string
+        ---@param playerColor nil | tts__PlayerColor
         function self.onRolled(value, playerColor)
         end
 
-        ---@param value number|string
-        ---@param playerColor nil|tts__PlayerColor
+        ---@param value number | string
+        ---@param playerColor nil | tts__PlayerColor
         function self.onRotationValueUpdated(value, playerColor)
         end
 
@@ -53,7 +53,7 @@ local MIN_ROLL_ANGULAR_VELOCITY_SQUARED = 2 * math.pi * math.pi
 local monitoredDice = {}
 
 ---@param object tts__Object
----@param playerColor nil|tts__PlayerColor
+---@param playerColor nil | tts__PlayerColor
 local onObjectUpdating = function(object, playerColor)
     if monitoredDice[object] or object.tag ~= Object.Tag.Die then
         return
