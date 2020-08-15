@@ -107,11 +107,11 @@ setmetatable(Instance, {
         local destroyed = false
 
         ---@param container tts__Container
-        self.onEnterContainer = function(container)
+        function self.onEnterContainer(container)
         end
 
         ---@param container tts__Container
-        self.onLeaveContainer = function(container)
+        function self.onLeaveContainer(container)
         end
 
         ---@return string

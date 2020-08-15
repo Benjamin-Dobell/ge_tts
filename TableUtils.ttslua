@@ -12,7 +12,7 @@ local TableUtils = {}
 ---@overload fun<V>(tab: table<userdata, V>): false
 ---@param tab table
 ---@return boolean
-TableUtils.isArray = function(tab)
+function TableUtils.isArray(tab)
     return tab[1] ~= nil or type(tab[0]) == 'number'
 end
 
@@ -41,7 +41,7 @@ end
 ---@generic K, V
 ---@param tab table<K, V>
 ---@return table<V, K>
-TableUtils.invert = function(tab)
+function TableUtils.invert(tab)
     ---@type table<V, K>
     local inverted = {}
 
@@ -56,7 +56,7 @@ end
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): RemappedK
 ---@return table<RemappedK, V>
-TableUtils.remap = function(tab, func)
+function TableUtils.remap(tab, func)
     local remapped = {}
 
     for k, v in pairs(tab) do
@@ -71,7 +71,7 @@ end
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): any
 ---@return table<K, V>
-TableUtils.select = function(tab, func)
+function TableUtils.select(tab, func)
     ---@type table<K, V>
     local selected = {}
 
@@ -98,7 +98,7 @@ end
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): boolean
 ---@return table<K, V>
-TableUtils.reject = function(tab, func)
+function TableUtils.reject(tab, func)
     return TableUtils.select(tab, function(v, k) return not func(v, k) end)
 end
 
@@ -108,7 +108,7 @@ end
 ---@param initial R
 ---@param func fun(memo: R, value: V, key: K): R
 ---@return R
-TableUtils.reduce = function(tab, initial, func)
+function TableUtils.reduce(tab, initial, func)
     local memo = func and initial or next(tab)
     local reducer = func or initial
 
@@ -130,7 +130,7 @@ end
 ---@param tab table<K, V>
 ---@param value any
 ---@return nil | K
-TableUtils.find = function(tab, value)
+function TableUtils.find(tab, value)
     if TableUtils.isArray(tab) then
         for i, v in ipairs(--[[---@type any[] ]] tab) do
             if v == value then
@@ -152,7 +152,7 @@ end
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): boolean
 ---@return nil | V, nil | K
-TableUtils.detect = function(tab, func)
+function TableUtils.detect(tab, func)
     if TableUtils.isArray(tab) then
         for i, v in ipairs(--[[---@type V[] ]] tab) do
             if func(v, --[[---@type K]] i) then
@@ -191,7 +191,7 @@ end
 ---@generic K, V
 ---@param tab table
 ---@vararg table
-TableUtils.inject = function(tab, ...)
+function TableUtils.inject(tab, ...)
     local otherTables = { ... }
 
     for _, t in ipairs(otherTables) do
@@ -210,7 +210,7 @@ end
 ---@overload fun<T>(...: T): T
 ---@vararg table
 ---@return table
-TableUtils.merge = function(...)
+function TableUtils.merge(...)
     local merged = {}
     TableUtils.inject(merged, ...)
     return merged
@@ -219,7 +219,7 @@ end
 ---@generic V
 ---@param tab V[][]
 ---@return V[]
-TableUtils.flatten = function(tab)
+function TableUtils.flatten(tab)
     ---@type V[]
     local flattened = {}
 
@@ -235,7 +235,7 @@ end
 ---@generic K, V
 ---@param tab table<K, V>
 ---@return K[]
-TableUtils.keys = function(tab)
+function TableUtils.keys(tab)
     ---@type K[]
     local keys = {}
 
@@ -249,7 +249,7 @@ end
 ---@generic K, V
 ---@param tab table<K, V>
 ---@return V[]
-TableUtils.values = function(tab)
+function TableUtils.values(tab)
     ---@type V[]
     local values = {}
 
@@ -262,7 +262,7 @@ end
 
 ---@param tab table
 ---@return number
-TableUtils.count = function(tab)
+function TableUtils.count(tab)
     local count = 0
 
     for _, _ in pairs(tab) do
@@ -275,7 +275,7 @@ end
 ---@generic V
 ---@param arr V[]
 ---@return V[]
-TableUtils.reverse = function(arr)
+function TableUtils.reverse(arr)
     local reversed = {}
 
     if TableUtils.isArray(arr) then
@@ -293,7 +293,7 @@ end
 ---@param start number
 ---@param finish number
 ---@return V[]
-TableUtils.range = function(arr, start, finish)
+function TableUtils.range(arr, start, finish)
     local range = {}
 
     if TableUtils.isArray(arr) then
@@ -310,7 +310,7 @@ end
 ---@generic V
 ---@param arr V[]
 ---@return V[]
-TableUtils.unique = function(arr)
+function TableUtils.unique(arr)
     local unique = {}
 
     for _, value in ipairs(arr) do
