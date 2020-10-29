@@ -170,11 +170,13 @@ function Json.decodeAsync(json, options)
         }
 
         ---@type number
-        local charactersPerChunk
+        local charactersPerChunk = 0
 
-        if options.charactersPerChunk and charactersPerChunk > 0 then
+        if options.charactersPerChunk then
             charactersPerChunk = --[[---@not nil]] options.charactersPerChunk
-        else
+        end
+
+        if charactersPerChunk <= 0 then
             charactersPerChunk = 2048
         end
 
