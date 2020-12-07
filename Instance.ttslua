@@ -395,7 +395,8 @@ setmetatable(Instance, {
             object = container
             zone = containerInstance and (--[[---@not nil]] containerInstance).getZone()
         else
-            Logger.assert(objectOrGuidOrSavedState, 'Instance cannot be instantiated without an associated object')
+			Logger.assert(type(objectOrGuidOrSavedState) == "userdata" and (--[[---@type tts__Object]] objectOrGuidOrSavedState).guid, 'Instance cannot be instantiated without an associated object')
+
 
             local instanceObject = --[[---@type tts__Object]] objectOrGuidOrSavedState
             object = instanceObject
