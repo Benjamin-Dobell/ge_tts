@@ -386,7 +386,8 @@ setmetatable(Instance, {
                 end
             end
         elseif nilOrContainer then
-			Logger.assert(type(nilOrContainer) == "userdata" and nilOrContainer ~= nil, 'Instance cannot be instantiated with a GUID but no valid associated object')
+            Logger.assert(type(nilOrContainer) == "userdata" and nilOrContainer ~= nil, 'Instance cannot be instantiated with a GUID but no valid associated object')
+            Logger.assert(objectOrGuidOrSavedState, 'Instance cannot be instantiated with a container but no GUID')
 
             local container = --[[---@not nil]] nilOrContainer
             local containerInstance = Instance.getInstance(container.guid)
@@ -395,7 +396,7 @@ setmetatable(Instance, {
             object = container
             zone = containerInstance and (--[[---@not nil]] containerInstance).getZone()
         else
-			Logger.assert(type(nilOrContainer) == "userdata" and nilOrContainer ~= nil, 'Instance cannot be instantiated without a valid associated object')
+            Logger.assert(type(objectOrGuidOrSavedState) == "userdata" and objectOrGuidOrSavedState ~= nil, 'Instance cannot be instantiated without a valid associated object')
 
             local instanceObject = --[[---@type tts__Object]] objectOrGuidOrSavedState
             object = instanceObject
