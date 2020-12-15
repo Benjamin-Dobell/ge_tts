@@ -86,6 +86,37 @@ A simple (but functionally complete) HTTP client that works in conjunction with 
 
 The Http module will automatically encode/decode JSON, otherwise you can provide a string and specify headers yourself. You may also provide an array of number, which represent bytes if the request body should be an octet-stream.
 
+### Instance
+
+**IMPORTANT**: ge_tts does not presently support `Instance` being stored in _nested_ containers i.e. Cards placed in a deck are fine. However, ge_tts is
+_presently_ unable to track `Instance` referring to a card in a deck _in a bag_.
+
+_Please refer to [ge_tts_demo](https://github.com/Benjamin-Dobell/ge_tts_demo) for a demonstration._
+
+Unlike TTS objects, which are destroyed when entering a container, instances more closely resemble the concept of a real world game piece, and are only
+destroyed if you delete the object in TTS.
+
+`Instance` also provides some convenience methods that help you interact with TTS objects. For example, `reject()` knows how to return a TTS object to wherever
+it previously came from; either its previous zone, or if it has never been in a zone before, wherever it was picked up from.
+
+### InstanceManager
+
+**WARNING**: This is an _advanced_ feature, and makes implementing saving and loading more difficult to implement correctly.
+
+`InstanceManager` exists for the sole purpose improving save performance.
+
+`InstanceManager` is beneficial if your mod has a lot of `Instance` (typically 500+) or some of your `Instance` sub-classes are storing a lot of data that
+changes infrequently. `InstanceManager` essentially introduces caching layer, that results in each instance's `save()` on being called only when absolutely
+necessary, and most importantly, smaller less frequent JSON encodes.
+
+1. You _enable_ use of an `InstanceManager` with `InstanceManager.set(yourInstanceManager)`. You _don't_ need to sub-class, `local yourInstanceManager = InstanceManager()` is perfectly acceptable.
+2. Your main module's  `onSave` (`SaveManager.registerOnSave`) must call `InstanceManager.save()` and  `onLoad` (`SaveManager.registerOnLoad`) must call `InstanceManager.load()`.
+3. You must call `self.invalidateSavedState()` on an `Instance`, if you know its saved state is dirty.
+4. When saving an instance, call `InstanceManager.saveInstanceState(instance)` and store the returned instance GUID only. As opposed to calling `instanced.save()` and storing the generated saved stated (which is what you'd do without the `InstanceManager`).
+5. When loading/recreating an instance, call `InstanceManager.loadInstanceState(instanceGuid)` to obtain the saved state of the `Instance`, which you'll then provide to the `Instance`'s constructor.
+
+When enabled `InstanceManager` will persist `Instance` saved state (i.e. return value of `save()`) to the corresponding TTS object's `script_state`. 
+
 ### Logger
 
 A robust logging system with support for log levels and filtering.
