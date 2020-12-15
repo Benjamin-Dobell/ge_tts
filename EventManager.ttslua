@@ -9,11 +9,13 @@ local EVENT_DEFAULT_RETURN_VALUES = {
 ---@type table<string, function[]>
 local eventHandlers = {}
 
+local globalHandlers = --[[---@type {[string]: nil | function}]] _G
+
 ---@param event string
 local function listen(event)
-    local previousGlobalHandler = --[[---@type nil | function]] _G[event]
+    local previousGlobalHandler = globalHandlers[event]
 
-    _G[event] = function(...)
+    ;(--[[---@type table]] _G)[event] = function(...)
         local handlers = TableUtils.copy(eventHandlers[event]) -- Copied in case we add/remove handlers during a handler callback
 
         ---@type std__Packed<any>
@@ -86,7 +88,11 @@ end
 ---@param event string @Event name
 ---@vararg any
 function EventManager.triggerEvent(event, ...)
-    (--[[---@type function]] _G[event])(...)
+    local handler = globalHandlers[event]
+
+    if handler then
+        (--[[---@not nil]] handler)(...)
+    end
 end
 
 return EventManager

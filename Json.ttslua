@@ -55,7 +55,7 @@ local NODE_KEY = 2
 ---@field nullIdentification nil | boolean @Default true. When true, null values in an array/object are represented by JSON.null() rather than being omitted.
 
 ---@shape ge_tts__Json_DecodeAsyncOptions : ge_tts__Json_DecodeOptions
----@field onCompletion fun(data: ge_tts__JsonValue): void
+---@field onCompletion fun(data: any): void
 ---@field onError fun(message: string): void
 ---@field charactersPerChunk nil | number @Default 2048 (2 KiB)
 ---@field framesBetweenChunks nil | number @Default 1
@@ -226,10 +226,10 @@ end
 
 local decode = LunaJsonDecoder()
 
----@overload fun(json: string): ge_tts__JsonValue
+---@overload fun(json: string): any
 ---@param json string
 ---@param options nil | ge_tts__Json_DecodeOptions
----@return ge_tts__JsonValue
+---@return any
 function Json.decode(json, options)
     local decodeOptions = TableUtils.merge(defaultDecodeOptions, --[[---@not nil]] options or {})
     local nullValue = decodeOptions.nullIdentification and Json.null() or nil
@@ -238,7 +238,7 @@ end
 
 local encode = LunaJsonEncoder()
 
----@param json ge_tts__JsonValue
+---@param value any
 ---@return string
 function Json.encode(value)
     return encode(value, Json.null())

@@ -4,6 +4,7 @@ local TableUtils = require('ge_tts.TableUtils')
 local SAVE_STATE_IDENTIFIER = "__ge_tts_save__"
 
 ---@class ge_tts__static_InstanceManager
+---@overload fun(): ge_tts__InstanceManager
 local InstanceManager = {}
 
 ---@class ge_tts__InstanceManager
@@ -217,7 +218,7 @@ function InstanceManager.get()
     return currentInstanceManager
 end
 
----@param Instance ge_tts__InstanceManager
+---@param manager ge_tts__InstanceManager
 function InstanceManager.set(manager)
     currentInstanceManager = manager
 end

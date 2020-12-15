@@ -57,14 +57,14 @@ end
 function Http.request(method, url, options, callback)
     Logger.assert(proxyUrl, 'Http must be configured with Http.setProxyUrl(\'YOUR_TTS_PROXY_URL\'). Please refer to https://gitlab.com/BenjaminDobell/tts-proxy for details.')
 
-    content = Json.encode(TableUtils.merge(
+    local content = Json.encode(TableUtils.merge(
         {
-            headers={},
+            headers = {},
         },
         options,
         {
-            method=method:upper(),
-            url=url,
+            method = method:upper(),
+            url = url,
         }
     ))
 
@@ -83,7 +83,7 @@ function Http.request(method, url, options, callback)
                     }
 
                     if responseContent.base64 then
-                        response.body = Base64.decode(response.body)
+                        response.body = Base64.decode(--[[---@type string]] response.body)
                         callback(response, nil)
                         return
                     end

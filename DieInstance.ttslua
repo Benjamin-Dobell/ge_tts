@@ -102,8 +102,19 @@ local onObjectUpdating = function(object, playerColor)
     end
 end
 
+---@param playerColor nil | tts__PlayerColor
+---@param object tts__Object
+local function onObjectDrop(playerColor, object)
+    onObjectUpdating(object, playerColor)
+end
+
+---@param registeredObject tts__Object
+local function onObjectCollisionExit(registeredObject)
+    onObjectUpdating(registeredObject, nil)
+end
+
 EventManager.addHandler('onObjectRandomize', onObjectUpdating)
-EventManager.addHandler('onObjectDrop', function(playerColor, object) onObjectUpdating(object, playerColor) end)
-EventManager.addHandler('onObjectCollisionExit', function(registeredObject) onObjectUpdating(registeredObject, nil) end)
+EventManager.addHandler('onObjectDrop', onObjectDrop)
+EventManager.addHandler('onObjectCollisionExit', onObjectCollisionExit)
 
 return DieInstance

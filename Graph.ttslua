@@ -81,7 +81,7 @@ function Graph.breadthTraverse(root, getChildren, visitCallback)
         local result = table.pack(coroutine.resume(breadthVisit))
 
         if #result > 1 then
-            return --[[---@not nil]] table.unpack(result, 2)
+            return --[[---@not nil]] table.unpack(--[[---@type std__Packed<any>]] result, 2)
         end
     until coroutine.status(breadthVisit) ~= 'suspended'
 end

@@ -10,7 +10,7 @@ local DropZone = require('ge_tts.DropZone')
 local PlayerDropZone = {}
 
 setmetatable(PlayerDropZone, TableUtils.merge(getmetatable(DropZone), {
-    ---@param zonePositionOrSavedState tts__VectorShape | table
+    ---@param zonePositionOrSavedState tts__VectorShape | ge_tts__PlayerDropZone_SavedState
     ---@param zoneRotation tts__VectorShape
     ---@param zoneScale tts__VectorShape
     ---@param occupantScale nil | number @Optional - occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.

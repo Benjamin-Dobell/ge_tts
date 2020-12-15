@@ -39,14 +39,16 @@ setmetatable(Grid, {
             return snapping
         end
 
-        return GlobalGrid[key]
+        return (--[[---@type table]] GlobalGrid)[key]
     end,
+    ---@param key any
+    ---@param value any
     __newindex = function(_, key, value)
         if key == 'snapping' then
             snapping = value
         end
 
-        GlobalGrid[key] = value
+        (--[[---@type table]] GlobalGrid)[key] = value
     end
 })
 

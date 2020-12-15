@@ -3,6 +3,8 @@ local ChatCommands = require('ge_tts.ChatCommands')
 ---@class tts__Debug
 local Debug = {}
 
+local globalTable = (--[[---@type table<string, any>]] _G)
+
 ---@overload fun(): void
 ---@param prefix nil | string
 function Debug.createGlobals(prefix)
@@ -13,7 +15,7 @@ function Debug.createGlobals(prefix)
         for packageName, package in pairs(_LOADED) do
             if packageName:sub(1, 7) == 'ge_tts.' then
                 local identifier = prefix .. packageName:sub(8):gsub('/', '__')
-                _G[identifier] = package
+                globalTable[identifier] = package
             end
         end
 

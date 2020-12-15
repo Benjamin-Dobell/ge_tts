@@ -89,6 +89,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         --- Same as onDrop except that we provide a count which is the maximum number of objects dealt from a container.
         ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object tts__Object @The object that will be dropped.
+        ---@param count number @Number of cards to deal
         function self.deal(colorName, object, count)
             local isContainer = ObjectUtils.isContainerTag(object.tag)
 

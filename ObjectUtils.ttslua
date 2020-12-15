@@ -154,7 +154,7 @@ function ObjectUtils.transformState(...)
         local args = --[[---@type table]] ...
 
         if args[1] then
-            position = args
+            position = --[[---@type tts__VectorShape]] args
         else
             local transform = --[[---@type {position: nil | tts__VectorShape, rotation: nil | tts__VectorShape, scale: nil | tts__VectorShape}]] args
             position = transform.position

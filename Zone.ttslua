@@ -28,6 +28,8 @@ local function addObjectIntersectingZone(object, zone)
     end
 end
 
+---@param object tts__Object
+---@param zone ge_tts__Zone
 local function removeObjectIntersectingZone(object, zone)
     local objectZones = objectIntersectingZonesMap[object]
 
