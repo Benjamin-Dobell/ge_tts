@@ -39,10 +39,10 @@ local function onChat(message, player)
         return true
     end
 
-    local callback = commandCallbacks[--[[---@not nil]] command]
+    local callback = commandCallbacks[--[[---@type string]] command]
 
     if callback then
-        callback(--[[---@not nil]] value, player)
+        callback(--[[---@type string]] value, player)
     else
         broadcastToColor('Unknown command: ' .. command, player.color, 'Red')
     end

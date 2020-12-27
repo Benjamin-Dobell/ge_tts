@@ -2,8 +2,6 @@ local setmetatable, tonumber, tostring =
       setmetatable, tonumber, tostring
 local floor, inf =
       math.floor, math.huge
-local mininteger, tointeger =
-      math.mininteger or nil, math.tointeger or nil
 local byte, char, find, gsub, match, sub =
       string.byte, string.char, string.find, string.gsub, string.match, string.sub
 
@@ -12,24 +10,46 @@ local function _parse_error(pos, errmsg)
 end
 
 local f_str_ctrl_pat = '[^\32-\255]'
-local type, unpack = type, table.unpack or unpack
+local type, unpack = type, table.unpack
 
 local _ENV = nil
 
+---@class lunajson__SaxParser
+---@field run fun(): void
+---@field tryc fun(): nil | number
+---@field read fun(n: number): string
+---@field tellpos fun(): number
+
+---@shape lunajson__SaxHandler
+---@field startobject nil | fun(): void
+---@field key nil | fun(key: string): void
+---@field endobject nil | fun(): void
+---@field startarray nil | fun(): void
+---@field endarray nil | fun(): void
+---@field string nil | fun(value: string): void
+---@field number nil | fun(value: number): void
+---@field boolean nil | fun(value: boolean): void
+---@field null nil | fun(value: nil): void
 
 local function nop() end
 
+---@overload fun(src: string, saxtbl: lunajson__SaxHandler): lunajson__SaxParser
+---@param src fun(): nil | string
+---@param saxtbl lunajson__SaxHandler
+---@return lunajson__SaxParser
 local function newparser(src, saxtbl)
+	---@type string, (fun(): void), number
 	local json, jsonnxt, rec_depth
 	local jsonlen, pos, acc = 0, 1, 0
 
 	-- `f` is the temporary for dispatcher[c] and
 	-- the dummy for the first return value of `find`
+	---@type {[number]: fun(): void}, fun(): void
 	local dispatcher, f
 
 	-- initialize
 	if type(src) == 'string' then
-		json = src
+		json = --[[---@type string]] src
 		jsonlen = #json
 		jsonnxt = function()
 			json = ''
@@ -40,14 +60,20 @@ local function newparser(src, saxtbl)
 		jsonnxt = function()
 			acc = acc + jsonlen
 			pos = 1
+
 			repeat
-				json = src()
+				-- Don't like this cast, it's wrong. Ideally we'd have a local
+				-- var that's nillable, but lunajson is heavily optimized, so we
+				-- make do.
+				json = --[[---@not nil]] src()
+
 				if not json then
 					json = ''
 					jsonlen = 0
 					jsonnxt = nop
 					return
 				end
+
 				jsonlen = #json
 			until jsonlen > 0
 		end
@@ -86,7 +112,7 @@ local function newparser(src, saxtbl)
 
 	local function spaces()  -- skip spaces and prepare the next char
 		while true do
-			pos = match(json, '^[ \n\r\t]*()', pos)
+			pos = --[[---@type number]] match(json, '^[ \n\r\t]*()', pos)
 			if pos <= jsonlen then
 				return
 			end
@@ -108,6 +134,13 @@ local function newparser(src, saxtbl)
 		Constants
 	--]]
 	-- fallback slow constants parser
+	---@overload fun(target: string, targetlen: number, ret: nil, sax_f: fun(value: nil): void): void
+	---@overload fun(target: string, targetlen: number, ret: true, sax_f: fun(value: true): void): void
+	---@overload fun(target: string, targetlen: number, ret: false, sax_f: fun(value: false): void): void
+	---@param target string
+	---@param targetlen number
+	---@param ret nil | boolean
+	---@param sax_f fun(value: nil | boolean): void
 	local function generic_constant(target, targetlen, ret, sax_f)
 		for i = 1, targetlen do
 			local c = tellc()
@@ -116,34 +149,37 @@ local function newparser(src, saxtbl)
 			end
 			pos = pos+1
 		end
-		return sax_f(ret)
+		sax_f(ret)
 	end
 
 	-- null
 	local function f_nul()
 		if sub(json, pos, pos+2) == 'ull' then
 			pos = pos+3
-			return sax_null(nil)
+			sax_null(nil)
+			return
 		end
-		return generic_constant('ull', 3, nil, sax_null)
+		generic_constant('ull', 3, nil, sax_null)
 	end
 
 	-- false
 	local function f_fls()
 		if sub(json, pos, pos+3) == 'alse' then
 			pos = pos+4
-			return sax_boolean(false)
+			sax_boolean(false)
+			return
 		end
-		return generic_constant('alse', 4, false, sax_boolean)
+		generic_constant('alse', 4, false, sax_boolean)
 	end
 
 	-- true
 	local function f_tru()
 		if sub(json, pos, pos+2) == 'rue' then
 			pos = pos+3
-			return sax_boolean(true)
+			sax_boolean(true)
+			return
 		end
-		return generic_constant('rue', 3, true, sax_boolean)
+		generic_constant('rue', 3, true, sax_boolean)
 	end
 
 	--[[
@@ -152,14 +188,14 @@ local function newparser(src, saxtbl)
 		is captured as a number and its conformance to the JSON spec is checked.
 	--]]
 	-- deal with non-standard locales
-	local radixmark = match(tostring(0.5), '[^0-9]')
+	local radixmark = --[[---@type string]] match(tostring(0.5), '[^0-9]')
 	local fixedtonumber = tonumber
 	if radixmark ~= '.' then
 		if find(radixmark, '%W') then
 			radixmark = '%' .. radixmark
 		end
 		fixedtonumber = function(s)
-			return tonumber(gsub(s, '.', radixmark))
+			return tonumber((gsub(s, '.', radixmark)))
 		end
 	end
 
@@ -169,6 +205,7 @@ local function newparser(src, saxtbl)
 
 	-- fallback slow parser
 	local function generic_number(mns)
+		---@type (nil | number)[]
 		local buf = {}
 		local i = 1
 		local is_int = true
@@ -217,125 +254,136 @@ local function newparser(src, saxtbl)
 		end
 		pos = pos-1
 
-		local num = char(unpack(buf))
-		num = fixedtonumber(num)
+		local num = fixedtonumber(char(unpack(buf)))
 		if mns then
 			num = -num
-			if num == mininteger and is_int then
-				num = mininteger
-			end
 		end
-		return sax_number(num)
+		sax_number(--[[---@not nil]] num)
 	end
 
 	-- `0(\.[0-9]*)?([eE][+-]?[0-9]*)?`
 	local function f_zro(mns)
-		local num, c = match(json, '^(%.?[0-9]*)([-+.A-Za-z]?)', pos)  -- skipping 0
+		---@type string, number | string
+		local num, c = --[[---@type string, string]] match(json, '^(%.?[0-9]*)([-+.A-Za-z]?)', pos)  -- skipping 0
 
 		if num == '' then
 			if pos > jsonlen then
 				pos = pos - 1
-				return generic_number(mns)
+				generic_number(mns)
+				return
 			end
 			if c == '' then
 				if mns then
-					return sax_number(-0.0)
+					sax_number(-0.0)
+					return
 				end
-				return sax_number(0)
+				sax_number(0)
+				return
 			end
 
 			if c == 'e' or c == 'E' then
-				num, c = match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
+				num, c = --[[---@type string, string]] match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
 				if c == '' then
 					pos = pos + #num
 					if pos > jsonlen then
 						pos = pos - #num - 1
-						return generic_number(mns)
+						generic_number(mns)
+						return
 					end
 					if mns then
-						return sax_number(-0.0)
+						sax_number(-0.0)
+						return
 					end
-					return sax_number(0.0)
+					sax_number(0.0)
+					return
 				end
 			end
 			pos = pos-1
-			return generic_number(mns)
+			generic_number(mns)
+			return
 		end
 
 		if byte(num) ~= 0x2E or byte(num, -1) == 0x2E then
 			pos = pos-1
-			return generic_number(mns)
+			generic_number(mns)
+			return
 		end
 
 		if c ~= '' then
 			if c == 'e' or c == 'E' then
-				num, c = match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
+				num, c = --[[---@type string, string]] match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
 			end
 			if c ~= '' then
 				pos = pos-1
-				return generic_number(mns)
+				generic_number(mns)
+				return
 			end
 		end
 
 		pos = pos + #num
 		if pos > jsonlen then
 			pos = pos - #num - 1
-			return generic_number(mns)
+			generic_number(mns)
+			return
 		end
-		c = fixedtonumber(num)
+		c = --[[---@not nil]] fixedtonumber(num)
 
 		if mns then
 			c = -c
 		end
-		return sax_number(c)
+		sax_number(--[[---@type number]] c)
+		return
 	end
 
 	-- `[1-9][0-9]*(\.[0-9]*)?([eE][+-]?[0-9]*)?`
 	local function f_num(mns)
 		pos = pos-1
-		local num, c = match(json, '^([0-9]+%.?[0-9]*)([-+.A-Za-z]?)', pos)
+
+		---@type string, string | number
+		local num, c = --[[---@type string, string]] match(json, '^([0-9]+%.?[0-9]*)([-+.A-Za-z]?)', pos)
 		if byte(num, -1) == 0x2E then  -- error if ended with period
-			return generic_number(mns)
+			generic_number(mns)
+			return
 		end
 
 		if c ~= '' then
 			if c ~= 'e' and c ~= 'E' then
-				return generic_number(mns)
+				generic_number(mns)
+				return
 			end
-			num, c = match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
+			num, c = --[[---@type string, string]] match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
 			if not num or c ~= '' then
-				return generic_number(mns)
+				generic_number(mns)
+				return
 			end
 		end
 
 		pos = pos + #num
 		if pos > jsonlen then
 			pos = pos - #num
-			return generic_number(mns)
+			generic_number(mns)
+			return
 		end
-		c = fixedtonumber(num)
+		c = --[[---@not nil]] fixedtonumber(num)
 
 		if mns then
 			c = -c
-			if c == mininteger and not find(num, '[^0-9]') then
-				c = mininteger
-			end
 		end
-		return sax_number(c)
+		sax_number(--[[---@type number]] c)
 	end
 
 	-- skip minus sign
 	local function f_mns()
-		local c = byte(json, pos) or tellc()
+		local c = (byte(json, pos)) or tellc()
 		if c then
 			pos = pos+1
 			if c > 0x30 then
 				if c < 0x3A then
-					return f_num(true)
+					f_num(true)
 				end
 			else
 				if c > 0x2F then
-					return f_zro(true)
+					f_zro(true)
 				end
 			end
 		end
@@ -345,7 +393,7 @@ local function newparser(src, saxtbl)
 	--[[
 		Strings
 	--]]
-	local f_str_hextbl = {
+	local f_str_hextbl = --[[---@type {[number]: number, __index: fun(): number}]] {
 		0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
 		0x8, 0x9, inf, inf, inf, inf, inf, inf,
 		inf, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, inf,
@@ -379,9 +427,14 @@ local function newparser(src, saxtbl)
 	end
 
 	local f_str_surrogate_prev = 0
+
+	---@overload fun(ch: string, ucode: string): string
+	---@param ch '"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' | 'u'
+	---@param ucode number
+	---@return string
 	local function f_str_subst(ch, ucode)
 		if ch == 'u' then
-			local c1, c2, c3, c4, rest = byte(ucode, 1, 5)
+			local c1, c2, c3, c4, rest = --[[---@not nil, nil, nil, nil]] byte(--[[---@type string]] ucode, 1, 5)
 			ucode = f_str_hextbl[c1-47] * 0x1000 +
 			        f_str_hextbl[c2-47] * 0x100 +
 			        f_str_hextbl[c3-47] * 0x10 +
@@ -453,17 +506,19 @@ local function newparser(src, saxtbl)
 			f_str_surrogate_prev = 0
 			surrogate_first_error()
 		end
-		return f_str_escapetbl[ch] .. ucode
+		return f_str_escapetbl[--[[---@not 'u']] ch] .. ucode
 	end
 
 	local function f_str(iskey)
 		local pos2 = pos
+		---@type number
 		local newpos
 		local str = ''
+		---@type nil | true
 		local bs
 		while true do
 			while true do  -- search '\' or '"'
-				newpos = find(json, '[\\"]', pos2)
+				newpos = --[[---@not nil]] find(json, '[\\"]', pos2)
 				if newpos then
 					break
 				end
@@ -504,9 +559,10 @@ local function newparser(src, saxtbl)
 		end
 
 		if iskey then
-			return sax_key(str)
+			sax_key(str)
+		else
+			sax_string(str)
 		end
-		return sax_string(str)
 	end
 
 	--[[
@@ -524,16 +580,17 @@ local function newparser(src, saxtbl)
 		if byte(json, pos) == 0x5D then  -- check closing bracket ']' which means the array empty
 			pos = pos+1
 		else
+			---@type number
 			local newpos
 			while true do
-				f = dispatcher[byte(json, pos)]  -- parse value
+				f = dispatcher[--[[---@not nil]] byte(json, pos)]  -- parse value
 				pos = pos+1
 				f()
-				newpos = match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)  -- check comma
+				newpos = --[[---@type number]] match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)  -- check comma
 				if newpos then
 					pos = newpos
 				else
-					newpos = match(json, '^[ \n\r\t]*%]()', pos)  -- check closing bracket
+					newpos = --[[---@type number]] match(json, '^[ \n\r\t]*%]()', pos)  -- check closing bracket
 					if newpos then
 						pos = newpos
 						break
@@ -556,7 +613,7 @@ local function newparser(src, saxtbl)
 		end
 
 		rec_depth = rec_depth - 1
-		return sax_endarray()
+		sax_endarray()
 	end
 
 	-- objects
@@ -571,6 +628,7 @@ local function newparser(src, saxtbl)
 		if byte(json, pos) == 0x7D then  -- check closing bracket '}' which means the object empty
 			pos = pos+1
 		else
+			---@type number
 			local newpos
 			while true do
 				if byte(json, pos) ~= 0x22 then
@@ -578,7 +636,7 @@ local function newparser(src, saxtbl)
 				end
 				pos = pos+1
 				f_str(true)  -- parse key
-				newpos = match(json, '^[ \n\r\t]*:[ \n\r\t]*()', pos)  -- check colon
+				newpos = --[[---@type number]] match(json, '^[ \n\r\t]*:[ \n\r\t]*()', pos)  -- check colon
 				if newpos then
 					pos = newpos
 				else
@@ -592,14 +650,14 @@ local function newparser(src, saxtbl)
 				if pos > jsonlen then
 					spaces()
 				end
-				f = dispatcher[byte(json, pos)]
+				f = dispatcher[--[[---@not nil]] byte(json, pos)]
 				pos = pos+1
 				f()  -- parse value
-				newpos = match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)  -- check comma
+				newpos = --[[---@type number]] match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)  -- check comma
 				if newpos then
 					pos = newpos
 				else
-					newpos = match(json, '^[ \n\r\t]*}()', pos)  -- check closing bracket
+					newpos = --[[---@type number]] match(json, '^[ \n\r\t]*}()', pos)  -- check closing bracket
 					if newpos then
 						pos = newpos
 						break
@@ -622,7 +680,7 @@ local function newparser(src, saxtbl)
 		end
 
 		rec_depth = rec_depth - 1
-		return sax_endobject()
+		sax_endobject()
 	end
 
 	--[[
@@ -630,7 +688,7 @@ local function newparser(src, saxtbl)
 		indexed by the code of the value's first char.
 		Key should be non-nil.
 	--]]
-	dispatcher = { [0] =
+	dispatcher = --[[---@type {[number]: fun(): void}]] { [0] =
 		f_err, f_err, f_err, f_err, f_err, f_err, f_err, f_err,
 		f_err, f_err, f_err, f_err, f_err, f_err, f_err, f_err,
 		f_err, f_err, f_err, f_err, f_err, f_err, f_err, f_err,
@@ -655,11 +713,13 @@ local function newparser(src, saxtbl)
 	local function run()
 		rec_depth = 0
 		spaces()
-		f = dispatcher[byte(json, pos)]
+		f = dispatcher[--[[---@not nil]] byte(json, pos)]
 		pos = pos+1
 		f()
 	end
 
+	---@param n number
+	---@return string
 	local function read(n)
 		if n < 0 then
 			error("the argument must be non-negative")
@@ -681,7 +741,7 @@ local function newparser(src, saxtbl)
 		return acc + pos
 	end
 
-	return {
+	return --[[---@type lunajson__SaxParser]] {
 		run = run,
 		tryc = tryc,
 		read = read,

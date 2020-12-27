@@ -1,11 +1,49 @@
 -- This module operates on tables that contain only positive consecutive integer keys starting at 1 (i.e. a plain array), as well as tables which contain no
 -- array component. Behavior is undefined for tables that contain a key for [1] as well as non-consecutive integer or non-integer keys.
 
+---@generic T
+---@param length number
+---@return fun(arr: std__Packed<T>, i: number): nil | (number, T)
+local function fixedLengthIterator(length)
+    ---@type fun(arr: std__Packed<T>, i: number): nil | (number, T)
+    return function(arr, i)
+        i = i + 1
+        if i <= length then
+            return i, arr[i]
+        end
+    end
+end
+
+---@overload fun<V, A : std__Packed<V>>(arr: A): (fun(arr: A, i: number): number, V), V[], 0
+---@overload fun<V>(arr: V[]): (fun(arr: V[], i: number): number, V), V[], 0
+---@generic K, V
+---@param tab table<K, V>
+---@return (fun(tab: table<K, V>, k: K): nil | (K, V)), table<K, V>, K
+local function iterate(tab)
+    local fixedLength = (--[[---@type std__Packed<any>]] tab).n
+
+    if type(fixedLength) == 'number' and fixedLength >= 0 then
+        return --[[---@type fun(tab: table<K, V>, k: K): nil | (K, V)]] fixedLengthIterator(fixedLength), tab, --[[---@type K]] 0
+    elseif tab[--[[---@type K]] 1] ~= nil then
+        return --[[---@type (fun(tab: table<K, V>, k: K): nil | (K, V)), table<K, V>, K]] ipairs(--[[---@type V[] ]] tab)
+    else
+        return pairs(tab)
+    end
+end
+
 ---@class ge_tts__TableUtils
 local TableUtils = {}
 
---- Returns true if `tab` contains an entry at index 1. That being the case, this module will assume `tab` only contains sequential positive integer keys.
+--- Returns true if TableUtils will interpret the table as an array i.e. if tab[1] ~= nil or
+--- type(tab.n) == 'number'.
+---
+--- If tab is an array, and it's passed to a TableUtils function that iterates over tab calling a callback, the
+--- iteration over keys is guaranteed to take place in sequential order (à la ipairs).
+---
+--- In the case of type(tab.n) == 'number', tab.n will be treated as the length of the array and TableUtils will
+--- continue iterating over "holes" (nil values) up to this length.
 ---@overload fun<V>(tab: V[]): true
+---@overload fun<V>(tab: std__Packed<V>): true
 ---@overload fun<V>(tab: table<boolean, V>): false
 ---@overload fun<V>(tab: table<string, V>): false
 ---@overload fun<V>(tab: table<table, V>): false
@@ -13,7 +51,17 @@ local TableUtils = {}
 ---@param tab table
 ---@return boolean
 function TableUtils.isArray(tab)
-    return tab[1] ~= nil or type(tab[0]) == 'number'
+    return tab[1] ~= nil or type((--[[---@type std__Packed<any>]] tab).n) == 'number'
+end
+
+--- Returns the length of arr and a boolean indicating whether arr is a std__Packed<V>.
+---@generic V
+---@param arr V[] | std__Packed<V>
+---@return number, boolean
+function TableUtils.arrayLength(arr)
+    local fixedLength = (--[[---@type std__Packed<V>]] arr).n
+    local isFixed = type(fixedLength) == 'number'
+    return isFixed and fixedLength or #arr, isFixed
 end
 
 ---@overload fun<V, MappedV>(tab: V[], func: fun(value: V, key: number): MappedV): MappedV[]
@@ -25,14 +73,8 @@ function TableUtils.map(tab, func)
     ---@type table<K, MappedV>
     local mapped = {}
 
-    if TableUtils.isArray(tab) then
-        for i, v in ipairs(--[[---@type V[] ]] tab) do
-            mapped[--[[---@type K]] i] = func(v, --[[---@type K]] i)
-        end
-    else
-        for k, v in pairs(tab) do
-            mapped[k] = func(v, k)
-        end
+    for k, v in iterate(tab)  do
+        mapped[k] = func(v, k)
     end
 
     return mapped
@@ -45,8 +87,10 @@ function TableUtils.invert(tab)
     ---@type table<V, K>
     local inverted = {}
 
-    for k, v in pairs(tab) do
-        inverted[v] = k
+    for k, v in iterate(tab) do
+        if v then
+            inverted[v] = k
+        end
     end
 
     return inverted
@@ -57,9 +101,10 @@ end
 ---@param func fun(value: V, key: K): RemappedK
 ---@return table<RemappedK, V>
 function TableUtils.remap(tab, func)
+    ---@type table<RemappedK, V>
     local remapped = {}
 
-    for k, v in pairs(tab) do
+    for k, v in iterate(tab) do
         remapped[func(v, k)] = v
     end
 
@@ -76,10 +121,12 @@ function TableUtils.select(tab, func)
     local selected = {}
 
     if TableUtils.isArray(tab) then
-        local arr = tab
-        for i, v in ipairs(--[[---@type V[] ]] arr) do
-            if func(v, --[[---@type K]] i) then
-                table.insert(--[[---@type V[] ]] selected, v)
+        local i = 0
+
+        for k, v in iterate(tab) do
+            if func(v, k) then
+                i = i + 1
+                (--[[---@type V[] ]] selected)[i] = v
             end
         end
     else
@@ -102,24 +149,42 @@ function TableUtils.reject(tab, func)
     return TableUtils.select(tab, function(v, k) return not func(v, k) end)
 end
 
----@overload fun<R, K, V: R>(tab: table<K, V>, func: fun(memo: R, value: V, key: K): R): R
+---@overload fun<R, K, V: R>(tab: table<K, V>, func: fun(memo: R, value: V, key: K): R): nil | R
 ---@generic K, V, R
 ---@param tab table<K, V>
 ---@param initial R
 ---@param func fun(memo: R, value: V, key: K): R
 ---@return R
 function TableUtils.reduce(tab, initial, func)
-    local memo = func and initial or next(tab)
-    local reducer = func or initial
+    local iterator, _, initialK = iterate(tab)
 
-    ---@type K
-    local initialK
+    ---@type R
+    local memo
+
+    ---@type fun(memo: R, value: V, key: K): R
+    local reducer
+
+    if func then
+        memo = initial
+        reducer = func
+    else
+        local control, value = iterator(tab, initialK)
+
+        if control == nil then
+            -- Overload may return nil
+            return --[[---@type any]] nil
+        end
+
+        initialK = --[[---@not nil]] control
+        memo = --[[---@type R]] value
+        reducer = --[[---@type fun(memo: R, value: V, key: K): R]] initial
+    end
 
     if not func then
         initialK = --[[---@type K]] memo
     end
 
-    for k, v in next, tab, initialK do
+    for k, v in iterator, tab, initialK do
         memo = reducer(memo, v, k)
     end
 
@@ -131,17 +196,9 @@ end
 ---@param value any
 ---@return nil | K
 function TableUtils.find(tab, value)
-    if TableUtils.isArray(tab) then
-        for i, v in ipairs(--[[---@type any[] ]] tab) do
-            if v == value then
-                return --[[---@type K]] i
-            end
-        end
-    else
-        for k, v in pairs(tab) do
-            if v == value then
-                return k
-            end
+    for k, v in iterate(tab) do
+        if v == value then
+            return k
         end
     end
 
@@ -153,17 +210,9 @@ end
 ---@param func fun(value: V, key: K): boolean
 ---@return nil | V, nil | K
 function TableUtils.detect(tab, func)
-    if TableUtils.isArray(tab) then
-        for i, v in ipairs(--[[---@type V[] ]] tab) do
-            if func(v, --[[---@type K]] i) then
-                return v, --[[---@type K]] i
-            end
-        end
-    else
-        for k, v in pairs(tab) do
-            if func(v, k) then
-                return v, k
-            end
+    for k, v in iterate(tab) do
+        if func(v, k) then
+            return v, k
         end
     end
 
@@ -188,18 +237,31 @@ function TableUtils.copy(tab, recursive)
     return --[[---@type T]] copied
 end
 
+---@overload fun<V>(arr: V[], ...: V[]): void
+---@overload fun<V>(arr: std__Packed<V>, ...: V[] | std__Packed<V>): void
 ---@generic K, V
----@param tab table
----@vararg table
+---@param tab table<K, V>
+---@vararg table<K, V>
+---@return void
 function TableUtils.inject(tab, ...)
     local otherTables = { ... }
 
-    for _, t in ipairs(otherTables) do
-        if TableUtils.isArray(tab) then
-            for _, v in ipairs(--[[---@type any[] ]] t) do
-                table.insert(--[[---@type any[] ]] tab, v)
+    if TableUtils.isArray(tab) then
+        local arr = --[[---@type V[] | std__Packed<V>]] tab
+        local i, isFixed = TableUtils.arrayLength(arr)
+
+        for _, t in ipairs(otherTables) do
+            for _, v in iterate(--[[---@type V[] ]] t) do
+                i = i + 1
+                arr[i] = v
             end
-        else
+        end
+
+        if isFixed then
+            (--[[---@type std__Packed<V>]] tab).n = i
+        end
+    else
+        for _, t in ipairs(otherTables) do
             for k, v in pairs(t) do
                 tab[k] = v
             end
@@ -216,20 +278,28 @@ function TableUtils.merge(...)
     return merged
 end
 
+---@overload fun<V>(arrays: std__Packed<V>[]): std__Packed<V>, number
 ---@generic V
----@param tab V[][]
----@return V[]
-function TableUtils.flatten(tab)
+---@param arrays V[][]
+---@return V[], number
+function TableUtils.flatten(arrays)
     ---@type V[]
     local flattened = {}
+    local i = 0
 
-    for _, subTable in ipairs(tab) do
-        for _, v in ipairs(subTable) do
-            table.insert(flattened, v)
+    for _, array in ipairs(arrays) do
+        for _, v in iterate(array) do
+            i = i + 1
+            flattened[i] = v
         end
     end
 
-    return flattened
+
+    if i > 0 and type((--[[---@type std__Packed<V[]>]] arrays[1]).n) == 'number' then
+        (--[[---@type std__Packed<V>]] flattened).n = i
+    end
+
+    return flattened, i
 end
 
 ---@generic K, V
@@ -246,18 +316,25 @@ function TableUtils.keys(tab)
     return keys
 end
 
+---@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
 ---@generic K, V
 ---@param tab table<K, V>
----@return V[]
+---@return V[], number
 function TableUtils.values(tab)
     ---@type V[]
     local values = {}
+    local i = 0
 
-    for _, v in pairs(tab) do
-        table.insert(values, v)
+    for _, v in iterate(tab) do
+        i = i + 1
+        values[i] = v
     end
 
-    return values
+    if type((--[[---@type std__Packed<V>]] tab).n) == 'number' then
+        (--[[---@type std__Packed<V>]] values).n = i
+    end
+
+    return values, i
 end
 
 ---@param tab table
@@ -272,54 +349,69 @@ function TableUtils.count(tab)
     return count
 end
 
+---@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
 ---@generic V
 ---@param arr V[]
 ---@return V[]
 function TableUtils.reverse(arr)
+    ---@type V[]
     local reversed = {}
 
-    if TableUtils.isArray(arr) then
-        for i = #arr, 1, -1 do
-            table.insert(reversed, arr[i])
-        end
+    local length, isFixed = TableUtils.arrayLength(arr)
+    local j = 1
+
+    for i = length, 1, -1 do
+        reversed[j] = arr[i]
+        j = j + 1
+    end
+
+    if isFixed then
+        (--[[---@type std__Packed<V>]] reversed).n = length
     end
 
     return reversed
 end
 
----@overload fun<T>(arr: V[], start: number): V[]
+---@overload fun<V>(arr: std__Packed<V>, start: number): std__Packed<V>
+---@overload fun<V>(arr: V[], start: number): V[]
+---@overload fun<V>(arr: V[], start: number): V[]
 ---@generic V
 ---@param arr V[]
 ---@param start number
 ---@param finish number
 ---@return V[]
 function TableUtils.range(arr, start, finish)
+    ---@type V[]
     local range = {}
 
-    if TableUtils.isArray(arr) then
-        finish = finish and math.min(finish, #arr) or #arr
+    for i in fixedLengthIterator(finish), arr, start - 1 do
+        range[i - start + 1] = arr[i]
+    end
 
-        for i = start, finish do
-            table.insert(range, arr[i])
-        end
+    if type((--[[---@type std__Packed<V>]] arr).n) == 'number' then
+        (--[[---@type std__Packed<V>]] range).n = finish - start + 1
     end
 
     return range
 end
 
+---@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
 ---@generic V
 ---@param arr V[]
----@return V[]
+---@return V[], number
 function TableUtils.unique(arr)
+    ---@type V[]
     local unique = {}
+    local i = 0
 
     for _, value in ipairs(arr) do
         if not TableUtils.find(unique, value) then
-            table.insert(unique, value)
+            i = i + 1
+            unique[i] = value
         end
     end
 
-    return unique
+    return unique, i
 end
 
 local TYPE_STRINGIFIERS = {
@@ -345,7 +437,7 @@ function TableUtils.dump(tab, recursive, depth)
     local indentation = string.rep('  ', depth)
     local str = '{'
 
-    ---@type table<any, boolean>
+    ---@type table<number, nil | boolean>
     local ordered_keys = {}
 
     for i, v in ipairs(--[[---@type any[] ]] tab) do
@@ -361,7 +453,7 @@ function TableUtils.dump(tab, recursive, depth)
     end
 
     for k, v in pairs(tab) do
-        if not ordered_keys[k] then
+        if not ordered_keys[--[[---@type number]] k] then
             str = str .. '\n' .. indentation .. '[' .. TYPE_STRINGIFIERS[type(k)](k) .. '] = '
 
             if recursive and type(v) == 'table' then

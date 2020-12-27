@@ -61,7 +61,7 @@ end
 ---@param savedState string
 local function onLoad(savedState)
     if savedState ~= '' then
-        snapping = tonumber(savedState)
+        snapping = --[[---@type tts__GridSnapping]] tonumber(savedState)
     end
 end
 

@@ -125,6 +125,7 @@ function Json.decodeAsync(json, options)
             end
         end
 
+        ---@type lunajson__SaxHandler
         local handler = {
             startobject = function()
                 if currentNode then
@@ -156,7 +157,7 @@ function Json.decodeAsync(json, options)
                 currentNode = table.remove(stack)
 
                 if options.encodeArrayLength then
-                    array[0] = objectNode[3]
+                    (--[[---@type std__Packed<ge_tts__JsonValue>]] array).n = objectNode[3]
                 end
 
                 addValue(array)
@@ -233,7 +234,7 @@ local decode = LunaJsonDecoder()
 function Json.decode(json, options)
     local decodeOptions = TableUtils.merge(defaultDecodeOptions, --[[---@not nil]] options or {})
     local nullValue = decodeOptions.nullIdentification and Json.null() or nil
-    return decode(json, 0, nullValue, decodeOptions.encodeArrayLength or false)
+    return (decode(json, 0, nullValue, decodeOptions.encodeArrayLength or false))
 end
 
 local encode = LunaJsonEncoder()

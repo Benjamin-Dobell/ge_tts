@@ -11,24 +11,29 @@ local _ENV = nil
 
 
 local function newencoder()
+	---@type any, any
 	local v, nullv
+
+	---@type number, string[], table<table, true>
 	local i, builder, visited
 
+	---@param v any
 	local function f_tostring(v)
 		builder[i] = tostring(v)
 		i = i+1
 	end
 
-	local radixmark = match(tostring(0.5), '[^0-9]')
-	local delimmark = match(tostring(12345.12345), '[^0-9' .. radixmark .. ']')
+	local radixmark = --[[---@type nil | string]] match(tostring(0.5), '[^0-9]')
+	local delimmark = --[[---@type string]] match(tostring(12345.12345), '[^0-9' .. radixmark .. ']')
 	if radixmark == '.' then
 		radixmark = nil
 	end
 
+	---@type nil | true
 	local radixordelim
 	if radixmark or delimmark then
 		radixordelim = true
-		if radixmark and find(radixmark, '%W') then
+		if radixmark and find(--[[---@not nil]] radixmark, '%W') then
 			radixmark = '%' .. radixmark
 		end
 		if delimmark and find(delimmark, '%W') then
@@ -44,7 +49,7 @@ local function newencoder()
 					s = gsub(s, delimmark, '')
 				end
 				if radixmark then
-					s = gsub(s, radixmark, '.')
+					s = gsub(s, --[[---@not nil]] radixmark, '.')
 				end
 			end
 			builder[i] = s
@@ -54,6 +59,7 @@ local function newencoder()
 		error('invalid number')
 	end
 
+	---@type fun(v: any): void
 	local doencode
 
 	local f_string_subst = {
@@ -70,6 +76,7 @@ local function newencoder()
 	}
 	setmetatable(f_string_subst, f_string_subst)
 
+	---@param s string
 	local function f_string(s)
 		builder[i] = '"'
 		if find(s, f_string_esc_pat) then
@@ -80,13 +87,14 @@ local function newencoder()
 		i = i+3
 	end
 
+	---@param o table
 	local function f_table(o)
 		if visited[o] then
 			error("loop detected")
 		end
 		visited[o] = true
 
-		local tmp = o[0]
+		local tmp = o.n
 		if type(tmp) == 'number' then -- arraylen available
 			builder[i] = '['
 			i = i+1
@@ -161,7 +169,7 @@ local function newencoder()
 			i = i+1
 			return
 		end
-		return dispatcher[type(v)](v)
+		return dispatcher[--[[---@not 'nil' | 'function' | 'thread' | 'userdata']] type(v)](v)
 	end
 
 	local function encode(v_, nullv_)

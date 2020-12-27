@@ -2,8 +2,6 @@ local setmetatable, tonumber, tostring =
       setmetatable, tonumber, tostring
 local floor, inf =
       math.floor, math.huge
-local mininteger, tointeger =
-      math.mininteger or nil, math.tointeger or nil
 local byte, char, find, gsub, match, sub =
       string.byte, string.char, string.find, string.gsub, string.match, string.sub
 
@@ -16,10 +14,12 @@ local _ENV = nil
 
 
 local function newdecoder()
+	---@type string, number, any, boolean, number
 	local json, pos, nullv, arraylen, rec_depth
 
 	-- `f` is the temporary for dispatcher[c] and
 	-- the dummy for the first return value of `find`
+	---@type {[number]: fun(): void}, fun(): any
 	local dispatcher, f
 
 	--[[
@@ -72,14 +72,14 @@ local function newdecoder()
 		is captured as a number and its conformance to the JSON spec is checked.
 	--]]
 	-- deal with non-standard locales
-	local radixmark = match(tostring(0.5), '[^0-9]')
+	local radixmark = --[[---@type string]] match(tostring(0.5), '[^0-9]')
 	local fixedtonumber = tonumber
 	if radixmark ~= '.' then
 		if find(radixmark, '%W') then
 			radixmark = '%' .. radixmark
 		end
 		fixedtonumber = function(s)
-			return tonumber(gsub(s, '.', radixmark))
+			return tonumber((gsub(s, '.', radixmark)))
 		end
 	end
 
@@ -89,7 +89,8 @@ local function newdecoder()
 
 	-- `0(\.[0-9]*)?([eE][+-]?[0-9]*)?`
 	local function f_zro(mns)
-		local num, c = match(json, '^(%.?[0-9]*)([-+.A-Za-z]?)', pos)  -- skipping 0
+		---@type string, string | number
+		local num, c = --[[---@type string, string]] match(json, '^(%.?[0-9]*)([-+.A-Za-z]?)', pos)  -- skipping 0
 
 		if num == '' then
 			if c == '' then
@@ -100,7 +101,7 @@ local function newdecoder()
 			end
 
 			if c == 'e' or c == 'E' then
-				num, c = match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
+				num, c = --[[---@type string, string]] match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
 				if c == '' then
 					pos = pos + #num
 					if mns then
@@ -118,7 +119,7 @@ local function newdecoder()
 
 		if c ~= '' then
 			if c == 'e' or c == 'E' then
-				num, c = match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
+				num, c = --[[---@type string, string]] match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
 			end
 			if c ~= '' then
 				number_error()
@@ -126,7 +127,7 @@ local function newdecoder()
 		end
 
 		pos = pos + #num
-		c = fixedtonumber(num)
+		c = --[[---@not nil]] fixedtonumber(num)
 
 		if mns then
 			c = -c
@@ -137,7 +138,9 @@ local function newdecoder()
 	-- `[1-9][0-9]*(\.[0-9]*)?([eE][+-]?[0-9]*)?`
 	local function f_num(mns)
 		pos = pos-1
-		local num, c = match(json, '^([0-9]+%.?[0-9]*)([-+.A-Za-z]?)', pos)
+
+		---@type string, string | number
+		local num, c = --[[---@type string, string]] match(json, '^([0-9]+%.?[0-9]*)([-+.A-Za-z]?)', pos)
 		if byte(num, -1) == 0x2E then  -- error if ended with period
 			number_error()
 		end
@@ -146,20 +149,17 @@ local function newdecoder()
 			if c ~= 'e' and c ~= 'E' then
 				number_error()
 			end
-			num, c = match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
+			num, c = --[[---@type string, string]] match(json, '^([^eE]*[eE][-+]?[0-9]+)([-+.A-Za-z]?)', pos)
 			if not num or c ~= '' then
 				number_error()
 			end
 		end
 
 		pos = pos + #num
-		c = fixedtonumber(num)
+		c = --[[---@not nil]] fixedtonumber(num)
 
 		if mns then
 			c = -c
-			if c == mininteger and not find(num, '[^0-9]') then
-				c = mininteger
-			end
 		end
 		return c
 	end
@@ -185,7 +185,7 @@ local function newdecoder()
 	--[[
 		Strings
 	--]]
-	local f_str_hextbl = {
+	local f_str_hextbl = --[[---@type {[number]: number, __index: fun(): number}]] {
 		0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
 		0x8, 0x9, inf, inf, inf, inf, inf, inf,
 		inf, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, inf,
@@ -219,9 +219,14 @@ local function newdecoder()
 	end
 
 	local f_str_surrogate_prev = 0
+
+	---@overload fun(ch: string, ucode: string): string
+	---@param ch '"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' | 'u'
+	---@param ucode number
+	---@return string
 	local function f_str_subst(ch, ucode)
 		if ch == 'u' then
-			local c1, c2, c3, c4, rest = byte(ucode, 1, 5)
+			local c1, c2, c3, c4, rest = --[[---@not nil, nil, nil, nil]] byte(--[[---@type string]] ucode, 1, 5)
 			ucode = f_str_hextbl[c1-47] * 0x1000 +
 			        f_str_hextbl[c2-47] * 0x100 +
 			        f_str_hextbl[c3-47] * 0x10 +
@@ -293,27 +298,29 @@ local function newdecoder()
 			f_str_surrogate_prev = 0
 			surrogate_first_error()
 		end
-		return f_str_escapetbl[ch] .. ucode
+		return f_str_escapetbl[--[[---@not 'u']] ch] .. ucode
 	end
 
 	-- caching interpreted keys for speed
-	local f_str_keycache = setmetatable({}, {__mode="v"})
+	local f_str_keycache = --[[---@type {[string]: string}]] setmetatable({}, {__mode="v"})
 
 	local function f_str(iskey)
 		local newpos = pos
+
+		---@type number, number, number
 		local tmppos, c1, c2
 		repeat
-			newpos = find(json, '"', newpos, true)  -- search '"'
+			newpos = --[[---@type number]] find(json, '"', newpos, true)  -- search '"'
 			if not newpos then
 				decode_error("unterminated string")
 			end
 			tmppos = newpos-1
 			newpos = newpos+1
-			c1, c2 = byte(json, tmppos-1, tmppos)
+			c1, c2 = --[[---@not nil, nil]] byte(json, tmppos-1, tmppos)
 			if c2 == 0x5C and c1 == 0x5C then  -- skip preceding '\\'s
 				repeat
 					tmppos = tmppos-2
-					c1, c2 = byte(json, tmppos-1, tmppos)
+					c1, c2 = --[[---@not nil, nil]] byte(json, tmppos-1, tmppos)
 				until c2 ~= 0x5C or c1 ~= 0x5C
 				tmppos = newpos-2
 			end
@@ -323,11 +330,11 @@ local function newdecoder()
 		pos = newpos
 
 		if iskey then  -- check key cache
-			tmppos = f_str_keycache[str]  -- reuse tmppos for cache key/val
+			tmppos = --[[---@type any]] f_str_keycache[str]  -- reuse tmppos for cache key/val
 			if tmppos then
-				return tmppos
+				return --[[---@type string]] tmppos
 			end
-			tmppos = str
+			tmppos = --[[---@type any]] str
 		end
 
 		if find(str, f_str_ctrl_pat) then
@@ -346,7 +353,7 @@ local function newdecoder()
 			end
 		end
 		if iskey then  -- commit key cache
-			f_str_keycache[tmppos] = str
+			f_str_keycache[--[[---@type string]] tmppos] = str
 		end
 		return str
 	end
@@ -362,7 +369,7 @@ local function newdecoder()
 		end
 		local ary = {}
 
-		pos = match(json, '^[ \n\r\t]*()', pos)
+		pos = --[[---@type number]] match(json, '^[ \n\r\t]*()', pos)
 
 		local i = 0
 		if byte(json, pos) == 0x5D then  -- check closing bracket ']' which means the array empty
@@ -371,13 +378,13 @@ local function newdecoder()
 			local newpos = pos
 			repeat
 				i = i+1
-				f = dispatcher[byte(json,newpos)]  -- parse value
+				f = dispatcher[--[[---@not nil]] byte(json,newpos)]  -- parse value
 				pos = newpos+1
 				ary[i] = f()
-				newpos = match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)  -- check comma
+				newpos = --[[---@type number]] match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)  -- check comma
 			until not newpos
 
-			newpos = match(json, '^[ \n\r\t]*%]()', pos)  -- check closing bracket
+			newpos = --[[---@type number]] match(json, '^[ \n\r\t]*%]()', pos)  -- check closing bracket
 			if not newpos then
 				decode_error("no closing bracket of an array")
 			end
@@ -385,7 +392,7 @@ local function newdecoder()
 		end
 
 		if arraylen then -- commit the length of the array if `arraylen` is set
-			ary[0] = i
+			ary.n = i
 		end
 		rec_depth = rec_depth - 1
 		return ary
@@ -397,9 +404,10 @@ local function newdecoder()
 		if rec_depth > 1000 then
 			decode_error('too deeply nested json (> 1000)')
 		end
-		local obj = {}
 
-		pos = match(json, '^[ \n\r\t]*()', pos)
+		local obj = --[[---@type {[string]: any}]] {}
+
+		pos = --[[---@type number]] match(json, '^[ \n\r\t]*()', pos)
 		if byte(json, pos) == 0x7D then  -- check closing bracket '}' which means the object empty
 			pos = pos+1
 		else
@@ -416,7 +424,7 @@ local function newdecoder()
 				-- c1, c2 == ':', <the first char of the value> or
 				-- c1, c2, c3 == ':', ' ', <the first char of the value>
 				f = f_err
-				local c1, c2, c3 = byte(json, pos, pos+3)
+				local c1, c2, c3 = --[[---@not nil, nil, nil]] byte(json, pos, pos+3)
 				if c1 == 0x3A then
 					if c2 ~= 0x20 then
 						f = dispatcher[c2]
@@ -427,19 +435,19 @@ local function newdecoder()
 					end
 				end
 				if f == f_err then  -- read a colon and arbitrary number of spaces
-					newpos = match(json, '^[ \n\r\t]*:[ \n\r\t]*()', pos)
+					newpos = --[[---@type number]] match(json, '^[ \n\r\t]*:[ \n\r\t]*()', pos)
 					if not newpos then
 						decode_error("no colon after a key")
 					end
-					f = dispatcher[byte(json, newpos)]
+					f = dispatcher[--[[---@not nil]] byte(json, newpos)]
 					newpos = newpos+1
 				end
 				pos = newpos
 				obj[key] = f()  -- parse value
-				newpos = match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)
+				newpos = --[[---@type number]] match(json, '^[ \n\r\t]*,[ \n\r\t]*()', pos)
 			until not newpos
 
-			newpos = match(json, '^[ \n\r\t]*}()', pos)
+			newpos = --[[---@type number]] match(json, '^[ \n\r\t]*}()', pos)
 			if not newpos then
 				decode_error("no closing bracket of an object")
 			end
@@ -455,7 +463,7 @@ local function newdecoder()
 		indexed by the code of the value's first char.
 		Nil key means the end of json.
 	--]]
-	dispatcher = { [0] =
+	dispatcher = --[[---@type {[number]: fun(): void}]] { [0] =
 		f_err, f_err, f_err, f_err, f_err, f_err, f_err, f_err,
 		f_err, f_err, f_err, f_err, f_err, f_err, f_err, f_err,
 		f_err, f_err, f_err, f_err, f_err, f_err, f_err, f_err,
@@ -481,20 +489,25 @@ local function newdecoder()
 	--[[
 		run decoder
 	--]]
+	---@param json_ string
+	---@param pos_ number
+	---@param nullv_ any
+	---@param arraylen_ boolean
+	---@return any | (any, number)
 	local function decode(json_, pos_, nullv_, arraylen_)
 		json, pos, nullv, arraylen = json_, pos_, nullv_, arraylen_
 		rec_depth = 0
 
-		pos = match(json, '^[ \n\r\t]*()', pos)
+		pos = --[[---@type number]] match(json, '^[ \n\r\t]*()', pos)
 
-		f = dispatcher[byte(json, pos)]
+		f = dispatcher[--[[---@not nil]] byte(json, pos)]
 		pos = pos+1
 		local v = f()
 
 		if pos_ then
 			return v, pos
 		else
-			f, pos = find(json, '^[ \n\r\t]*', pos)
+			f, pos = --[[---@type any, number]] find(json, '^[ \n\r\t]*', pos)
 			if pos ~= #json then
 				decode_error('json ended')
 			end

@@ -30,7 +30,7 @@ local onChatCommand = function(value, player)
         ---@type string[]
         local components = {}
 
-        for component in string.gmatch(value, "([^ ]+)") do
+        for component in --[[---@type fun(): string]] string.gmatch(value, "([^ ]+)") do
             table.insert(components, component)
         end
 
