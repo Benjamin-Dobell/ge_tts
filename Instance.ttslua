@@ -65,7 +65,7 @@ end
 ---@field zoneTriggerGuid nil | string
 
 ---@shape ge_tts__Instance_TakeObjectOptions
----@field callback tts__ObjectCallbackFunction
+---@field callback nil | tts__ObjectCallbackFunction
 ---@field position nil | tts__VectorShape
 ---@field rotation nil | tts__VectorShape
 ---@field smooth nil | boolean
@@ -197,26 +197,26 @@ setmetatable(Instance, {
                         callback_function = options.callback
                     })
                 else
-                    if options.callback then
-                        if options.smooth then
-                            if options.position then
-                                spawnedObject.setPositionSmooth(--[[---@not nil]] options.position)
-                            end
-
-                            if options.rotation then
-                                spawnedObject.setRotationSmooth(--[[---@not nil]] options.rotation)
-                            end
-                        else
-                            if options.position then
-                                spawnedObject.setPosition(--[[---@not nil]] options.position)
-                            end
-
-                            if options.rotation then
-                                spawnedObject.setRotation(--[[---@not nil]] options.rotation)
-                            end
+                    if options.smooth then
+                        if options.position then
+                            spawnedObject.setPositionSmooth(--[[---@not nil]] options.position)
                         end
 
-                        options.callback(spawnedObject)
+                        if options.rotation then
+                            spawnedObject.setRotationSmooth(--[[---@not nil]] options.rotation)
+                        end
+                    else
+                        if options.position then
+                            spawnedObject.setPosition(--[[---@not nil]] options.position)
+                        end
+
+                        if options.rotation then
+                            spawnedObject.setRotation(--[[---@not nil]] options.rotation)
+                        end
+                    end
+
+                    if options.callback then
+                        (--[[---@not nil]] options.callback)(spawnedObject)
                     end
                 end
             end)
