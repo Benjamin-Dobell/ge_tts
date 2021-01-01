@@ -41,6 +41,7 @@ setmetatable(Logger, {
             filterLevel = level
         end
 
+        ---@overload fun(message: string): void
         ---@param message string
         ---@param level ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
         function self.log(message, level)
