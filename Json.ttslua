@@ -51,7 +51,7 @@ local NODE_KEY = 2
 ---@alias __ge_tts__JsonNode __ge_tts__JsonObjectNode | __ge_tts__JsonArrayNode | __ge_tts__JsonKeyNode
 
 ---@shape ge_tts__Json_DecodeOptions
----@field encodeArrayLength nil | boolean @Default false. When true, array lengths are encoded as the zeroth element. Thus an empty array can be discerned from an empty table.
+---@field encodeArrayLength nil | boolean @Default false. When true, array lengths are written to an `n` field on the array (i.e. std__Packed). Thus an empty array can be discerned from an empty table.
 ---@field nullIdentification nil | boolean @Default true. When true, null values in an array/object are represented by JSON.null() rather than being omitted.
 
 ---@shape ge_tts__Json_DecodeAsyncOptions : ge_tts__Json_DecodeOptions
