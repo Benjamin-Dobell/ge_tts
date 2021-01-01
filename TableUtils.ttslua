@@ -374,7 +374,6 @@ end
 
 ---@overload fun<V>(arr: std__Packed<V>, start: number): std__Packed<V>
 ---@overload fun<V>(arr: V[], start: number): V[]
----@overload fun<V>(arr: V[], start: number): V[]
 ---@generic V
 ---@param arr V[]
 ---@param start number
@@ -384,7 +383,7 @@ function TableUtils.range(arr, start, finish)
     ---@type V[]
     local range = {}
 
-    for i in fixedLengthIterator(finish), arr, start - 1 do
+    for i in fixedLengthIterator(finish or TableUtils.arrayLength(arr)), arr, start - 1 do
         range[i - start + 1] = arr[i]
     end
 
