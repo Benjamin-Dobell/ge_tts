@@ -7,6 +7,8 @@ local DropZone = require('ge_tts.DropZone')
 ---@field ownerColor tts__PlayerColor
 
 ---@class ge_tts__static_PlayerDropZone : ge_tts__static_DropZone
+---@overload fun(position: tts__VectorShape, rotation: tts__VectorShape, scale: tts__VectorShape, occupantScale: nil | number, owner: tts__Player): ge_tts__PlayerDropZone
+---@overload fun(savedState: ge_tts__PlayerDropZone_SavedState): ge_tts__PlayerDropZone
 local PlayerDropZone = {}
 
 setmetatable(PlayerDropZone, TableUtils.merge(getmetatable(DropZone), {
