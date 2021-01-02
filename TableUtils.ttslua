@@ -114,7 +114,7 @@ end
 ---@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[]
 ---@generic K, V
 ---@param tab table<K, V>
----@param func fun(value: V, key: K): any
+---@param func fun(value: V, key: K): boolean
 ---@return table<K, V>
 function TableUtils.select(tab, func)
     ---@type table<K, V>
