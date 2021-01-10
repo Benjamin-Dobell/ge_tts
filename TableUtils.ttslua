@@ -208,7 +208,7 @@ end
 ---@generic K, V
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): boolean
----@return nil | V, nil | K
+---@return (nil, nil) | (V, K)
 function TableUtils.detect(tab, func)
     for k, v in iterate(tab) do
         if func(v, k) then
