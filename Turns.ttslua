@@ -1,0 +1,13 @@
+local GlobalTurns = Turns
+
+---@class ge_tts__Turns : tts__Turns
+local Turns = {}
+
+setmetatable(Turns, {__index=GlobalTurns})
+
+Turns.Type = {
+    Auto = 1,
+    Custom = 2,
+}
+
+return Turns
