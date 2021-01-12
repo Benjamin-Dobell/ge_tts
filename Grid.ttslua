@@ -2,7 +2,7 @@ local SaveManager = require('ge_tts.SaveManager')
 
 local GlobalGrid = Grid
 
----@class ge_tts__Grid : tts__GlobalGrid
+---@class ge_tts__Grid : tts__Grid
 local Grid = {}
 
 Grid.Type = {
@@ -23,7 +23,7 @@ Grid.Snapping = {
 -- It's a partial work-around in that we'll return the correct value for snapping as long as it's only set using this
 -- wrapper. If Grid.snapping is changed by script without using this wrapper or by UI, our return value will be wrong.
 
----@type tts__GridSnapping
+---@type tts__Grid_Snapping
 local snapping = GlobalGrid.snapping
 
 setmetatable(Grid, {
@@ -61,7 +61,7 @@ end
 ---@param savedState string
 local function onLoad(savedState)
     if savedState ~= '' then
-        snapping = --[[---@type tts__GridSnapping]] tonumber(savedState)
+        snapping = --[[---@type tts__Grid_Snapping]] tonumber(savedState)
     end
 end
 

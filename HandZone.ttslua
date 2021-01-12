@@ -79,7 +79,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         local superDrop = self.drop
 
         --- Can be called to dynamically drop (deal) a TTS object into this HandZone. Works for containers or objects with `use_hands` enabled.
-        ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
+        ---@param colorName nil | tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
             local isContainer = ObjectUtils.isContainerTag(object.tag)
@@ -87,7 +87,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         end
 
         --- Same as onDrop except that we provide a count which is the maximum number of objects dealt from a container.
-        ---@param colorName string @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
+        ---@param colorName nil | tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object tts__Object @The object that will be dropped.
         ---@param count number @Number of cards to deal
         function self.deal(colorName, object, count)
