@@ -181,13 +181,13 @@ Object.DieType = {
 
 Object.ModelType = {
     Generic = 0,
-    Coin = 1,
-    Bag = 2,
-    Figurine = 3,
+    Figurine = 1,
+    Dice = 2,
+    Coin = 3,
     Board = 4,
-    Infinite = 5,
-    Dice = 6,
-    Chip = 7,
+    Chip = 5,
+    Bag = 6,
+    Infinite = 7,
 }
 
 Object.TileType = {
@@ -195,6 +195,14 @@ Object.TileType = {
     Hex = 1,
     Circle = 2,
     Rounded = 3,
+}
+
+Object.MaterialType = {
+    Plastic = 0,
+    Wood = 1,
+    Metal = 2,
+    Cardboard = 3,
+    Glass = 4,
 }
 
 return Object
