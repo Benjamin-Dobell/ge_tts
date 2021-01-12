@@ -21,7 +21,7 @@ license, please refer to the `LICENSE` file.
 If you’d like to discuss ge_tts, you can do so on the
 https://discord.gg/YwD22SM[TTS Community Discord].
 
-== Example Project
+== Example project
 
 For a quick overview of how to build a mod with ge_tts, please take a
 look at the https://github.com/Benjamin-Dobell/ge_tts_demo[demo
@@ -49,13 +49,7 @@ _However_, at present there is not yet a Tabletop Simulator plugin
 available for Jetbrains IntelliJ IDEA. So you must still use Atom for
 loading code out of, and saving code into Tabletop Simulator.
 
-== API
-
-To browse the precise APIs available, you should open up a module in
-your IDE and refer to the inline documentation (comments). What follows
-is a simply a  quick overview of these modules.
-
-=== Requiring modules
+== Requiring modules
 
 ge_tts is split up into standard Lua modules. In order to use these
 modules you must https://www.lua.org/pil/8.1.html[require] them.
@@ -69,9 +63,9 @@ Requiring a module:
 local TableUtils = require('ge_tts.TableUtils')
 
 log(TableUtils.merge({
-    a = 1
+a = 1
 }, {
-    b = 2
+b = 2
 }))
 =====
 ====
@@ -81,6 +75,12 @@ if your IDE doesn’t support it, you can use
 https://github.com/Benjamin-Dobell/luabundler[luabundler] from command
 line. However, this is an advanced solution, Atom is recommended for
 pushing code to TTS.
+
+== API
+
+To browse the precise APIs available, you should open up a module in
+your IDE and refer to the inline documentation (comments). What follows
+is a simply a quick overview of these modules.
 
 === Base64
 
