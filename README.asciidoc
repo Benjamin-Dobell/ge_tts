@@ -54,20 +54,16 @@ loading code out of, and saving code into Tabletop Simulator.
 ge_tts is split up into standard Lua modules. In order to use these
 modules you must https://www.lua.org/pil/8.1.html[require] them.
 
-[NOTE]
-====
-Requiring a module:
-
+e.g.
 [source,lua]
-=====
+====
 local TableUtils = require('ge_tts.TableUtils')
 
 log(TableUtils.merge({
-a = 1
+    a = 1
 }, {
-b = 2
+    b = 2
 }))
-=====
 ====
 
 The official Atom plugin has built-in support for `require`. Otherwise,
