@@ -194,33 +194,45 @@ if it has never been in a zone before, wherever it was picked up from.
 === InstanceManager
 
 WARNING: This is an _advanced_ feature, and makes implementing saving
-and loading more difficult to implement correctly.
+and loading more difficult.
 
-`InstanceManager` exists for the sole purpose improving save
+`InstanceManager` exists for the sole purpose of improving save
 performance.
 
 `InstanceManager` is beneficial if your mod has a lot of `Instance`
 (typically 500+) or some of your `Instance` sub-classes are storing a
 lot of data that changes infrequently. `InstanceManager` essentially
-introduces caching layer, that results in each instance’s `save()` on
+introduces a caching layer, that results in each instance’s `save()`
 being called only when absolutely necessary, and most importantly,
 smaller less frequent JSON encodes.
 
 [arabic]
 . You _enable_ use of an `InstanceManager` with
-`InstanceManager.set(yourInstanceManager)`. You _don’t_ need to
-sub-class, `local yourInstanceManager = InstanceManager()` is perfectly
-acceptable.
+`InstanceManager.set(yourInstanceManager)`.
++
+[TIP]
+====
+You _don’t_ need to sub-class `InstanceManager`.
+[source,lua]
+----
+InstanceManager.set(InstanceManager())
+----
+is perfectly acceptable.
+====
+
 . Your main module’s `onSave` (`SaveManager.registerOnSave`) must call
 `InstanceManager.save()` and `onLoad` (`SaveManager.registerOnLoad`)
 must call `InstanceManager.load()`.
+
 . You must call `self.invalidateSavedState()` on an `Instance`, if you
 know its saved state is dirty.
+
 . When saving an instance, call
 `InstanceManager.saveInstanceState(instance)` and store the returned
 instance GUID only. As opposed to calling `instanced.save()` and storing
 the generated saved stated (which is what you’d do without the
 `InstanceManager`).
+
 . When loading/recreating an instance, call
 `InstanceManager.loadInstanceState(instanceGuid)` to obtain the saved
 state of the `Instance`, which you’ll then provide to the `Instance`’s
