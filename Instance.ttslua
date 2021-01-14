@@ -80,6 +80,7 @@ end
 ---@overload fun(objectOrGuidOrSavedState: tts__Object | string | ge_tts__Instance_SavedState, nilOrContainer: nil | tts__Container): ge_tts__Instance
 local Instance = {}
 
+---@type string
 Instance.TYPE = 'Instance'
 
 setmetatable(Instance, {

@@ -48,8 +48,9 @@ local Vector2 = {}
 setmetatable(Vector2, {
     ---@param sourceXOrVector nil | __ge_tts__NumCharVec2Shape<nil | number>
     ---@param sourceY nil | number
+    ---@return ge_tts__Vector2
     __call = function(_, sourceXOrVector, sourceY)
-        local self = --[[---@type ge_tts__Vector2]] {x = 0, y = 0}
+        local self = --[[---@type self]] {x = 0, y = 0}
 
         setmetatable(self, {
             __index = numberedIndex,
@@ -93,7 +94,7 @@ setmetatable(Vector2, {
         ---Add a vector to self.
         ---@overload fun(v: ge_tts__Vec2Shape): self
         ---@param v ge_tts__NumCharVec2Shape
-        ---@return ge_tts__Vector2 @self
+        ---@return self
         function self.add(v)
             self.x = self.x + (v.x or v[1])
             self.y = self.y + (v.y or v[2])
@@ -103,7 +104,7 @@ setmetatable(Vector2, {
         ---Subtract a vector from self.
         ---@overload fun(v: ge_tts__Vec2Shape): self
         ---@param v ge_tts__NumCharVec2Shape
-        ---@return ge_tts__Vector2 @self
+        ---@return self
         function self.sub(v)
             self.x = self.x - (v.x or v[1])
             self.y = self.y - (v.y or v[2])
@@ -111,7 +112,7 @@ setmetatable(Vector2, {
         end
 
         ---@param factor number | ge_tts__Vec2Shape
-        ---@return ge_tts__Vector2 @self
+        ---@return self
         function self.scale(factor)
             if (type(factor) == 'number') then
                 self.x = self.x * factor
@@ -124,13 +125,13 @@ setmetatable(Vector2, {
             return self
         end
 
-        ---@return ge_tts__Vector2 @self
+        ---@return self
         function self.normalize()
             return self.scale(1 / self.length())
         end
 
         ---@param angle number @angle in degrees
-        ---@return ge_tts__Vector2 @self
+        ---@return self
         function self.rotate(angle)
             angle = angle * RADIANS_RATIO
             local x = self.x
