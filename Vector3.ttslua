@@ -89,7 +89,7 @@ setmetatable(Vector3, {
         end
 
         ---Add a vector to self.
-        ---@overload fun(v: tts__VectorShape): ge_tts__Vector3
+        ---@overload fun(v: tts__VectorShape): self
         ---@param v ge_tts__NumCharVec3
         ---@return self
         function self.add(v)
