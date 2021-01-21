@@ -279,12 +279,6 @@ SaveManager allows modules/files to independently maintain their own
 saved state, without conflicting with other saved state from other
 modules/files.
 
-=== SaveManager
-
-SaveManager allows modules/files to independently maintain their own
-saved state, without conflicting with other saved state from other
-modules/files.
-
 === TableUtils
 
 Several convenience methods to be used in conjunction with tables.
