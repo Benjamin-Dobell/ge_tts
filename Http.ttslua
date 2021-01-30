@@ -48,38 +48,30 @@ local function performRequest(method, url, headers, body, callback)
         if request.is_error then
             callback(nil, request.error)
         elseif request.is_done then
-            Json.decodeAsync(request.text, {
-                ---@param responseContent table
-                onCompletion = function(responseContent)
-                    ---@type ge_tts__Http_Response
-                    local response = {
-                        statusCode = responseContent.status_code,
-                        headers = responseContent.headers,
-                        body = responseContent.body or ""
-                    }
+            ---@type ge_tts__Http_Response
+            local response = {
+                statusCode = request.response_code,
+                headers = request.getResponseHeaders(),
+                body = request.text or ""
+            }
 
-                    local contentType = request.getResponseHeader('Content-Type')
+            local contentType = request.getResponseHeader('Content-Type')
 
-                    if contentType and (--[[---@not nil]] contentType):lower() == decodeJsonContentType then
-                        Json.decodeAsync(request.text, {
-                            ---@param value table
-                            onCompletion = function(value)
-                                response.body = value
-                                callback(response, nil)
-                            end,
-                            onError = function(message)
-                                callback(nil, "Failed to parse JSON body: " .. message)
-                            end,
-                        })
-                        return
-                    end
+            if contentType and (--[[---@not nil]] contentType):lower() == decodeJsonContentType then
+                Json.decodeAsync(request.text, {
+                    ---@param value table
+                    onCompletion = function(value)
+                        response.body = value
+                        callback(response, nil)
+                    end,
+                    onError = function(message)
+                        callback(nil, "Failed to parse JSON body: " .. message)
+                    end,
+                })
+                return
+            end
 
-                    callback(response, nil)
-                end,
-                onError = function(message)
-                    callback(nil, "Failed to parse proxy wrapper: " .. message)
-                end,
-            })
+            callback(response, nil)
         end
     end)
 end
