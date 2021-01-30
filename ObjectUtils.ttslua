@@ -15,25 +15,6 @@ local guidPrefix
 ---@type number
 local guidIndex = 0
 
----@type table<string, {object: tts__Object, json: nil | string, callbacks: tts__ObjectCallbackFunction[]}> @GUID key
-local pendingSpawns = {}
-
----@param guid string
----@param object tts__Object
-local function triggerPendingCallbacks(guid, object)
-    local pendingSpawn = pendingSpawns[guid]
-
-    if not pendingSpawn then
-        return
-    end
-
-    pendingSpawns[guid] = nil
-
-    for _, callback in ipairs(pendingSpawn.callbacks) do
-        callback(object)
-    end
-end
-
 ---@class ge_tts__ObjectUtils
 local ObjectUtils = {}
 
@@ -64,49 +45,17 @@ end
 local function safeSpawnObject(objectState, guid, callback_function)
     objectState.GUID = guid
 
-    local json = Json.encode(objectState)
-    local spawningObject = spawnObjectJSON({json = json})
-
-    pendingSpawns[guid] = {
-        callbacks = {},
-        object = spawningObject,
-        json = json
-    }
-
-    if callback_function then
-        table.insert(pendingSpawns[guid].callbacks, --[[---@not nil]] callback_function)
-    end
+    local spawningObject = spawnObjectData({
+        data = objectState,
+        callback_function = callback_function,
+    })
 
     return spawningObject
 end
 
 ---
----Unlike the built-in spawnObjectJSON(), this function guarantees the object will be spawned in the scene in onLoad
----(SaveManager) callbacks i.e. if a user rewinds your mod.
----
----There is an edge-case with the built-in spawnObjectJSON() if Tabletop Simulator performs a save state immediately
----after your call to spawnObjectJSON(). When you rewind (or load) save state the object may or may not have spawned.
----Even if the object did spawn before the save state was generated (and hence exists when the user rewinds or loads),
----the GUID on the object reference returned to you from spawnObjectJSON() is not guaranteed to be the final GUID of the
----object within the scene. Thus, even if you correctly saved this GUID in onSave, your attempt to recover the object
----may fail, as it ended up with a different GUID.
----
----To avoid these pitfalls, this function does two things.
----
----Firstly, we provide a GUID for your object that is guaranteed[*] to be unique.
----
----Secondly, onLoad ge_tts looks for any objects that should exist but don't. If it discovers any, it will spawn them
----for you automatically. In your own onLoad (SaveManager) callbacks you can call ObjectUtils.recoverSafeSpawnedObject
----to recover a reference to any objects that were safe spawned.
----
----WARNING: If you provide a GUID for your object in jsonTable, it will not be used. Instead, please grab the GUID from
----the object reference returned from this function. GUIDs we generate do not match the same format as those generated
----by Tabletop Simulator. We have confirmed with Berserk that internally GUIDs are only ever treated as strings and it
----is entirely safe for us to use our own format.
----
----[*] If you're really determined you can still create GUID collisions. However, it won't happen by accident. You'd
----have to be intentionally spawning objects (not using this method) with specific GUIDs that you're specifically trying
----to make collide.
+---A wrapper around TTS' spawnObjectData() which assigns GUIDs in a fashion that mitigates collisions with objects
+---in containers.
 ---
 ---@overload fun(objectState: tts__ObjectState): tts__Object
 ---@param objectState tts__ObjectState @Will be JSON encoded after we generate and assign a GUID.
@@ -232,103 +181,14 @@ function ObjectUtils.safeSpawnContainer(containerState, callback_function)
     return --[[---@type tts__Container]] ObjectUtils.safeSpawnObject(containerState, --[[---@type nil | tts__ObjectCallbackFunction]] callback_function)
 end
 
----
----Provides a mechanism to obtain a reference to safe spawning objects, as well as a mechanism to register a callback
----that will be called when an object (safe spawned or otherwise) has finished spawning.
----
----Accepts a TTS object, or a GUID (string). Any TTS object may be provided (safe spawned or otherwise), however when
----providing a GUID, this GUID should only ever correspond with an object that was safe spawned.
----
----Returns a TTS object or nil. If nil is returned, no such object exists and the provided callback will never be
----called. Aside from providing an invalid GUID, this may occur if the object spawned in the past and has since been
----deleted.
----
----If the object has already finished spawning, the provided callback will be called immediately (synchronously).
----Otherwise, the callback will be called as soon as the object has finished spawning.
----
----@overload fun(guid: string): nil | tts__Object
----@param guidOrObject string | tts__Object
----@param callback nil | fun(object: tts__Object): void
----@return nil | tts__Object
-function ObjectUtils.getSpawnedObject(guidOrObject, callback)
-    ---@type string
-    local guid
-
-    ---@type nil | tts__Object
-    local existingObject = nil
-
-    if type(guidOrObject) == 'userdata' then
-        ---@type tts__Object
-        local object = --[[---@type tts__Object]] guidOrObject
-
-        if object == nil then
-            return nil
-        end
-
-        if object.spawning then
-            existingObject = object
-            guid = object.guid
-        else
-            callback(object)
-            return object
-        end
-    else
-        guid = --[[---@type string]] guidOrObject
-    end
-
-    if not existingObject then
-        existingObject = getObjectFromGUID(guid)
-    end
-
-    if callback then
-        if existingObject ~= nil and (--[[---@not nil]] existingObject).spawning and not pendingSpawns[guid] then
-            -- For consistency, we'll handle non-safe spawned objects (e.g. those being pulled from a container) in the same fashion as we would safe spawned
-            -- objects i.e. we'll call the provided callback once the object has finished spawning.
-            pendingSpawns[guid] = {
-                callbacks = {},
-                object = (--[[---@not nil]] existingObject),
-            }
-        end
-
-        local pendingSpawn = pendingSpawns[guid]
-
-        if pendingSpawn then
-            table.insert(pendingSpawn.callbacks, --[[---@not nil]] callback)
-            return pendingSpawn.object
-        end
-    end
-
-    if callback and existingObject ~= nil then
-        callback(--[[---@type tts__Object]] existingObject)
-    end
-
-    return existingObject
-end
-
----@param object tts__Object
-local function onObjectSpawn(object)
-    triggerPendingCallbacks(object.guid, object)
-end
-
-EventManager.addHandler('onObjectSpawn', onObjectSpawn)
-
 ---@shape __ge_tts__ObjectUtils_SavedStateData
 ---@field guidPrefix string
----@field pendingSpawns table<string, string>
 
 ---@return string
 local function onSave()
-    -- Entries can be injected into pendingSpawns for objects not spawned with safeSpawnObject. However, seems as we weren't responsible for spawning these
-    -- objects, we make no attempt to save (and potentially respawn) these objects.
-    local pendingJsonSpawns = TableUtils.map(
-        TableUtils.select(pendingSpawns, function(json) return json ~= nil end),
-        function(pendingSpawn) return --[[---@not nil]] pendingSpawn.json end
-    )
-
     ---@type __ge_tts__ObjectUtils_SavedStateData
     local data = {
         guidPrefix = guidPrefix,
-        pendingSpawns = pendingJsonSpawns,
     }
 
     return Json.encode(data)
@@ -354,20 +214,6 @@ local function onLoad(savedState)
     local data = --[[---@type __ge_tts__ObjectUtils_SavedStateData]] Json.decode(savedState)
 
     guidPrefix = data.guidPrefix
-
-    for guid, json in pairs(data.pendingSpawns) do
-        local existingObject = getObjectFromGUID(guid)
-
-        if not existingObject then
-            local spawningObject = spawnObjectJSON({json = json})
-
-            pendingSpawns[guid] = {
-                callbacks = {},
-                object = spawningObject,
-                json = json
-            }
-        end
-    end
 end
 
 local MODULE_NAME = 'ge_tts.ObjectUtils'

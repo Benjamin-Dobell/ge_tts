@@ -167,10 +167,6 @@ setmetatable(InstanceManager, {
                     objectState.json = json
 
                     if object ~= nil then
-                        if object.script_code == '' then
-                            object.script_code = '--'
-                        end
-
                         object.script_state = SAVE_STATE_IDENTIFIER .. json
                     end
                 end

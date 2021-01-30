@@ -22,9 +22,7 @@ setmetatable(DieInstance, {
     __call = function(_, objectOrGuidOrSavedState, nilOrContainer)
         local self = --[[---@type ge_tts__DieInstance]] Instance(objectOrGuidOrSavedState, nilOrContainer)
 
-        ObjectUtils.getSpawnedObject(self.getObject(), function(object)
-            object.registerCollisions()
-        end)
+        self.getObject().registerCollisions()
 
         ---@return string
         function self.getType()

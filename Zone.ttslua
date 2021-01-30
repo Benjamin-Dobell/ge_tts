@@ -329,7 +329,7 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
             local data = --[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState
 
             occupyingObjects = TableUtils.map(data.occupyingObjectGuids, function(guid)
-                local object = --[[---@not nil]] ObjectUtils.getSpawnedObject(guid)
+                local object = --[[---@not nil]] getObjectFromGUID(guid)
                 associateOccupyingObject(self, object)
                 return object
             end)

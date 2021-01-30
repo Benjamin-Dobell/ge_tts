@@ -186,41 +186,40 @@ setmetatable(Instance, {
         function self.takeObject(options)
             self.ensureValid()
 
-            ObjectUtils.getSpawnedObject(--[[---@not nil]] object, function(spawnedObject)
-                local containerPosition = self.getContainerPosition()
+            local spawnedObject = --[[---@not nil]] object
+            local containerPosition = self.getContainerPosition()
 
-                if containerPosition then
-                    spawnedObject.takeObject({
-                        index = containerPosition - 1,
-                        rotation = options.rotation,
-                        position = options.position,
-                        smooth = options.smooth,
-                        callback_function = options.callback
-                    })
-                else
-                    if options.smooth then
-                        if options.position then
-                            spawnedObject.setPositionSmooth(--[[---@not nil]] options.position)
-                        end
-
-                        if options.rotation then
-                            spawnedObject.setRotationSmooth(--[[---@not nil]] options.rotation)
-                        end
-                    else
-                        if options.position then
-                            spawnedObject.setPosition(--[[---@not nil]] options.position)
-                        end
-
-                        if options.rotation then
-                            spawnedObject.setRotation(--[[---@not nil]] options.rotation)
-                        end
+            if containerPosition then
+                spawnedObject.takeObject({
+                    index = containerPosition - 1,
+                    rotation = options.rotation,
+                    position = options.position,
+                    smooth = options.smooth,
+                    callback_function = options.callback
+                })
+            else
+                if options.smooth then
+                    if options.position then
+                        spawnedObject.setPositionSmooth(--[[---@not nil]] options.position)
                     end
 
-                    if options.callback then
-                        (--[[---@not nil]] options.callback)(spawnedObject)
+                    if options.rotation then
+                        spawnedObject.setRotationSmooth(--[[---@not nil]] options.rotation)
+                    end
+                else
+                    if options.position then
+                        spawnedObject.setPosition(--[[---@not nil]] options.position)
+                    end
+
+                    if options.rotation then
+                        spawnedObject.setRotation(--[[---@not nil]] options.rotation)
                     end
                 end
-            end)
+
+                if options.callback then
+                    (--[[---@not nil]] options.callback)(spawnedObject)
+                end
+            end
 
             return true
         end
@@ -368,12 +367,12 @@ setmetatable(Instance, {
             instanceGuid = savedState.instanceGuid
 
             if savedState.objectGuid then
-                object = --[[---@not nil]] ObjectUtils.getSpawnedObject(--[[---@not nil]] savedState.objectGuid)
+                object = --[[---@not nil]] getObjectFromGUID(--[[---@not nil]] savedState.objectGuid)
                 Logger.assert(object, 'Failed to recover object reference for Instance ' .. instanceGuid)
             end
 
             if savedState.zoneTriggerGuid then
-                local trigger = ObjectUtils.getSpawnedObject(--[[---@not nil]] savedState.zoneTriggerGuid)
+                local trigger = getObjectFromGUID(--[[---@not nil]] savedState.zoneTriggerGuid)
 
                 if trigger ~= nil then
                     -- NOTE: If this Instance is restored from its saved state before the trigger's Zone is restored from
