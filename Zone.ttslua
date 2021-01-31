@@ -493,6 +493,7 @@ local function onObjectDrop(colorName, object)
                 reject = true
             elseif filterResult == Zone.FilterResult.FORCE_IGNORE then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') force ignored by ' .. tostring(zone), Logger.DEBUG)
+                reject = false
                 break
             elseif filterResult == Zone.FilterResult.FORCE_REJECT then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') force rejected by ' .. tostring(zone), Logger.DEBUG)
