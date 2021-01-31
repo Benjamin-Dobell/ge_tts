@@ -141,9 +141,14 @@ Zone.FilterResult = {
     -- considered "occupying".
     REJECT = 2,
 
+    -- Will ignore the object immediately without giving other intersecting zones an opportunity to
+    -- handle the object. This is useful if filterObject() has manually dealt with the object e.g.
+    -- smooth moved it to some other location.
+    FORCE_IGNORE = 3,
+
     -- Will reject the object immediately without giving other intersecting zones an opportunity to
     -- handle the object.
-    FORCE_REJECT = 3,
+    FORCE_REJECT = 4,
 }
 
 setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
@@ -486,6 +491,9 @@ local function onObjectDrop(colorName, object)
             elseif filterResult == Zone.FilterResult.REJECT then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') rejected by ' .. tostring(zone), Logger.DEBUG)
                 reject = true
+            elseif filterResult == Zone.FilterResult.FORCE_IGNORE then
+                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') force ignored by ' .. tostring(zone), Logger.DEBUG)
+                break
             elseif filterResult == Zone.FilterResult.FORCE_REJECT then
                 Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') force rejected by ' .. tostring(zone), Logger.DEBUG)
                 reject = true
