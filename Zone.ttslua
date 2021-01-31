@@ -121,7 +121,7 @@ local Zone = {}
 
 Zone.TYPE = 'Zone'
 
----@alias ge_tts__Zone_FilterResult 0 | 1 | 2 | 3
+---@alias ge_tts__Zone_FilterResult 0 | 1 | 2 | 3 | 4
 
 Zone.FilterResult = {
     -- The object being dropped will simply be ignored. Depending on the object's trajectory it may
