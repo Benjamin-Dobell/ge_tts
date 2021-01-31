@@ -1,5 +1,3 @@
-local SaveManager = require('ge_tts.SaveManager')
-
 local GlobalGrid = Grid
 
 ---@class ge_tts__Grid : tts__Grid
@@ -18,56 +16,15 @@ Grid.Snapping = {
     LinesAndCenter = 4,
 }
 
--- We're tracking snapping as a *partial* work-around for a TTS bug:
---   https://github.com/tts-community/tts-community-bug-tracker/issues/28
--- It's a partial work-around in that we'll return the correct value for snapping as long as it's only set using this
--- wrapper. If Grid.snapping is changed by script without using this wrapper or by UI, our return value will be wrong.
-
----@type tts__Grid_Snapping
-local snapping = GlobalGrid.snapping
-
 setmetatable(Grid, {
     __index = function(_, key)
-        if key == 'snapping' then
-            local ttsSnapping = GlobalGrid.snapping
-
-            -- At the time of writing Grid.Snapping.Lines is the only value that we can trust from TTS...
-            if ttsSnapping == Grid.Snapping.Lines then
-                snapping = Grid.Snapping.Lines
-            end
-
-            return snapping
-        end
-
         return (--[[---@type table]] GlobalGrid)[key]
     end,
     ---@param key any
     ---@param value any
     __newindex = function(_, key, value)
-        if key == 'snapping' then
-            snapping = value
-        end
-
         (--[[---@type table]] GlobalGrid)[key] = value
     end
 })
-
-
----@return string
-local function onSave()
-    return tostring(snapping)
-end
-
----@param savedState string
-local function onLoad(savedState)
-    if savedState ~= '' then
-        snapping = --[[---@type tts__Grid_Snapping]] tonumber(savedState)
-    end
-end
-
-local MODULE_NAME = 'ge_tts.Grid'
-
-SaveManager.registerOnSave(MODULE_NAME, onSave)
-SaveManager.registerOnLoad(MODULE_NAME, onLoad)
 
 return Grid
