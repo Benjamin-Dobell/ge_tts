@@ -7,11 +7,11 @@ local Vector3 = require('ge_tts.Vector3')
 ---@class ge_tts__DieInstance : ge_tts__Instance
 
 ---@class ge_tts__static_DieInstance : ge_tts__static_Instance
----@overload fun(savedState: ge_tts__Instance_SavedState): ge_tts__Instance
----@overload fun(object: tts__Object): ge_tts__Instance
----@overload fun(guid: string, container: tts__Container): ge_tts__Instance
----@overload fun(objectOrSavedState: tts__Object | ge_tts__Instance_SavedState): ge_tts__Instance
----@overload fun(objectOrGuidOrSavedState: tts__Object | string | ge_tts__Instance_SavedState, nilOrContainer: nil | tts__Container): ge_tts__Instance
+---@overload fun(savedState: ge_tts__Instance_SavedState): ge_tts__DieInstance
+---@overload fun(object: tts__Object): ge_tts__DieInstance
+---@overload fun(guid: string, container: tts__Container): ge_tts__DieInstance
+---@overload fun(objectOrSavedState: tts__Object | ge_tts__Instance_SavedState): ge_tts__DieInstance
+---@overload fun(objectOrGuidOrSavedState: tts__Object | string | ge_tts__Instance_SavedState, nilOrContainer: nil | tts__Container): ge_tts__DieInstance
 local DieInstance = {}
 
 DieInstance.TYPE = 'Die'
