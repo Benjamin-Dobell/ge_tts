@@ -1,7 +1,6 @@
 local EventManager = require('ge_tts.EventManager')
 local Instance = require('ge_tts.Instance')
 local Object = require('ge_tts.Object')
-local ObjectUtils = require('ge_tts.ObjectUtils')
 local Vector3 = require('ge_tts.Vector3')
 
 ---@class ge_tts__DieInstance : ge_tts__Instance
@@ -51,7 +50,8 @@ local monitoredDice = {}
 
 ---@param object tts__Object
 ---@param playerColor nil | tts__PlayerColor
-local onObjectUpdating = function(object, playerColor)
+---@param isRandomizing boolean
+local onObjectUpdating = function(object, playerColor, isRandomizing)
     if monitoredDice[object] or object.tag ~= Object.Tag.Die then
         return
     end
@@ -61,56 +61,78 @@ local onObjectUpdating = function(object, playerColor)
     if instance and (--[[---@type ge_tts__DieInstance]] instance).onRolled ~= nil then
         local dieInstance = (--[[---@type ge_tts__DieInstance]] instance)
         local initialRotationValue = object.getRotationValue()
-        local isRolling = false
+        local isRolling = isRandomizing
 
         monitoredDice[object] = true
 
-        Wait.condition(function()
-            if isRolling then
-                Wait.condition(function()
-                    monitoredDice[object] = nil
+        local onRollDetected = function()
+            Wait.condition(function()
+                monitoredDice[object] = nil
 
-                    if object ~= nil then
-                        local value = object.getRotationValue()
-                        dieInstance.onRolled(value, playerColor)
-                        dieInstance.onRotationValueUpdated(value, playerColor)
-                    end
-                end, function()
-                    return object == nil or object.resting
-                end)
-            else
                 if object ~= nil then
                     local value = object.getRotationValue()
-
-                    if value ~= initialRotationValue then
-                        dieInstance.onRotationValueUpdated(value, playerColor)
-                    end
+                    dieInstance.onRolled(value, playerColor)
+                    dieInstance.onRotationValueUpdated(value, playerColor)
                 end
-                monitoredDice[object] = nil
-            end
-        end, function()
-            if object == nil then
-                return true
-            end
+            end, function()
+                return object == nil or object.resting
+            end)
+        end
 
-            isRolling = object.getRotationValue() ~= initialRotationValue and Vector3.lengthSquared(object.getAngularVelocity()) > MIN_ROLL_ANGULAR_VELOCITY_SQUARED
-            return isRolling or object.resting
-        end, 20)
+        if isRolling then
+            Wait.frames(function()
+                onRollDetected()
+            end)
+        else
+            local minRandomizeYVelocity = 1.5 * math.pow(Physics.getGravity().y, 0.5)
+
+            Wait.condition(function()
+                if isRolling then
+                    onRollDetected()
+                else
+                    if object ~= nil then
+                        local value = object.getRotationValue()
+
+                        if value ~= initialRotationValue then
+                            dieInstance.onRotationValueUpdated(value, playerColor)
+                        end
+                    end
+                    monitoredDice[object] = nil
+                end
+            end, function()
+                if object == nil or object.resting then
+                    return true
+                end
+
+                isRolling = not object.isSmoothMoving() and object.held_by_color == nil and (
+                    (object.getRotationValue() ~= initialRotationValue and Vector3.lengthSquared(object.getAngularVelocity()) > MIN_ROLL_ANGULAR_VELOCITY_SQUARED)
+                        or object.getVelocity().y > minRandomizeYVelocity
+                )
+
+                return isRolling
+            end, 20)
+        end
     end
 end
 
 ---@param playerColor nil | tts__PlayerColor
 ---@param object tts__Object
 local function onObjectDrop(playerColor, object)
-    onObjectUpdating(object, playerColor)
+    onObjectUpdating(object, playerColor, false)
 end
 
 ---@param registeredObject tts__Object
 local function onObjectCollisionExit(registeredObject)
-    onObjectUpdating(registeredObject, nil)
+    onObjectUpdating(registeredObject, nil, false)
 end
 
-EventManager.addHandler('onObjectRandomize', onObjectUpdating)
+---@param object tts__Object
+---@param playerColor tts__PlayerColor
+local function onObjectRandomize(object, playerColor)
+    onObjectUpdating(object, playerColor, true)
+end
+
+EventManager.addHandler('onObjectRandomize', onObjectRandomize)
 EventManager.addHandler('onObjectDrop', onObjectDrop)
 EventManager.addHandler('onObjectCollisionExit', onObjectCollisionExit)
 
