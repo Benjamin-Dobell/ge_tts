@@ -86,7 +86,7 @@ local onObjectUpdating = function(object, playerColor, isRandomizing)
                 onRollDetected()
             end)
         else
-            local minRandomizeYVelocity = 1.5 * math.pow(Physics.getGravity().y, 0.5)
+            local minRandomizeYVelocity = 1.5 * math.pow(math.abs(Physics.getGravity().y), 0.5)
 
             Wait.condition(function()
                 if isRolling then
