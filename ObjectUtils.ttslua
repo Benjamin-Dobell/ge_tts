@@ -1,9 +1,7 @@
 local Base64 = require('ge_tts.Base64')
-local EventManager = require('ge_tts.EventManager')
 local Json = require('ge_tts.Json')
 local Object = require('ge_tts.Object')
 local SaveManager = require('ge_tts.SaveManager')
-local TableUtils = require('ge_tts.TableUtils')
 local Vector3 = require('ge_tts.Vector3')
 
 ---There's a random component to our GUIDs designed to mitigate collisions is a user wants to copy objects between mods.
