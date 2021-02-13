@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 -- From time to time there are bugs in TTS' APIs that we're able to fix/patch in a non-intrusive fashion.
 
 -- Lua Color indexing fix, see: https://github.com/Berserk-Games/Tabletop-Simulator-Lua-Classes/pull/1

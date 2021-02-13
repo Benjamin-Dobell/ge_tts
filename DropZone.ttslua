@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local TableUtils = require('ge_tts.TableUtils')
 local Vector3 = require('ge_tts.Vector3')
 local Zone = require('ge_tts.Zone')

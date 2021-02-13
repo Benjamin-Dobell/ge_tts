@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 -- Base64 implementation originally based on https://github.com/iskolbin/lbase64 (public domain),
 -- but modified for simplicity, TTS and to work with number[] buffers, rather than strings.
 

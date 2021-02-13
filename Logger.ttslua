@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 ---@class ge_tts__Logger
 
 ---@class ge_tts__static_Logger

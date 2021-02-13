@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local GlobalGrid = Grid
 
 ---@class ge_tts__Grid : tts__Grid

@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 ---
 --- A 2D vector implementation.
 ---

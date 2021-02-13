@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local Ui = {}
 
 -- Common

@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local Base64 = require('ge_tts.Base64')
 local Json = require('ge_tts.Json')
 local Object = require('ge_tts.Object')

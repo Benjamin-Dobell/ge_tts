@@ -1,3 +1,6 @@
+-- Omitted to prevent cyclic require:
+-- require('ge.tts/License')
+
 -- This module operates on tables that contain only positive consecutive integer keys starting at 1 (i.e. a plain array), as well as tables which contain no
 -- array component. Behavior is undefined for tables that contain a key for [1] as well as non-consecutive integer or non-integer keys.
 

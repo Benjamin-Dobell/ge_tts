@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local EventManager = require('ge_tts.EventManager')
 
 ---@alias ge_tts__ChatCommand_Callback fun(value: string, player: tts__Player): void

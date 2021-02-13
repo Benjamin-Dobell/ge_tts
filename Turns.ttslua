@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local GlobalTurns = Turns
 
 ---@class ge_tts__Turns : tts__Turns

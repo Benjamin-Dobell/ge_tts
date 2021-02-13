@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local ChatCommands = require('ge_tts.ChatCommands')
 
 ---@class tts__Debug

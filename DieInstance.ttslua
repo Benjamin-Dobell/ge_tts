@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local EventManager = require('ge_tts.EventManager')
 local Instance = require('ge_tts.Instance')
 local Object = require('ge_tts.Object')

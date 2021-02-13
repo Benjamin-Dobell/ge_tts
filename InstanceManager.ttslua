@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local Json = require('ge_tts.Json')
 local TableUtils = require('ge_tts.TableUtils')
 

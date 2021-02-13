@@ -1,3 +1,5 @@
+require('ge_tts.License')
+
 local Logger = require('ge_tts.Logger')
 local TableUtils = require('ge_tts.TableUtils')
 
