@@ -91,6 +91,27 @@ A package for encoding and decoding Base64 binary data.
 Convenience functions for working with co-routines that are, for
 example, to be executed every X frames, or every X seconds.
 
+e.g.
+[source,lua]
+----
+Coroutine.start(function()
+    print("Immediately")
+
+    Coroutine.yieldSeconds(1)
+
+    print("One second later")
+
+    Coroutine.yieldFrames(30)
+
+    print("30 frames later")
+    local object = spawnObject({type = "BlockRectangle"})
+
+    Coroutine.yieldCondition(function() return not object.spawning end)
+
+    print("After the object finished spawning")
+end)
+----
+
 === Debug
 
 Simply utility to facilitate debugging within TTS.
