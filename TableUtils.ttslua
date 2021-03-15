@@ -90,10 +90,8 @@ function TableUtils.invert(tab)
     ---@type table<V, K>
     local inverted = {}
 
-    for k, v in iterate(tab) do
-        if v then
-            inverted[v] = k
-        end
+    for k, v in pairs(tab) do
+        inverted[v] = k
     end
 
     return inverted
