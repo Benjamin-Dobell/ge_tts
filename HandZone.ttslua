@@ -84,7 +84,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         ---@param colorName nil | tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
-            local isContainer = ObjectUtils.isContainerTag(object.tag)
+            local isContainer = ObjectUtils.isContainerTag(object.type)
             self.deal(colorName, object, isContainer and object.getQuantity() or 1)
         end
 
@@ -93,7 +93,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         ---@param object tts__Object @The object that will be dropped.
         ---@param count number @Number of cards to deal
         function self.deal(colorName, object, count)
-            local isContainer = ObjectUtils.isContainerTag(object.tag)
+            local isContainer = ObjectUtils.isContainerTag(object.type)
 
             if isContainer then
                 -- The deal API doesn't do what we want, so we need to do our best to mimic it with takeObject

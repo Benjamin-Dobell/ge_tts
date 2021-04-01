@@ -380,8 +380,8 @@ local function onObjectEnterContainer(container, object)
     for _, zone in ipairs(Zone.getObjectIntersectingZones(object)) do
         if zone.isObjectOccupying(object) and not TableUtils.find(zone.getOccupyingObjects(), container) then
             Logger.log(
-                    object.tag .. ' (' .. tostring(object.getGUID()) .. '), previously dropped in ' .. tostring(zone) .. ', entered ' ..
-                            container.tag .. ' (' .. tostring(container.getGUID()) .. ') which will now be marked as dropped in the same zone.',
+                    object.type .. ' (' .. tostring(object.getGUID()) .. '), previously dropped in ' .. tostring(zone) .. ', entered ' ..
+                            container.type .. ' (' .. tostring(container.getGUID()) .. ') which will now be marked as dropped in the same zone.',
                     Logger.DEBUG
             )
 
@@ -397,7 +397,7 @@ local function onObjectLeaveContainer(container, object)
     local objectPosition = object.getPosition()
     local containerPosition = container.getPosition()
 
-    if container.tag ~= Object.Tag.Infinite and container.getQuantity() == 0
+    if container.type ~= Object.Tag.Infinite and container.getQuantity() == 0
         and objectPosition.y <= containerPosition.y
         and objectPosition.x == containerPosition.x
         and objectPosition.z == containerPosition.z
@@ -407,8 +407,8 @@ local function onObjectLeaveContainer(container, object)
         if zone then
             if not TableUtils.find(zone.getOccupyingObjects(), object) then
                 Logger.log(
-                    object.tag .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone) .. ' as it was the bottom ' ..
-                        object.tag .. ' in now empty ' .. container.tag .. ' (' .. tostring(container.getGUID()) .. ').',
+                    object.type .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone) .. ' as it was the bottom ' ..
+                        object.type .. ' in now empty ' .. container.type .. ' (' .. tostring(container.getGUID()) .. ').',
                     Logger.DEBUG
                 )
                 zone.insertOccupyingObject(object)
@@ -429,7 +429,7 @@ local function onObjectPickUp(colorName, object)
     if objectZones then
         for _, zone in ipairs(objectZones) do
             if zone.isObjectOccupying(object) then
-                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') picked up from ' .. tostring(zone), Logger.DEBUG)
+                Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') picked up from ' .. tostring(zone), Logger.DEBUG)
 
                 zone.onPickUp(colorName, object)
                 break
@@ -481,24 +481,24 @@ local function onObjectDrop(colorName, object)
         for _, zoneDistance in ipairs(zoneDistances) do
             local zone = zoneDistance.zone
 
-            Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') attempting to drop in ' .. tostring(zone), Logger.DEBUG)
+            Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') attempting to drop in ' .. tostring(zone), Logger.DEBUG)
 
             local filterResult = zone.filterObject(colorName, object)
 
             if filterResult == Zone.FilterResult.ACCEPT then
-                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zone), Logger.DEBUG)
+                Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zone), Logger.DEBUG)
                 zone.onDrop(colorName, object)
                 reject = false
                 break
             elseif filterResult == Zone.FilterResult.REJECT then
-                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') rejected by ' .. tostring(zone), Logger.DEBUG)
+                Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') rejected by ' .. tostring(zone), Logger.DEBUG)
                 reject = true
             elseif filterResult == Zone.FilterResult.FORCE_IGNORE then
-                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') force ignored by ' .. tostring(zone), Logger.DEBUG)
+                Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') force ignored by ' .. tostring(zone), Logger.DEBUG)
                 reject = false
                 break
             elseif filterResult == Zone.FilterResult.FORCE_REJECT then
-                Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') force rejected by ' .. tostring(zone), Logger.DEBUG)
+                Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') force rejected by ' .. tostring(zone), Logger.DEBUG)
                 reject = true
                 break
             end
@@ -534,7 +534,7 @@ local function onObjectEnterScriptingZone(scriptingTrigger, object)
     local zone = scriptingTriggerZoneMap[scriptingTrigger]
 
     if zone then
-        Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. tostring(zone), Logger.DEBUG)
+        Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') entered ' .. tostring(zone), Logger.DEBUG)
         addObjectIntersectingZone(object, zone)
         zone.onEnter(object)
 
@@ -568,7 +568,7 @@ local function onObjectLeaveScriptingZone(scriptingTrigger, object)
     local zone = scriptingTriggerZoneMap[scriptingTrigger]
 
     if zone then
-        Logger.log(object.tag .. ' (' .. tostring(object.getGUID()) .. ') left ' .. tostring(zone), Logger.DEBUG)
+        Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') left ' .. tostring(zone), Logger.DEBUG)
         removeObjectIntersectingZone(object, zone)
         zone.onLeave(object)
     end
@@ -585,7 +585,7 @@ local function onObjectDestroy(object)
     if zones then
         for _, zone in ipairs(zones) do
             Logger.log(
-                object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from intersecting ' .. tostring(zone) .. ' as it\'s being destroyed',
+                object.type .. ' (' .. tostring(object.getGUID()) .. ') removed from intersecting ' .. tostring(zone) .. ' as it\'s being destroyed',
                 Logger.DEBUG
             )
             zone.onLeave(object)
@@ -599,7 +599,7 @@ local function onObjectDestroy(object)
 
     if occupiedZone then
         Logger.log(
-            object.tag .. ' (' .. tostring(object.getGUID()) .. ') removed from occupying ' .. tostring(occupiedZone) .. ' as it\'s being destroyed',
+            object.type .. ' (' .. tostring(object.getGUID()) .. ') removed from occupying ' .. tostring(occupiedZone) .. ' as it\'s being destroyed',
             Logger.DEBUG
         )
         occupiedZone.onLeave(object)

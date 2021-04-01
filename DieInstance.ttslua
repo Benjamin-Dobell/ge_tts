@@ -54,7 +54,7 @@ local monitoredDice = {}
 ---@param playerColor nil | tts__PlayerColor
 ---@param isRandomizing boolean
 local onObjectUpdating = function(object, playerColor, isRandomizing)
-    if monitoredDice[object] or object.tag ~= Object.Tag.Die then
+    if monitoredDice[object] or object.type ~= Object.Type.Die then
         return
     end
 

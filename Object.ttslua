@@ -109,7 +109,7 @@ Object.Name = {
     Token = "Custom_Token",
 }
 
-Object.Tag = {
+Object.Type = {
     BackgammonPiece = "Backgammon Piece",
     Bag = "Bag",
     Block = "Block",
@@ -153,6 +153,8 @@ Object.Tag = {
     Tileset = "Tileset",
     VRUI = "VR UI",
 }
+
+Object.Tag = Object.Type
 
 Object.AssetBundleType = {
     Generic = 0,
