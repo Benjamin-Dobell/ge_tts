@@ -1,5 +1,6 @@
 require('ge_tts.License')
 
+local Class = require('ge_tts.Class')
 local TableUtils = require('ge_tts.TableUtils')
 local Vector3 = require('ge_tts.Vector3')
 local Zone = require('ge_tts.Zone')
@@ -42,13 +43,14 @@ DropZone.RotationAxis = {
 ---@alias ge_tts__DropZone_Facing 1 | 2 | 3
 
 setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
+    ---@param class self
     ---@param positionTriggerOrSavedState tts__VectorShape | tts__ScriptingTrigger | ge_tts__DropZone_SavedState
     ---@param nilOrRotationOrOccupantScale nil | number | tts__VectorShape
     ---@param nilOrScale nil | tts__VectorShape
     ---@param nilOrOccupantScale nil | number @Optional - occupant's desired X-axis scale. When scaling is applied it is applied to all dimensions i.e. aspect ratio is preserved. `nil` means dropped objects will not have their scale altered.
-    __call = function(_, positionTriggerOrSavedState, nilOrRotationOrOccupantScale, nilOrScale, nilOrOccupantScale)
+    __call = function(class, positionTriggerOrSavedState, nilOrRotationOrOccupantScale, nilOrScale, nilOrOccupantScale)
         local triggerProvided = type(positionTriggerOrSavedState) == 'userdata'
-        local self = --[[---@type ge_tts__DropZone]] Zone(
+        local self = --[[---@type ge_tts__DropZone]] Class.parentConstructor(class, Zone)(
             positionTriggerOrSavedState,
             not triggerProvided and --[[---@type nil | tts__VectorShape]] nilOrRotationOrOccupantScale or nil,
             nilOrScale
@@ -116,10 +118,6 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         function self.setDropOffset(offset)
             dropOffset = Vector3(offset)
             self.invalidateSavedState()
-        end
-
-        function self.getType()
-            return DropZone.TYPE
         end
 
         --- Called when a player attempts to drop an object within this zone. A drop zone will

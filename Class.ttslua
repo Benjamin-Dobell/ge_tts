@@ -1,0 +1,82 @@
+---@class ge_tts__Class
+local Class = {}
+
+---@param object table
+---@return nil | table
+function Class.getClass(object)
+    return (--[[---@type { __class: nil | table } ]] object).__class
+end
+
+---@param sourceClass table
+---@param targetClass table
+---@return boolean
+local function isDescendentClass(sourceClass, targetClass)
+    if sourceClass == targetClass then
+        return true
+    end
+
+    local parentClass = (--[[---@type { __index: nil | table } ]] getmetatable(sourceClass)).__index
+    return parentClass ~= nil and isDescendentClass(--[[---@not nil]] parentClass, targetClass)
+end
+
+---@type table<table, nil | table<table, nil | boolean>>
+local descendentCache = {}
+
+---@param sourceClass table
+---@param targetClass table
+---@return boolean
+function Class.isDescendentClass(sourceClass, targetClass)
+    if sourceClass == targetClass then
+        return true
+    end
+
+    local sourceCache = descendentCache[sourceClass]
+
+    if sourceCache then
+        local isDescendent = (--[[---@not nil]] sourceCache)[targetClass]
+
+        if isDescendent ~= nil then
+            return --[[---@not nil]] isDescendent
+        end
+    else
+        sourceCache = {}
+        descendentCache[sourceClass] = sourceCache
+    end
+
+    local parentClass = (--[[---@type { __index: nil | table } ]] getmetatable(sourceClass)).__index
+    local isDescendent = parentClass ~= nil and isDescendentClass(--[[---@not nil]] parentClass, targetClass)
+
+    ;(--[[---@not nil]] sourceCache)[targetClass] = isDescendent
+
+    return isDescendent
+end
+
+---@param object table
+---@return boolean
+function Class.isInstance(object, class)
+    local objectClass = Class.getClass(object)
+    return objectClass ~= nil and Class.isDescendentClass(--[[---@not nil]] Class.getClass(object), class)
+end
+
+---@generic AncestorClass
+---@generic Class : AncestorClass
+---@param descendent Class
+---@param parent nil | AncestorClass
+---@return AncestorClass
+function Class.parentConstructor(descendent, parent)
+    local metatable = --[[---@type { __call: function }]] getmetatable(parent)
+    local call = metatable.__call
+    local wrappedStaticParent = function(...)
+        return call(descendent, ...)
+    end
+    return --[[---@type AncestorClass]] wrappedStaticParent
+end
+
+---@generic Class
+---@param class Class
+---@return { __class: Class }
+function Class.rootConstructor(class)
+    return { __class = class }
+end
+
+return Class

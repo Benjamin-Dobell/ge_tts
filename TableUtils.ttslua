@@ -112,14 +112,17 @@ function TableUtils.remap(tab, func)
     return remapped
 end
 
----@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[]
+---@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[], number
+---@overload fun<V>(arr: std__Packed<V>, func: fun(value: V, index: number): boolean): std__Packed<V>, number
 ---@generic K, V
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): boolean
----@return table<K, V>
+---@return table<K, V>, number
 function TableUtils.select(tab, func)
     ---@type table<K, V>
     local selected = {}
+
+    local count = 0
 
     if TableUtils.isArray(tab) then
         local i = 0
@@ -130,22 +133,28 @@ function TableUtils.select(tab, func)
                 (--[[---@type V[] ]] selected)[i] = v
             end
         end
+
+        if type((--[[---@type std__Packed<any>]] tab).n) == 'number' then
+            (--[[---@type std__Packed<any>]] selected).n = i
+            count = i
+        end
     else
         for k, v in pairs(tab) do
             if func(v, k) then
                 selected[k] = v
+                count = count + 1
             end
         end
     end
 
-    return selected
+    return selected, count
 end
 
 ---@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[]
 ---@generic K, V
 ---@param tab table<K, V>
 ---@param func fun(value: V, key: K): boolean
----@return table<K, V>
+---@return table<K, V>, number
 function TableUtils.reject(tab, func)
     return TableUtils.select(tab, function(v, k) return not func(v, k) end)
 end
@@ -239,6 +248,11 @@ function TableUtils.copy(tab, recursive)
 end
 
 ---@overload fun<V>(arr: V[], ...: V[]): void
+---@overload fun<V, SubsetA : V>(arr: V[], a: SubsetA[]): void
+---@overload fun<V, SubsetA : V, SubsetB : V>(arr: V[], a: SubsetA[], b: SubsetB[]): void
+---@overload fun<V, SubsetA : V, SubsetB : V, SubsetC : V>(arr: V[], a: SubsetA[], b: SubsetB[], c: SubsetC[]): void
+---@overload fun<V, SubsetA : V, SubsetB : V, SubsetC : V, SubsetD : V>(arr: V[], a: SubsetA[], b: SubsetB[], c: SubsetC[], d: SubsetD[]): void
+---@overload fun<V, Subset : V>(arr: V[], ...: Subset[]): void
 ---@overload fun<V>(arr: std__Packed<V>, ...: V[] | std__Packed<V>): void
 ---@generic K, V
 ---@param tab table<K, V>
@@ -270,13 +284,18 @@ function TableUtils.inject(tab, ...)
     end
 end
 
----@overload fun<T>(...: T): T
+---@overload fun<T>(arr: T[], ...: T[]): T[]
+---@overload fun<A, B>(a: A[], b: B[]): (A | B)[]
+---@overload fun<A, B, C>(a: A[], b: B[], c: C[]): (A | B | C)[]
+---@overload fun<A, B, C, D>(a: A[], b: B[], c: C[], d: D[]): (A | B | C | D)[]
+---@overload fun<SubsetT, T : SubsetT>(value: T, ...: SubsetT): T
+---@overload fun<T>(a: T, ...: T): T
 ---@vararg table
 ---@return table
 function TableUtils.merge(...)
-    local merged = {}
-    TableUtils.inject(merged, ...)
-    return merged
+    local result = TableUtils.copy((--[[---@not nil]] ...))
+    TableUtils.inject(result, select(2, ...))
+    return result
 end
 
 ---@overload fun<V>(arrays: std__Packed<V>[]): std__Packed<V>, number
@@ -447,7 +466,6 @@ function TableUtils.dump(tab, recursive, depth)
         if recursive and type(v) == 'table' then
             str = str .. TableUtils.dump(v, true, depth + 1) .. ','
         else
-            local a = TYPE_STRINGIFIERS['nil']
             str = str .. TYPE_STRINGIFIERS[type(v)](v) .. ','
         end
     end

@@ -380,10 +380,12 @@ local function newparser(src, saxtbl)
 			if c > 0x30 then
 				if c < 0x3A then
 					f_num(true)
+					return
 				end
 			else
 				if c > 0x2F then
 					f_zro(true)
+					return
 				end
 			end
 		end

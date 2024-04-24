@@ -26,7 +26,7 @@ local function getModuleCallbacks(moduleName)
     local moduleCallbacks = callbacks[moduleName]
 
     if not moduleCallbacks then
-        moduleCallbacks = {onLoads = {}}
+        moduleCallbacks = { onLoads = {} }
         callbacks[moduleName] = moduleCallbacks
     end
 

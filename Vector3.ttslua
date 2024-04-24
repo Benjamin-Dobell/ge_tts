@@ -170,6 +170,27 @@ setmetatable(Vector3, {
 ---@overload fun(v: tts__VectorShape): number
 ---@param v ge_tts__NumCharVec3
 ---@return number
+function Vector3.x(v)
+    return v.x or v[1]
+end
+
+---@overload fun(v: tts__VectorShape): number
+---@param v ge_tts__NumCharVec3
+---@return number
+function Vector3.y(v)
+    return v.y or v[2]
+end
+
+---@overload fun(v: tts__VectorShape): number
+---@param v ge_tts__NumCharVec3
+---@return number
+function Vector3.z(v)
+    return v.z or v[3]
+end
+
+---@overload fun(v: tts__VectorShape): number
+---@param v ge_tts__NumCharVec3
+---@return number
 function Vector3.lengthSquared(v)
     local x = v.x or v[1]
     local y = v.y or v[2]

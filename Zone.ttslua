@@ -1,5 +1,6 @@
 require('ge_tts.License')
 
+local Class = require('ge_tts.Class')
 local EventManager = require('ge_tts.EventManager')
 local Grid = require('ge_tts.Grid')
 local Instance = require('ge_tts.Instance')
@@ -154,17 +155,19 @@ Zone.FilterResult = {
 }
 
 setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
+    ---@param class self
     ---@param positionOrTriggerOrSavedState tts__VectorShape | tts__ScriptingTrigger | ge_tts__Zone_SavedState
     ---@param nilOrRotation nil | tts__VectorShape
     ---@param nilOrScale nil | tts__VectorShape
-    __call = function(_, positionOrTriggerOrSavedState, nilOrRotation, nilOrScale)
+    __call = function(class, positionOrTriggerOrSavedState, nilOrRotation, nilOrScale)
         local isSavedState = Zone.isSavedState(positionOrTriggerOrSavedState)
 
         ---@type ge_tts__Zone
         local self
 
         if isSavedState then
-            self = --[[---@type ge_tts__Zone]] Instance(--[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState)
+            local savedState = --[[---@type ge_tts__Zone_SavedState]] positionOrTriggerOrSavedState
+            self = --[[---@type ge_tts__Zone]] Class.parentConstructor(class, Instance)(savedState)
         else
             ---@type tts__ScriptingTrigger
             local scriptingTrigger
@@ -181,22 +184,11 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
                 scriptingTrigger = --[[---@type tts__ScriptingTrigger]] positionOrTriggerOrSavedState
             end
 
-            self = --[[---@type ge_tts__Zone]] Instance(scriptingTrigger)
+            self = --[[---@type ge_tts__Zone]] Class.parentConstructor(class, Instance)(scriptingTrigger)
         end
 
         ---@type tts__Object[]
         local occupyingObjects = {}
-
-        ---An identifier for this type of zone.
-        ---
-        ---This is convenience method. Aside from logging, ge_tts does not use this method. However, it may be useful
-        ---for your game to be able to discern one type of zone from another.
-        ---
-        ---Subclasses may either set TYPE on the class (static) table, or alternatively, override this method.
-        ---@return string
-        function self.getType()
-            return Zone.TYPE
-        end
 
         -- Callback for sub-classes to override.
         function self.onSpawned()

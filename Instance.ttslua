@@ -1,5 +1,6 @@
 require('ge_tts.License')
 
+local Class = require('ge_tts.Class')
 local EventManager = require('ge_tts.EventManager')
 local InstanceManager = require('ge_tts.InstanceManager')
 local Logger = require('ge_tts.Logger')
@@ -62,6 +63,7 @@ local function disassociateObject(instance, object)
 end
 
 ---@shape ge_tts__Instance_SavedState
+---@field __ss 1
 ---@field instanceGuid string
 ---@field objectGuid nil | string
 ---@field zoneTriggerGuid nil | string
@@ -86,10 +88,11 @@ local Instance = {}
 Instance.TYPE = 'Instance'
 
 setmetatable(Instance, {
+    ---@param class self
     ---@param objectOrGuidOrSavedState tts__Object | string | ge_tts__Instance_SavedState
     ---@param nilOrContainer nil | tts__Container
-    __call = function(_, objectOrGuidOrSavedState, nilOrContainer)
-        local self = --[[---@type ge_tts__Instance]] {}
+    __call = function(class, objectOrGuidOrSavedState, nilOrContainer)
+        local self = --[[---@type ge_tts__Instance]] Class.rootConstructor(class)
 
         setmetatable(self, {
             __tostring = function(_)
@@ -122,17 +125,25 @@ setmetatable(Instance, {
             return instanceGuid
         end
 
+        local instanceType = (--[[---@type ge_tts__static_Instance]] class).TYPE
+
         ---A simple string identifier for this type of instance. ge_tts itself only uses this in toString().
         ---
-        ---Subclasses that wish to have their own instance type should override this method.
-        ---
+        ---Subclasses may either set TYPE on the class (static) table, or alternatively, override this method.
         ---@return string
         function self.getType()
-            return Instance.TYPE
+            return instanceType
         end
 
         function self.invalidateSavedState()
             InstanceManager.invalidateSavedState(self)
+        end
+
+        --- Called when an instance's object is changed. This method is *not* called during instantiation when an object
+        --- is initially assigned.
+        ---@param previousObject nil | tts__Object
+        ---@param newObject nil | tts__Object
+        function self.onObjectChanged(previousObject, newObject)
         end
 
         --- Manually changing an instance's associated object is advanced functionality. Unless you really know what
@@ -140,11 +151,13 @@ setmetatable(Instance, {
         ---@param obj nil | tts__Object
         function self.setObject(obj)
             if object ~= obj then
-                if object ~= nil then
-                    disassociateObject(self, --[[---@not nil]] object)
+                local previousObject = object
 
-                    if ObjectUtils.isContainerTag((--[[---@not nil]] object).type) then
-                        self.onLeaveContainer(--[[---@type tts__Container]] object)
+                if previousObject ~= nil then
+                    disassociateObject(self, --[[---@not nil]] previousObject)
+
+                    if ObjectUtils.isContainerTag((--[[---@not nil]] previousObject).type) then
+                        self.onLeaveContainer(--[[---@type tts__Container]] previousObject)
                     end
                 end
 
@@ -159,6 +172,7 @@ setmetatable(Instance, {
                 end
 
                 self.invalidateSavedState()
+                self.onObjectChanged(previousObject, object)
             end
         end
 
@@ -182,17 +196,17 @@ setmetatable(Instance, {
         --- If the instance is currently associated with a container, then the instance's
         --- corresponding object from within is retrieved. Otherwise, if the instance is directly
         --- associated with its corresponding object (not in a container) then the callback is
-        --- called is called with that object. In either of these two cases, the orientation will
-        --- be updated according to the provided options.
+        --- called with that object. In either of these two cases, the orientation will be updated
+        --- according to the provided options.
         ---@param options ge_tts__Instance_TakeObjectOptions
         function self.takeObject(options)
             self.ensureValid()
 
-            local spawnedObject = --[[---@not nil]] object
+            local sourceObject = --[[---@not nil]] object
             local containerPosition = self.getContainerPosition()
 
             if containerPosition then
-                spawnedObject.takeObject({
+                return --[[---@not nil]] sourceObject.takeObject({
                     index = containerPosition - 1,
                     rotation = options.rotation,
                     position = options.position,
@@ -202,28 +216,28 @@ setmetatable(Instance, {
             else
                 if options.smooth then
                     if options.position then
-                        spawnedObject.setPositionSmooth(--[[---@not nil]] options.position)
+                        sourceObject.setPositionSmooth(--[[---@not nil]] options.position)
                     end
 
                     if options.rotation then
-                        spawnedObject.setRotationSmooth(--[[---@not nil]] options.rotation)
+                        sourceObject.setRotationSmooth(--[[---@not nil]] options.rotation)
                     end
                 else
                     if options.position then
-                        spawnedObject.setPosition(--[[---@not nil]] options.position)
+                        sourceObject.setPosition(--[[---@not nil]] options.position)
                     end
 
                     if options.rotation then
-                        spawnedObject.setRotation(--[[---@not nil]] options.rotation)
+                        sourceObject.setRotation(--[[---@not nil]] options.rotation)
                     end
                 end
 
                 if options.callback then
-                    (--[[---@not nil]] options.callback)(spawnedObject)
+                    (--[[---@not nil]] options.callback)(sourceObject)
                 end
-            end
 
-            return true
+                return sourceObject
+            end
         end
 
         ---If the instance is presently within a container, returns the position (starting from 1) within said container, otherwise returns nil.
@@ -240,6 +254,16 @@ setmetatable(Instance, {
             return nil
         end
 
+        ---@return nil | number
+        function self.getContainerCount()
+            if object == nil then
+                return nil
+            end
+
+            local count = (--[[---@not nil]] object).getQuantity()
+            return count > 0 and count or nil
+        end
+
         ---@return boolean
         function self.isTopOfContainer()
             if object ~= nil and ObjectUtils.isContainerTag((--[[---@not nil]] object).type) then
@@ -249,18 +273,26 @@ setmetatable(Instance, {
             return false
         end
 
+        ---@param previousZone nil | ge_tts__Zone
+        ---@param newZone nil | ge_tts__Zone
+        function self.onZoneChanged(previousZone, newZone)
+        end
+
         ---@param newZone nil | ge_tts__Zone
         function self.setZone(newZone)
             if zone ~= newZone then
+                local previousZone = zone
                 zone = newZone
-                Logger.log('Instance ' .. self.toString() .. ' zone set to ' .. tostring(zone), Logger.VERBOSE)
+
+                Logger.log('Instance ' .. self.toString() .. ' zone changed from ' .. tostring(previousZone) .. ' to ' .. tostring(zone), Logger.VERBOSE)
 
                 self.invalidateSavedState()
+                self.onZoneChanged(previousZone, zone)
             end
         end
 
         ---
-        ---The zone this Instance is presently (or most recently) occupied.
+        ---The zone this Instance is occupying, or most recently occupied.
         ---
         ---It is intentional that this is not set to nil when an Instance stops occupying (i.e. leaves) a zone. It's
         ---often useful to know where an Instance came from e.g. if desired you can return an Instance to its previous
@@ -276,7 +308,7 @@ setmetatable(Instance, {
             return zone
         end
 
-        ---The zone type of the most presently, or most recently, occupied zone.
+        ---The zone type of zone this Instance is occupying, or most recently occupied.
         ---@return nil | string
         function self.getZoneType()
             return zone and (--[[---@not nil]] zone).getType()
@@ -284,11 +316,9 @@ setmetatable(Instance, {
 
         ---@overload fun(): boolean
         ---@param colorName nil | tts__PlayerColor
-        ---@return boolean
+        ---@return tts__Object
         function self.reject(colorName)
-            if not object then
-                return false
-            end
+            self.ensureValid()
 
             local pickupPosition = (--[[---@not nil]] object).pick_up_position
             local pickupRotation = (--[[---@not nil]] object).pick_up_rotation
@@ -397,6 +427,7 @@ setmetatable(Instance, {
             instanceGuid = --[[---@type string]] objectOrGuidOrSavedState
             object = container
             zone = containerInstance and (--[[---@not nil]] containerInstance).getZone()
+            Logger.log(tostring(self) .. " instantiated in container's zone " .. tostring(zone), Logger.DEBUG)
         else
             Logger.assert(objectOrGuidOrSavedState ~= nil, 'Instance cannot be instantiated without a valid associated object')
 

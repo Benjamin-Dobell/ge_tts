@@ -12,12 +12,9 @@ local extract = bit32.extract
 
 local PAD_KEY = 64
 
----@overload fun(char62: string, char63: string): table<number, number>
----@overload fun(char62: string): table<number, number>
----@overload fun(): table<number, number>
----@param char62 string
----@param char63 string
----@param charPad string
+---@param char62? nil | string
+---@param char63? nil | string
+---@param charPad? nil | string
 ---@return table<number, number>
 function Base64.encodingMap(char62, char63, charPad)
     ---@type table<number, number>
@@ -41,7 +38,7 @@ end
 ---@overload fun(): table<number, number>
 ---@param char62 string
 ---@param char63 string
----@param charPad string
+---@param charPad? string
 ---@return table<number, number>
 function Base64.decodingMap(char62, char63, charPad)
     return TableUtils.invert(Base64.encodingMap(char62, char63, charPad))

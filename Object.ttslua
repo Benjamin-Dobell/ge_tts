@@ -55,6 +55,7 @@ Object.Name = {
     FigurineSirLoin = "Figurine_Sir_Loin",
     FigurineZeke = "Figurine_Zeke",
     FigurineZomblor = "Figurine_Zomblor",
+    FogOfWarTrigger = "FogOfWarTrigger",
     GoBoard = "Go_Board",
     GoGameBowlBlack = "go_game_bowl_black",
     GoGameBowlWhite = "go_game_bowl_white",

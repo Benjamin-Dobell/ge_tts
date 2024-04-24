@@ -1,5 +1,7 @@
 require('ge_tts.License')
 
+local TableUtils = require('ge_tts.TableUtils')
+
 local Ui = {}
 
 -- Common
@@ -99,5 +101,49 @@ Ui.Text = {
         Overflow = "Overflow",
     }
 }
+
+---@generic Attributes : tts__UIElementBase_Attributes
+---@generic Child : tts__UIElement
+---@generic Element : tts__UIElementBase<Attributes, Child>
+---@param element Element
+---@param attributes Attributes
+function Ui.setAttributes(element, attributes)
+    if not element.attributes then
+        element.attributes = --[[---@type Attributes]] {}
+    end
+
+    for k, v in pairs(attributes) do
+        (--[[---@type any]] element.attributes)[k] = v
+    end
+end
+
+-- UI.setAttribute is buggy and in certain cases unrelated attributes to the one being updated are visually discarded.
+-- This is particularly prominent with buttons, setting 'text' or 'interactable' result in 'color' and 'textColor' being
+-- discarded. We provide convenience functions that (re)set all attributes rather than just the one/few being targetted.
+Ui.Runtime = {}
+
+---@param id tts__UIElement_Id
+---@param name string
+---@param value string | number | boolean
+---@return boolean
+function Ui.Runtime.setAttribute(id, name, value)
+    local attributes = UI.getAttributes(id)
+    attributes[name] = tostring(value)
+    return UI.setAttributes(id, attributes)
+end
+
+---@generic V : (string | number | boolean)
+---@param id tts__UIElement_Id
+---@param attributes table<string, V>
+---@return boolean
+function Ui.Runtime.setAttributes(id, attributes)
+    local allAttributes = UI.getAttributes(id)
+
+    for k, v in pairs(attributes) do
+        allAttributes[k] = tostring(v)
+    end
+
+    return UI.setAttributes(id, allAttributes)
+end
 
 return Ui

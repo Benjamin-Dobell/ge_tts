@@ -11,7 +11,7 @@ local TableUtils = require('ge_tts.TableUtils')
 ---@field body string | number[] | table
 
 ---@alias ge_tts__Http_Callback fun(response: nil | ge_tts__Http_Response, error: nil | string): void
----
+
 ---@type nil | string
 local proxyUrl
 

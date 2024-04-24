@@ -104,7 +104,7 @@ Coroutine.start(function()
     Coroutine.yieldFrames(30)
 
     print("30 frames later")
-    local object = spawnObject({type = "BlockRectangle"})
+    local object = CaspawnObject({type = "BlockRectangle"})
 
     Coroutine.yieldCondition(function() return not object.spawning end)
 

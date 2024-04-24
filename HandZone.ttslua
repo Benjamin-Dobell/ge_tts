@@ -1,5 +1,6 @@
 require('ge_tts.License')
 
+local Class = require('ge_tts.Class')
 local ObjectUtils = require('ge_tts.ObjectUtils')
 local TableUtils = require('ge_tts.TableUtils')
 local Zone = require('ge_tts.Zone')
@@ -28,13 +29,17 @@ local HandZone = {}
 HandZone.TYPE = 'HandZone'
 
 setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
+    ---@param class self
     ---@param ownerOrSavedState tts__Player | ge_tts__HandZone_SavedState
     ---@param nilOrHandIndex nil | number @TTS player hand index, defaults to 1.
-    __call = function(_, ownerOrSavedState, nilOrHandIndex)
+    __call = function(class, ownerOrSavedState, nilOrHandIndex)
         local isSavedState = HandZone.isSavedState(ownerOrSavedState)
         local self = --[[---@type ge_tts__HandZone]] (
-            isSavedState and Zone(--[[---@type ge_tts__HandZone_SavedState]] ownerOrSavedState)
-                or Zone(zoneParameters(--[[---@type tts__Player]] ownerOrSavedState, --[[---@not nil]] nilOrHandIndex))
+            isSavedState
+                and Class.parentConstructor(class, Zone)(--[[---@type ge_tts__HandZone_SavedState]] ownerOrSavedState)
+                or Class.parentConstructor(class, Zone)(
+                    zoneParameters(--[[---@type tts__Player]] ownerOrSavedState, --[[---@not nil]] nilOrHandIndex)
+            )
         )
 
         ---@type tts__Player
@@ -51,10 +56,6 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         ---@return number
         function self.getHandIndex()
             return handIndex
-        end
-
-        function self.getType()
-            return HandZone.TYPE
         end
 
         local superOnEnter = self.onEnter

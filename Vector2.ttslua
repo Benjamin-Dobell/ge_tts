@@ -149,6 +149,20 @@ setmetatable(Vector2, {
 ---@overload fun(v: ge_tts__Vec2Shape): number
 ---@param v ge_tts__NumCharVec2Shape
 ---@return number
+function Vector2.x(v)
+    return v.x or v[1]
+end
+
+---@overload fun(v: ge_tts__Vec2Shape): number
+---@param v ge_tts__NumCharVec2Shape
+---@return number
+function Vector2.y(v)
+    return v.y or v[2]
+end
+
+---@overload fun(v: ge_tts__Vec2Shape): number
+---@param v ge_tts__NumCharVec2Shape
+---@return number
 function Vector2.lengthSquared(v)
     local x = v.x or v[1]
     local y = v.y or v[2]
@@ -237,7 +251,7 @@ function Vector2.distance(v1, v2)
     return math.sqrt(Vector2.distanceSquared(v1, v2))
 end
 
----@overload fun(v: ge_tts__Vec2Shape): number
+---@overload fun(v: ge_tts__Vec2Shape, angle: number): ge_tts__Vector2
 ---@param v ge_tts__NumCharVec2Shape
 ---@param angle number @angle in degrees
 ---@return ge_tts__Vector2
@@ -253,7 +267,7 @@ function Vector2.rotate(v, angle)
     )
 end
 
----@overload fun(v3: tts__VectorShape): number
+---@overload fun(v3: tts__VectorShape): ge_tts__Vector2
 ---@param v3 ge_tts__NumCharVec3
 ---@return ge_tts__Vector2
 function Vector2.fromXZ(v3)

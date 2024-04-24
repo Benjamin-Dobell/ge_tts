@@ -17,6 +17,166 @@ local function resumeWithErrorHandling(co, onError)
     end
 end
 
+---@overload fun<R>(fn: (fun(resume: (fun(result: R): void)): void), timeout?: nil | number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): boolean, R
+---@overload fun(fn: (fun(resume: (fun(): void)): void), timeout?: nil | number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): boolean
+---@generic R
+---@param fn fun(resume: (fun(result: R): void)): void
+---@param timeout? nil | number @Timeout in seconds (optional).
+---@param onError? nil | fun(message: string): void @A handler for any errors raised by the current coroutine after it has been resumed.
+---@param incorrectResumptionErrorMessage? nil | string
+---@return false | (true, R) @fn result followed by true if the condition was met, or false if the (optional) timeout was reached.
+function Coroutine.yield(fn, timeout, onError, incorrectResumptionErrorMessage)
+    local co = coroutine.running()
+
+    local yielded = false
+
+    ---@type nil | boolean
+    local resumed
+
+    ---@type R
+    local result
+
+    ---@type fun(userResult: R): void
+    local resume = function(userResult)
+        if resumed then
+            return -- Already resumed
+        end
+
+        result = userResult
+        resumed = true
+
+        if yielded then
+            -- If resume is called synchronously in fn, then we haven't (and won't) yield. Thus, there's no suspended
+            -- coroutine to resume.
+            resumeWithErrorHandling(co, onError)
+        end
+    end
+
+    ---@type nil | number
+    local waitId
+
+    if timeout then
+        waitId = Wait.time(function()
+            if resumed then
+                return
+            end
+
+            waitId = nil
+            resumed = false
+            resumeWithErrorHandling(co, onError)
+        end, --[[---@not nil]] timeout)
+    end
+
+    fn(resume)
+
+    if not resumed then
+        yielded = true
+        coroutine.yield()
+    end
+
+    if waitId then
+        Wait.stop(--[[---@not nil]] waitId)
+    end
+
+    if not resumed then
+        if resumed == nil then
+            error(incorrectResumptionErrorMessage)
+        end
+
+        return false
+    end
+
+    return true, result
+end
+
+---@overload fun<T, R>(arr T[], fn: (fun(resume: (fun(result: R): void), element: T, index: number): void), timeout?: nil | number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): boolean, R[]
+---@overload fun<T>(arr T[], fn: (fun(resume: (fun(): void), element: T, index: number): void), timeout?: nil | number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): boolean
+---@generic T
+---@generic R
+---@param arr T[]
+---@param fn fun(resume: (fun(result: R): void), element: T, index: number): void
+---@param timeout? nil | number @Timeout in seconds (optional).
+---@param onError? nil | fun(message: string): void @A handler for any errors raised by the current coroutine after it has been resumed.
+---@param incorrectResumptionErrorMessage? nil | string
+---@return (true, R[]) | (false, table<number, R>) @fn result followed by true if the condition was met, or false if the (optional) timeout was reached.
+function Coroutine.yieldAll(arr, fn, timeout, onError, incorrectResumptionErrorMessage)
+    local co = coroutine.running()
+
+    local count = #arr
+
+    if count == 0 then
+        return true, {}
+    end
+
+    local resultCount = 0
+
+    local yielded = false
+
+    ---@type nil | boolean
+    local resumed
+
+    ---@type nil | number
+    local waitId
+
+    if timeout then
+        Wait.time(function()
+            if resumed then
+                return
+            end
+
+            waitId = nil
+            resumed = false
+            resumeWithErrorHandling(co, onError)
+        end, --[[---@not nil]] timeout)
+    end
+
+    ---@type table<number, true>
+    local elementsResumed = {}
+
+    ---@type table<number, R>
+    local results = {}
+
+    for i, element in ipairs(arr) do
+        ---@type fun(userResult: R): void
+        local resume = function(userResult)
+            if elementsResumed[i] then
+                return
+            end
+
+            elementsResumed[i] = true
+            results[i] = userResult
+            resultCount = resultCount + 1
+
+            if resultCount == count then
+                -- If resume is called synchronously in fn, then we haven't (and won't) yield. Thus, there's no suspended
+                -- coroutine to resume.
+                resumed = true
+
+                if yielded then
+                    resumeWithErrorHandling(co, onError)
+                end
+            end
+        end
+
+        fn(resume, element, i)
+    end
+
+    if not resumed then
+        yielded = true
+        coroutine.yield()
+    end
+
+    if waitId then
+        Wait.stop(--[[---@not nil]] waitId)
+    end
+
+    if resumed == nil then
+        error(incorrectResumptionErrorMessage)
+    end
+
+    return --[[---@not nil]] resumed, results
+end
+
 --- Yields from the current coroutine. Resumes once a condition is met or an optional timeout is reached.
 ---@overload fun(condition: fun(): boolean): true
 ---@overload fun(condition: (fun(): boolean), timeout: number): boolean
@@ -58,21 +218,15 @@ end
 ---@param frames number
 ---@param onError nil | fun(message: string): void @A handler for any errors raised by the current coroutine after it has been resumed.
 function Coroutine.yieldFrames(frames, onError)
-    local co = coroutine.running()
-
-    ---@type boolean
-    local done
-
-    Wait.frames(function()
-        done = true
-        resumeWithErrorHandling(co, onError)
-    end, frames)
-
-    coroutine.yield()
-
-    if not done then
-        error("Coroutine.yieldFrames(): attempt to resume before Wait was completed!")
-    end
+    Coroutine.yield(
+            ---@param resume fun(): void
+            function(resume)
+                Wait.frames(resume, frames)
+            end,
+            nil,
+            onError,
+            "Coroutine.yieldFrames(): attempt to resume before Wait was completed!"
+    )
 end
 
 --- Yields from the current coroutine, which will later be resumed after the specified number of seconds have passed.
@@ -80,24 +234,18 @@ end
 ---@param seconds number
 ---@param onError nil | fun(message: string): void @A handler for any errors raised by the current coroutine after it has been resumed.
 function Coroutine.yieldSeconds(seconds, onError)
-    local co = coroutine.running()
-
-    ---@type boolean
-    local done
-
-    Wait.time(function()
-        done = true
-        resumeWithErrorHandling(co, onError)
-    end, seconds)
-
-    coroutine.yield()
-
-    if not done then
-        error("Coroutine.yieldSeconds(): attempt to resume before Wait was completed!")
-    end
+    Coroutine.yield(
+            ---@param resume fun(): void
+            function(resume)
+                Wait.time(resume, seconds)
+            end,
+            nil,
+            onError,
+            "Coroutine.yieldSeconds(): attempt to resume before Wait was completed!"
+    )
 end
 
---- Creates a co-routine from the specified function and immediately starts it, passing any any provided arguments.
+--- Creates a coroutine from the specified function and immediately starts it, passing any provided arguments.
 ---@param func fun
 ---@vararg any
 ---@return boolean, any...

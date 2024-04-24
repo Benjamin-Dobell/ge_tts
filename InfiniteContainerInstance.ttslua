@@ -1,5 +1,6 @@
 require('ge_tts.License')
 
+local Class = require('ge_tts.Class')
 local EventManager = require('ge_tts.EventManager')
 local Instance = require('ge_tts.Instance')
 local ObjectUtils = require('ge_tts.ObjectUtils')
@@ -30,14 +31,16 @@ InfiniteContainerInstance.TYPE = 'Infinite Container'
 
 setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance), {
     ---@generic T : ge_tts__Instance
+    ---@param class self
     ---@param containerOrSavedState tts__Container | ge_tts__InfiniteContainerInstance_SavedState
     ---@param buildInstance ge_tts__InfiniteContainerInstance_BuildInstance<T> @When an instance is removed, this function is called to create a new instance that will take its place in the infinite container.
-    __call = function(_, containerOrSavedState, buildInstance)
+    __call = function(class, containerOrSavedState, buildInstance)
         local isSavedState = InfiniteContainerInstance.isSavedState(containerOrSavedState)
 
         local self = --[[---@type ge_tts__InfiniteContainerInstance<T>]] (
-            isSavedState and Instance(--[[---@type ge_tts__InfiniteContainerInstance_SavedState]] containerOrSavedState)
-                or Instance(--[[---@type tts__Container]] containerOrSavedState)
+            isSavedState
+                and Class.parentConstructor(class, Instance)(--[[---@type ge_tts__InfiniteContainerInstance_SavedState]] containerOrSavedState)
+                or Class.parentConstructor(class, Instance)(--[[---@type tts__Container]] containerOrSavedState)
         )
 
         local containedObjectStates = (--[[---@type tts__ContainerState]] self.getObject().getData() ).ContainedObjects
@@ -127,11 +130,6 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
             for _, instance in ipairs(instances) do
                 instance.setObject(newContainer)
             end
-        end
-
-        ---@return string
-        function self.getType()
-            return InfiniteContainerInstance.TYPE
         end
 
         local superSave = self.save

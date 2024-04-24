@@ -101,10 +101,10 @@ end
 ---
 ---@overload fun(message: string): void
 ---@param message string
----@param level ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
+---@param level? ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
 function Logger.log(message, level)
     level = level or defaultLogLevel
-    defaultLogger.log(message, level)
+    defaultLogger.log(message, --[[---@not nil]] level)
 end
 
 ---

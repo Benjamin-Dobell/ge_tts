@@ -1,5 +1,6 @@
 require('ge_tts.License')
 
+local Class = require('ge_tts.Class')
 local EventManager = require('ge_tts.EventManager')
 local Instance = require('ge_tts.Instance')
 local Object = require('ge_tts.Object')
@@ -18,17 +19,16 @@ local DieInstance = {}
 DieInstance.TYPE = 'Die'
 
 setmetatable(DieInstance, {
+    ---@param class self
     ---@param objectOrGuidOrSavedState tts__Object | string | ge_tts__Instance_SavedState
     ---@param nilOrContainer nil | tts__Container
-    __call = function(_, objectOrGuidOrSavedState, nilOrContainer)
-        local self = --[[---@type ge_tts__DieInstance]] Instance(objectOrGuidOrSavedState, nilOrContainer)
+    __call = function(class, objectOrGuidOrSavedState, nilOrContainer)
+        local self = --[[---@type ge_tts__DieInstance]] Class.parentConstructor(self, Instance)(
+            objectOrGuidOrSavedState,
+            nilOrContainer
+        )
 
         self.getObject().registerCollisions()
-
-        ---@return string
-        function self.getType()
-            return DieInstance.TYPE
-        end
 
         ---@param value number | string
         ---@param playerColor nil | tts__PlayerColor
@@ -86,7 +86,7 @@ local onObjectUpdating = function(object, playerColor, isRandomizing)
                 onRollDetected()
             end)
         else
-            local minRandomizeYVelocity = 1.5 * math.pow(math.abs(Physics.getGravity().y), 0.5)
+            local minRandomizeYVelocity = 1.5 * (math.abs(Physics.getGravity().y) ^ 0.5)
 
             Wait.condition(function()
                 if isRolling then
