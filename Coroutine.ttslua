@@ -89,8 +89,9 @@ function Coroutine.yield(fn, timeout, onError, incorrectResumptionErrorMessage)
     return true, result
 end
 
----@overload fun<T, R>(arr T[], fn: (fun(resume: (fun(result: R): void), element: T, index: number): void), timeout?: nil | number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): boolean, R[]
----@overload fun<T>(arr T[], fn: (fun(resume: (fun(): void), element: T, index: number): void), timeout?: nil | number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): boolean
+---@overload fun<T, R>(arr: T[], fn: (fun(resume: (fun(result: R): void), element: T, index: number): void), timeout: number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): (true, R[]) | (false, table<number, R>)
+---@overload fun<T, R>(arr: T[], fn: (fun(resume: (fun(result: R): void), element: T, index: number): void), timeout?: nil, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): true, R[]
+---@overload fun<T>(arr: T[], fn: (fun(resume: (fun(): void), element: T, index: number): void), timeout?: nil | number, onError?: nil | (fun(message: string): void), incorrectResumptionErrorMessage?: nil | string): boolean
 ---@generic T
 ---@generic R
 ---@param arr T[]
@@ -174,7 +175,11 @@ function Coroutine.yieldAll(arr, fn, timeout, onError, incorrectResumptionErrorM
         error(incorrectResumptionErrorMessage)
     end
 
-    return --[[---@not nil]] resumed, results
+    if resumed then
+        return true, --[[---@type R[] ]] results
+    end
+
+    return false, results
 end
 
 --- Yields from the current coroutine. Resumes once a condition is met or an optional timeout is reached.

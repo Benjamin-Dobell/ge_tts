@@ -199,6 +199,7 @@ setmetatable(Instance, {
         --- called with that object. In either of these two cases, the orientation will be updated
         --- according to the provided options.
         ---@param options ge_tts__Instance_TakeObjectOptions
+        ---@return tts__Object
         function self.takeObject(options)
             self.ensureValid()
 
