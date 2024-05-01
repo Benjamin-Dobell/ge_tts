@@ -369,6 +369,15 @@ function TableUtils.count(tab)
     return count
 end
 
+---@overload fun<V>(arr: std__Packed<V>): nil | V
+---@generic V
+---@param arr V[]
+---@return nil | V
+function TableUtils.pickRandom(arr)
+    local count = TableUtils.arrayLength(arr)
+    return count > 0 and arr[math.random(count)] or nil
+end
+
 ---@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
 ---@generic V
 ---@param arr V[]
