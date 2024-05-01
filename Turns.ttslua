@@ -5,11 +5,20 @@ local GlobalTurns = Turns
 ---@class ge_tts__Turns : tts__Turns
 local Turns = {}
 
-setmetatable(Turns, {__index=GlobalTurns})
-
 Turns.Type = {
     Auto = 1,
     Custom = 2,
 }
+
+setmetatable(Turns, {
+    __index = function(_, key)
+        return (--[[---@type table]] GlobalTurns)[key]
+    end,
+    ---@param key any
+    ---@param value any
+    __newindex = function(_, key, value)
+        (--[[---@type table]] GlobalTurns)[key] = value
+    end
+})
 
 return Turns

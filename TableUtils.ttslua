@@ -382,6 +382,27 @@ end
 ---@generic V
 ---@param arr V[]
 ---@return V[]
+function TableUtils.inplaceShuffle(arr)
+    ---@type V
+    local temp
+
+    ---@type number
+    local j
+
+    for i = TableUtils.arrayLength(arr), 2, -1 do
+        j = math.random(i)
+        temp = arr[i]
+        arr[i] = arr[j]
+        arr[j] = temp
+    end
+
+    return arr
+end
+
+---@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
+---@generic V
+---@param arr V[]
+---@return V[]
 function TableUtils.reverse(arr)
     ---@type V[]
     local reversed = {}
