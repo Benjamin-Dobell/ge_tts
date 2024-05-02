@@ -101,20 +101,19 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
                 local quantity = math.min(count, object.getQuantity())
 
                 for _ = 1, quantity do
-                    local takenObject = object.takeObject({
-                        callback_function = function(spawnedObject)
-                            if self.isObjectOccupying(spawnedObject) then
-                                spawnedObject.use_hands = true
-                                spawnedObject.deal(1, --[[---@type tts__PlayerHandColor]] owner.color, handIndex)
-                            end
-                        end,
-                    })
+                    local takenObject = object.takeObject({})
 
-                    superDrop(colorName, --[[---@not nil]] takenObject)
+                    if takenObject then
+                        (--[[---@not nil]] takenObject).use_hands = true
+                        ;(--[[---@not nil]] takenObject).deal(1, --[[---@type tts__PlayerHandColor]] owner.color)
+
+                        superDrop(colorName, --[[---@not nil]] takenObject)
+                    end
                 end
             else
                 if object.spawning then
-                    -- Unlike setPositionSmooth, deal does not work on objects that are in the process of spawning.
+                    -- Unlike setPositionSmooth, deal does not seem to work reliably on objects that are in the process
+                    -- of spawning. Although, it does seem to work well enough with takeObject() above.
                     Wait.condition(function()
                         if self.isObjectOccupying(object) then
                             object.use_hands = true

@@ -447,11 +447,11 @@ local function onObjectDrop(colorName, object)
     local cancelling = object.isSmoothMoving() and (Grid.snapping == Grid.Snapping.None or not object.use_grid) and object.pick_up_position:sqrMagnitude() ~= 0
 
     if cancelling then
-        objectZones = TableUtils.values(TableUtils.select(scriptingTriggerZoneMap, function(zone, trigger)
+        objectZones = TableUtils.values((TableUtils.select(scriptingTriggerZoneMap, function(zone, trigger)
             local localPosition = trigger.positionToLocal(object.pick_up_position)
             local scale = trigger.getScale()
             return math.abs(localPosition.x) < 0.5 and math.abs(localPosition.z) < 0.5 and math.abs(localPosition.y) < scale.y and localPosition.y > 0
-        end))
+        end)))
     else
         objectZones = objectIntersectingZonesMap[object]
     end
