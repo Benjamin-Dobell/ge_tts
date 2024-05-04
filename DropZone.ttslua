@@ -15,6 +15,8 @@ local MAX_DROP_VELOCITY_SQUARED = 5 * 5 -- 5 in/sec
 ---@field rotationAxis number
 ---@field facing ge_tts__DropZone_Facing
 ---@field dropOffset tts__CharVectorShape
+---@field fastMovementEnabled boolean
+---@field fastRotationEnabled boolean
 
 ---@class ge_tts__static_DropZone : ge_tts__static_Zone
 ---@overload fun(position: tts__VectorShape, rotation: tts__VectorShape, scale: tts__VectorShape): ge_tts__DropZone
@@ -71,6 +73,9 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
         ---@type ge_tts__Vector3
         local dropOffset = Vector3()
 
+        local fastMovementEnabled = false
+        local fastRotationEnabled = false
+
         ---@return nil | number @occupant's desired X-axis scale
         function self.getOccupantScale()
             return occupantScale
@@ -120,6 +125,26 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             self.invalidateSavedState()
         end
 
+        ---@return boolean
+        function self.isFastMovementEnabled()
+            return fastMovementEnabled
+        end
+
+        ---@param fast boolean
+        function self.setFastMovementEnabled(fast)
+            fastMovementEnabled = fast
+        end
+
+        ---@return boolean
+        function self.isFastRotationEnabled()
+            return fastRotationEnabled
+        end
+
+        ---@param fast boolean
+        function self.setFastRotationEnabled(fast)
+            fastRotationEnabled = fast
+        end
+
         --- Called when a player attempts to drop an object within this zone. A drop zone will
         --- ignore objects that are dropped whilst moving at a high velocity, as it's assumed the
         --- player is trying to throw the object, not drop it in this zone.
@@ -147,7 +172,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             local objectRotation = object.getRotation()
             local position = self.getObject().positionToWorld(dropOffset)
 
-            object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z })
+            object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z }, false, fastMovementEnabled)
 
             if rotationEnabled then
                 local rotation = self.getRotation()
@@ -176,7 +201,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                     end
                 end
 
-                object.setRotationSmooth(objectRotation)
+                object.setRotationSmooth(objectRotation, false, fastRotationEnabled)
             end
 
             if occupantScale then
@@ -206,7 +231,9 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                 rotationEnabled = rotationEnabled,
                 rotationAxis = rotationAxis,
                 facing = facing,
-                dropOffset = dropOffset.toData()
+                dropOffset = dropOffset.toData(),
+                fastMovementEnabled = fastMovementEnabled,
+                fastRotationEnabled = fastRotationEnabled,
             })
         end
 
@@ -218,6 +245,8 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             rotationAxis = data.rotationAxis
             facing = data.facing
             dropOffset = Vector3(data.dropOffset)
+            fastMovementEnabled = data.fastMovementEnabled
+            fastRotationEnabled = data.fastRotationEnabled
         elseif triggerProvided then
             occupantScale = --[[---@type nil | number]] nilOrRotationOrOccupantScale
         else
