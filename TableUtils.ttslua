@@ -261,26 +261,40 @@ end
 function TableUtils.inject(tab, ...)
     local otherTables = { ... }
 
-    if TableUtils.isArray(tab) then
-        local arr = --[[---@type V[] | std__Packed<V>]] tab
-        local i, isFixed = TableUtils.arrayLength(arr)
+    ---@type nil | boolean
+    local isArray = nil
 
-        for _, t in ipairs(otherTables) do
-            for _, v in iterate(--[[---@type V[] ]] t) do
-                i = i + 1
-                arr[i] = v
+    ---@type number
+    local arrayLength = 0
+
+    ---@type boolean
+    local isPacked = false
+
+    for _, otherTable in ipairs(otherTables) do
+        if isArray == nil and next(tab) then
+            isArray = TableUtils.isArray(tab)
+
+            if isArray then
+                arrayLength, isPacked = TableUtils.arrayLength(--[[---@type V[] | std__Packed<V>]] tab)
             end
         end
 
-        if isFixed then
-            (--[[---@type std__Packed<V>]] tab).n = i
-        end
-    else
-        for _, t in ipairs(otherTables) do
-            for k, v in pairs(t) do
+        if isArray then
+            local arr = --[[---@type V[] | std__Packed<V>]] tab
+
+            for _, v in iterate(--[[---@type V[] ]] otherTable) do
+                arrayLength = arrayLength + 1
+                arr[arrayLength] = v
+            end
+        else
+            for k, v in pairs(otherTable) do
                 tab[k] = v
             end
         end
+    end
+
+    if isPacked then
+        (--[[---@type std__Packed<V>]] tab).n = arrayLength
     end
 end
 
