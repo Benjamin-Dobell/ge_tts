@@ -75,6 +75,7 @@ Ui.Navigation = {
 Ui.Tag = {
     Button = "Button",
     HorizontalLayout = "HorizontalLayout",
+    Option = "Option",
     Panel = "Panel",
     Text = "Text",
     VerticalLayout = "VerticalLayout",
