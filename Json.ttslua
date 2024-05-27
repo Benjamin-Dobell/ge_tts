@@ -111,7 +111,7 @@ end
 ---@param options ge_tts__Json_DecodeAsyncOptions
 ---@return fun(): void
 function Json.decodeAsync(json, options)
-    local cancelled = false
+    local canceled = false
 
     options = TableUtils.merge(--[[---@type ge_tts__Json_DecodeAsyncOptions]] defaultDecodeOptions, options)
 
@@ -225,12 +225,12 @@ function Json.decodeAsync(json, options)
         local function feed()
             local characterCount = math.min(length - offset + 1, charactersPerChunk)
 
-            if characterCount == 0 or cancelled then
+            if characterCount == 0 or canceled then
                 return nil
             end
 
             Coroutine.yieldFrames(framesBetweenChunks, function(message)
-                if not cancelled then
+                if not canceled then
                     options.onError(message)
                 end
             end)
@@ -244,13 +244,13 @@ function Json.decodeAsync(json, options)
         local parser = --[[---@type {run: fun(): void}]] LunaJsonSax.newparser(feed, handler)
         parser.run()
 
-        if not cancelled then
+        if not canceled then
             options.onCompletion(result)
         end
     end)
 
     return function()
-        cancelled = true
+        canceled = true
     end
 end
 
