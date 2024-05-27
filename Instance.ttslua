@@ -394,6 +394,14 @@ setmetatable(Instance, {
         function self.onSpawned()
         end
 
+        --- Called when this instance's object is dropped by a player and is not being accepted by any zones.
+        ---@param colorName tts__PlayerColor @Color of the TTS player that dropped the TTS object
+        ---@param pendingRejection boolean @Whether the dropped object is will be rejected back to its pickup zone/location if we return false.
+        ---@return boolean @Return true to indicate the dropped object has been handled and the object should not be rejected.
+        function self.onRelease(colorName, pendingRejection)
+            return false
+        end
+
         if Instance.isSavedState(objectOrGuidOrSavedState) then
             local savedState = --[[---@type ge_tts__Instance_SavedState]] objectOrGuidOrSavedState
 

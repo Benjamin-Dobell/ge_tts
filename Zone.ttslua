@@ -456,6 +456,8 @@ local function onObjectDrop(colorName, object)
         objectZones = objectIntersectingZonesMap[object]
     end
 
+    local reject = false
+
     if objectZones then
         local objectPosition = cancelling and object.pick_up_position or object.getPosition()
 
@@ -468,8 +470,6 @@ local function onObjectDrop(colorName, object)
             return zoneDistance1.distanceSquared < zoneDistance2.distanceSquared
         end)
 
-        local reject = false
-
         for _, zoneDistance in ipairs(zoneDistances) do
             local zone = zoneDistance.zone
 
@@ -480,38 +480,41 @@ local function onObjectDrop(colorName, object)
             if filterResult == Zone.FilterResult.ACCEPT then
                 Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') dropped in ' .. tostring(zone), Logger.DEBUG)
                 zone.onDrop(colorName, object)
-                reject = false
-                break
-            elseif filterResult == Zone.FilterResult.REJECT then
-                Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') rejected by ' .. tostring(zone), Logger.DEBUG)
-                reject = true
+                return
             elseif filterResult == Zone.FilterResult.FORCE_IGNORE then
                 Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') force ignored by ' .. tostring(zone), Logger.DEBUG)
-                reject = false
-                break
+                return
             elseif filterResult == Zone.FilterResult.FORCE_REJECT then
                 Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') force rejected by ' .. tostring(zone), Logger.DEBUG)
                 reject = true
                 break
+            elseif filterResult == Zone.FilterResult.REJECT then
+                Logger.log(object.type .. ' (' .. tostring(object.getGUID()) .. ') rejected by ' .. tostring(zone), Logger.DEBUG)
+                reject = true
             end
         end
+    end
 
-        if reject then
-            -- We only look at one instance (if there is one). If there's multiple because the
-            -- object is a container, we make no attempt to split the container.
+    local instance = Instance.getOneInstance(object)
 
-            local instance = Instance.getOneInstance(object)
-            local instanceZone = instance and (--[[---@not nil]] instance).getZone()
+    if instance and (--[[---@not nil]] instance).onRelease(colorName, reject) then
+        return
+    end
 
-            if instanceZone and
-                (TableUtils.find((--[[---@not nil]] instanceZone).getOccupyingObjects(), object)
-                    or (--[[---@not nil]] instanceZone).filterObject(colorName, object) == Zone.FilterResult.ACCEPT)
-            then
-                (--[[---@not nil]] instanceZone).drop(colorName, object)
-            elseif object.pick_up_position:sqrMagnitude() ~= 0 then
-                object.setPositionSmooth(object.pick_up_position)
-                object.setRotationSmooth(object.pick_up_rotation)
-            end
+    if reject then
+        -- We only look at one instance (if there is one). If there's multiple because the
+        -- object is a container, we make no attempt to split the container.
+
+        local instanceZone = instance and (--[[---@not nil]] instance).getZone()
+
+        if instanceZone and
+            (TableUtils.find((--[[---@not nil]] instanceZone).getOccupyingObjects(), object)
+                or (--[[---@not nil]] instanceZone).filterObject(colorName, object) == Zone.FilterResult.ACCEPT)
+        then
+            (--[[---@not nil]] instanceZone).drop(colorName, object)
+        elseif object.pick_up_position:sqrMagnitude() ~= 0 then
+            object.setPositionSmooth(object.pick_up_position)
+            object.setRotationSmooth(object.pick_up_rotation)
         end
     end
 end
