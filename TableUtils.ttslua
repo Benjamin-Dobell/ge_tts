@@ -371,13 +371,24 @@ function TableUtils.values(tab)
     return values, i
 end
 
----@param tab table
+---@overload fun(tab: table): number
+---@generic K, V
+---@param tab table<K, V>
+---@param predicate? nil | fun(value: V, key: K): boolean
 ---@return number
-function TableUtils.count(tab)
+function TableUtils.count(tab, predicate)
     local count = 0
 
-    for _, _ in pairs(tab) do
-        count = count + 1
+    if predicate then
+        for k, v in pairs(tab) do
+            if predicate(v, k) then
+                count = count + 1
+            end
+        end
+    else
+        for _, _ in pairs(tab) do
+            count = count + 1
+        end
     end
 
     return count
