@@ -75,7 +75,7 @@ local function disassociateOccupyingObject(zone, object, disassociateInstances)
     end
 
     -- Note that we're intentionally not disassociating instances by default. Instances track the *most recent* zone.
-    if disassociateInstances ~= nil and disassociateInstances then
+    if disassociateInstances then
         for _, instance in ipairs(Instance.getInstances(object)) do
             if instance.getZone() == zone then
                 instance.setZone(nil)
@@ -455,6 +455,22 @@ end
 
 ---@param colorName tts__PlayerColor
 ---@param object tts__Object
+local function isInHand(colorName, object)
+    local player = Player[colorName]
+
+    for i = 1, player.getHandCount() do
+        for _, handObject in ipairs(player.getHandObjects(i)) do
+            if object == handObject then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+---@param colorName tts__PlayerColor
+---@param object tts__Object
 local function onObjectDrop(colorName, object)
     ---@type ge_tts__Zone[]
     local objectZones
@@ -467,9 +483,9 @@ local function onObjectDrop(colorName, object)
     --   3. The user pressed Esc, and the object is moving back to its pick_up_position.
     -- We're going to assume that ge_tts users are using DropZones and not snap points and outright ignore case 2, thus
     -- if grid snapping isn't enabled, we'll assume case 3 is taking place.
-    local cancelling = object.isSmoothMoving() and (Grid.snapping == Grid.Snapping.None or not object.use_grid) and object.pick_up_position:sqrMagnitude() ~= 0
+    local canceling = object.isSmoothMoving() and (Grid.snapping == Grid.Snapping.None or not object.use_grid) and object.pick_up_position:sqrMagnitude() ~= 0 and not isInHand(colorName, object)
 
-    if cancelling then
+    if canceling then
         objectZones = TableUtils.values((TableUtils.select(scriptingTriggerZoneMap, function(zone, trigger)
             local localPosition = trigger.positionToLocal(object.pick_up_position)
             local scale = trigger.getScale()
@@ -482,7 +498,7 @@ local function onObjectDrop(colorName, object)
     local reject = false
 
     if objectZones then
-        local objectPosition = cancelling and object.pick_up_position or object.getPosition()
+        local objectPosition = canceling and object.pick_up_position or object.getPosition()
 
         local zoneDistances = TableUtils.map(objectZones,  function(zone)
             local distanceSquared = Vector3.distanceSquared(objectPosition, zone.getObject().getPosition())

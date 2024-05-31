@@ -42,6 +42,24 @@ DropZone.RotationAxis = {
     All = 7
 }
 
+---@param colorName tts__PlayerColor
+---@param object tts__Object
+local function isInHand(object)
+    for _, colorName in ipairs(Player.getAvailableColors()) do
+        local player = Player[colorName]
+
+        for i = 1, player.getHandCount() do
+            for _, handObject in ipairs(player.getHandObjects(i)) do
+                if object == handObject then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 ---@alias ge_tts__DropZone_Facing 1 | 2 | 3
 
 setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
@@ -173,6 +191,23 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             local position = self.getObject().positionToWorld(dropOffset)
 
             object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z }, false, fastMovementEnabled)
+
+            if isInHand(object) then
+                local useHands = object.use_hands
+
+                object.use_hands = false
+
+                -- If an object was just dropped in a hand zone, it seems we're unable to smooth move it out this frame.
+                Wait.frames(function()
+                    if not object.isDestroyed() then
+                        if Zone.getObjectOccupyingZone(object) == self then
+                            object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z }, false, fastMovementEnabled)
+                        end
+
+                        object.use_hands = useHands
+                    end
+                end)
+            end
 
             if rotationEnabled then
                 local rotation = self.getRotation()
