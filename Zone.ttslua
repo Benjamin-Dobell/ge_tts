@@ -284,6 +284,29 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
             self.invalidateSavedState()
         end
 
+        --- Used programmatically when `object` should be made a direct occupant, but was not dropped by a player.
+        ---@param object tts__Object @Object to insert
+        function self.insertOccupyingObject(object)
+            if not TableUtils.find(occupyingObjects, object) then
+                table.insert(occupyingObjects, object)
+            end
+
+            associateOccupyingObject(self, object)
+            self.invalidateSavedState()
+        end
+
+        --- Used programmatically when `object` should be removed as a direct occupant.
+        ---@param object tts__Object @Object to remove
+        ---@param disassociateInstances? boolean @Call setZone(nil) for instances associated with removed objects. Default: false
+        function self.removeOccupyingObject(object, disassociateInstances)
+            local index = TableUtils.find(occupyingObjects, object)
+
+            if index then
+                disassociateOccupyingObject(self, object, disassociateInstances)
+                self.invalidateSavedState()
+            end
+        end
+
         --- Can be called to dynamically drop a TTS object in this Zone.
         ---@param colorName nil | tts__PlayerColor @Color of the TTS player that should be deemed responsible for having dropped the TTS object.
         ---@param object tts__Object @The object that will be dropped.
