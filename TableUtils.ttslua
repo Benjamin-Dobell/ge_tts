@@ -112,13 +112,13 @@ function TableUtils.remap(tab, func)
     return remapped
 end
 
----@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[], number
----@overload fun<V>(arr: std__Packed<V>, func: fun(value: V, index: number): boolean): std__Packed<V>, number
+---@overload fun<V>(arr: V[], predicate: fun(value: V, index: number): boolean): V[], number
+---@overload fun<V>(arr: std__Packed<V>, predicate: fun(value: V, index: number): boolean): std__Packed<V>, number
 ---@generic K, V
 ---@param tab table<K, V>
----@param func fun(value: V, key: K): boolean
+---@param predicate fun(value: V, key: K): boolean
 ---@return table<K, V>, number
-function TableUtils.select(tab, func)
+function TableUtils.select(tab, predicate)
     ---@type table<K, V>
     local selected = {}
 
@@ -128,7 +128,7 @@ function TableUtils.select(tab, func)
         local i = 0
 
         for k, v in iterate(tab) do
-            if func(v, k) then
+            if predicate(v, k) then
                 i = i + 1
                 (--[[---@type V[] ]] selected)[i] = v
             end
@@ -140,7 +140,7 @@ function TableUtils.select(tab, func)
         end
     else
         for k, v in pairs(tab) do
-            if func(v, k) then
+            if predicate(v, k) then
                 selected[k] = v
                 count = count + 1
             end
@@ -150,13 +150,69 @@ function TableUtils.select(tab, func)
     return selected, count
 end
 
----@overload fun<V>(arr: V[], func: fun(value: V, index: number): boolean): V[]
+---@overload fun<V>(arr: V[],  predicate: (fun(value: V, index: number): boolean), ...: V[]): void
+---@overload fun<V, PV : V, SubsetA : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[]): void
+---@overload fun<V, PV : V, SubsetA : PV, SubsetB : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[], b: SubsetB[]): void
+---@overload fun<V, PV : V, SubsetA : PV, SubsetB : PV, SubsetC : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[], b: SubsetB[], c: SubsetC[]): void
+---@overload fun<V, PV : V, SubsetA : PV, SubsetB : PV, SubsetC : PV, SubsetD : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[], b: SubsetB[], c: SubsetC[], d: SubsetD[]): void
+---@overload fun<V, PV : V, Subset : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), ...: Subset[]): void
+---@overload fun<V>(arr: std__Packed<V>, predicate: (fun(value: V, index: number): boolean), ...: V[] | std__Packed<V>): void
 ---@generic K, V
 ---@param tab table<K, V>
----@param func fun(value: V, key: K): boolean
+---@param predicate fun(value: V, key: K): boolean
+---@vararg table<K, V>
+---@return void
+function TableUtils.selectInject(tab, predicate, ...)
+    local otherTables = { ... }
+
+    ---@type nil | boolean
+    local isArray = nil
+
+    ---@type number
+    local arrayLength = 0
+
+    ---@type boolean
+    local isPacked = false
+
+    for _, otherTable in ipairs(otherTables) do
+        if isArray == nil and next(tab) then
+            isArray = TableUtils.isArray(tab)
+
+            if isArray then
+                arrayLength, isPacked = TableUtils.arrayLength(--[[---@type V[] | std__Packed<V>]] tab)
+            end
+        end
+
+        if isArray then
+            local arr = --[[---@type V[] | std__Packed<V>]] tab
+
+            for i, v in iterate(--[[---@type V[] ]] otherTable) do
+                if predicate(v, --[[---@type K]] i) then
+                    arrayLength = arrayLength + 1
+                    arr[arrayLength] = v
+                end
+            end
+        else
+            for k, v in pairs(otherTable) do
+                if predicate(v, k) then
+                    tab[k] = v
+                end
+            end
+        end
+    end
+
+    if isPacked then
+        (--[[---@type std__Packed<V>]] tab).n = arrayLength
+    end
+end
+
+---@overload fun<V>(arr: V[], predicate: fun(value: V, index: number): boolean): V[]
+---@generic K, V
+---@param tab table<K, V>
+---@param predicate fun(value: V, key: K): boolean
 ---@return table<K, V>, number
-function TableUtils.reject(tab, func)
-    return TableUtils.select(tab, function(v, k) return not func(v, k) end)
+function TableUtils.reject(tab, predicate)
+    return TableUtils.select(tab, function(v, k) return not predicate(v, k) end)
 end
 
 ---@overload fun<R, K, V: R>(tab: table<K, V>, func: fun(memo: R, value: V, key: K): R): nil | R
@@ -203,7 +259,7 @@ end
 
 ---@generic K, V
 ---@param tab table<K, V>
----@param value any
+---@param value V
 ---@return nil | K
 function TableUtils.find(tab, value)
     for k, v in iterate(tab) do
@@ -217,11 +273,11 @@ end
 
 ---@generic K, V
 ---@param tab table<K, V>
----@param func fun(value: V, key: K): boolean
+---@param predicate fun(value: V, key: K): boolean
 ---@return (nil, nil) | (V, K)
-function TableUtils.detect(tab, func)
+function TableUtils.detect(tab, predicate)
     for k, v in iterate(tab) do
-        if func(v, k) then
+        if predicate(v, k) then
             return v, k
         end
     end
@@ -229,10 +285,9 @@ function TableUtils.detect(tab, func)
     return nil, nil
 end
 
----@overload fun<T>(tab: T): T
 ---@generic T
 ---@param tab T
----@param recursive boolean
+---@param recursive? nil | boolean
 ---@return T
 function TableUtils.copy(tab, recursive)
     ---@type table
@@ -312,10 +367,10 @@ function TableUtils.merge(...)
     return result
 end
 
----@overload fun<V>(arrays: std__Packed<V>[]): std__Packed<V>, number
+---@overload fun<V>(arrays: std__Packed<V>[]): std__Packed<V>
 ---@generic V
 ---@param arrays V[][]
----@return V[], number
+---@return V[]
 function TableUtils.flatten(arrays)
     ---@type V[]
     local flattened = {}
@@ -333,7 +388,7 @@ function TableUtils.flatten(arrays)
         (--[[---@type std__Packed<V>]] flattened).n = i
     end
 
-    return flattened, i
+    return flattened
 end
 
 ---@generic K, V
@@ -342,33 +397,30 @@ end
 function TableUtils.keys(tab)
     ---@type K[]
     local keys = {}
+    local i = 0
 
     for k, _ in pairs(tab) do
-        table.insert(keys, k)
+        i = i + 1
+        keys[i] = k
     end
 
     return keys
 end
 
----@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
 ---@generic K, V
 ---@param tab table<K, V>
----@return V[], number
+---@return V[]
 function TableUtils.values(tab)
     ---@type V[]
     local values = {}
     local i = 0
 
-    for _, v in iterate(tab) do
+    for _, v in pairs(tab) do
         i = i + 1
         values[i] = v
     end
 
-    if type((--[[---@type std__Packed<V>]] tab).n) == 'number' then
-        (--[[---@type std__Packed<V>]] values).n = i
-    end
-
-    return values, i
+    return values
 end
 
 ---@overload fun(tab: table): number
@@ -447,45 +499,58 @@ function TableUtils.reverse(arr)
     return reversed
 end
 
----@overload fun<V>(arr: std__Packed<V>, start: number): std__Packed<V>
----@overload fun<V>(arr: V[], start: number): V[]
+--- Copies the elements within range [start, finish] into a new array.
+---@overload fun<V>(arr: std__Packed<V>, start: number, finish?: nil | number): std__Packed<V>
+---@overload fun<V>(arr: V[], start: number, finish?: nil | number): V[]
 ---@generic V
 ---@param arr V[]
 ---@param start number
----@param finish number
----@return V[]
+---@param finish? number @Default TableUtils.arrayLength(arr)
+---@return V[] | std__Packed<V>
 function TableUtils.range(arr, start, finish)
     ---@type V[]
     local range = {}
 
-    for i in fixedLengthIterator(finish or TableUtils.arrayLength(arr)), arr, start - 1 do
+    local arrLength, isPacked = TableUtils.arrayLength(arr)
+
+    start = math.min(start, arrLength)
+    finish = finish and math.min(--[[---@not nil]] finish, arrLength) or arrLength
+
+    for i in fixedLengthIterator(--[[---@not nil]] finish), arr, start - 1 do
         range[i - start + 1] = arr[i]
     end
 
-    if type((--[[---@type std__Packed<V>]] arr).n) == 'number' then
-        (--[[---@type std__Packed<V>]] range).n = finish - start + 1
+    if isPacked then
+        (--[[---@type std__Packed<V>]] range).n = (--[[---@not nil]] finish) - start + 1
+        return (--[[---@type std__Packed<V>]] range)
     end
 
     return range
 end
 
 ---@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
+---@overload fun<V>(arr: V[]): V[]
 ---@generic V
 ---@param arr V[]
----@return V[], number
+---@return V[] | std__Packed<V>
 function TableUtils.unique(arr)
-    ---@type V[]
-    local unique = {}
-    local i = 0
+    ---@type table<V, true>
+    local set = {}
 
-    for _, value in ipairs(arr) do
-        if not TableUtils.find(unique, value) then
-            i = i + 1
-            unique[i] = value
+    for _, value in iterate(arr) do
+        if not set[value] then
+            set[value] = true
         end
     end
 
-    return unique, i
+    local values = TableUtils.keys(set)
+
+    if type((--[[---@type std__Packed<V>]] arr).n) == 'number' then
+        (--[[---@type std__Packed<V>]] arr).n = #values
+        return --[[---@type std__Packed<V>]] arr
+    end
+
+    return values
 end
 
 local TYPE_STRINGIFIERS = {
