@@ -459,19 +459,14 @@ local function onObjectDrop(colorName, object)
     ---@type ge_tts__Zone[]
     local objectZones
 
-    -- TODO: Once TTS provides an object.GetSmoothMovementTarget() or similar we can do away with this craziness...
-    -- When an object is dropped, TTS may smooth move it to another location in certain circumstances. Generally
-    -- speaking there are three cases:
-    --   1. Snapping to a grid.
-    --   2. Snapping to a snap point.
-    --   3. The user pressed Esc, and the object is moving back to its pick_up_position.
-    -- We're going to assume that ge_tts users are using DropZones and not snap points and outright ignore case 2, thus
-    -- if grid snapping isn't enabled, we'll assume case 3 is taking place.
-    local canceling = object.isSmoothMoving() and (Grid.snapping == Grid.Snapping.None or not object.use_grid) and object.pick_up_position:sqrMagnitude() ~= 0 and not isInHand(colorName, object)
+    -- When the object is dropped it may be smooth moving to another location e.g. if the user pressed "Esc" whilst
+    -- holding the object. In such cases we don't want to look for zones near/overlapping the current object location,
+    -- instead we want to use the smooth movement destination.
+    local smoothMovingPosition = object.getPositionSmooth()
 
-    if canceling then
+    if smoothMovingPosition then
         objectZones = TableUtils.values((TableUtils.select(scriptingTriggerZoneMap, function(zone, trigger)
-            local localPosition = trigger.positionToLocal(object.pick_up_position)
+            local localPosition = trigger.positionToLocal(--[[---@not nil]] smoothMovingPosition)
             local scale = trigger.getScale()
             return math.abs(localPosition.x) < 0.5 and math.abs(localPosition.z) < 0.5 and math.abs(localPosition.y) < scale.y and localPosition.y > 0
         end)))
@@ -482,7 +477,7 @@ local function onObjectDrop(colorName, object)
     local reject = false
 
     if objectZones then
-        local objectPosition = canceling and object.pick_up_position or object.getPosition()
+        local objectPosition = smoothMovingPosition or object.getPosition()
 
         local zoneDistances = TableUtils.map(objectZones,  function(zone)
             local distanceSquared = Vector3.distanceSquared(objectPosition, zone.getObject().getPosition())
