@@ -65,7 +65,7 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
         function self.onEnter(object)
             superOnEnter(object)
 
-            if not self.isObjectOccupying(object) and TableUtils.find(owner.getHandObjects(handIndex), object) then
+            if not object.held_by_color and not self.isObjectOccupying(object) and TableUtils.find(owner.getHandObjects(handIndex), object) then
                 self.onDrop(owner.color, object)
             end
         end

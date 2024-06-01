@@ -455,22 +455,6 @@ end
 
 ---@param colorName tts__PlayerColor
 ---@param object tts__Object
-local function isInHand(colorName, object)
-    local player = Player[colorName]
-
-    for i = 1, player.getHandCount() do
-        for _, handObject in ipairs(player.getHandObjects(i)) do
-            if object == handObject then
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
----@param colorName tts__PlayerColor
----@param object tts__Object
 local function onObjectDrop(colorName, object)
     ---@type ge_tts__Zone[]
     local objectZones
