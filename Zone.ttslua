@@ -251,11 +251,12 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         ---@param colorName nil | tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was dropped.
         function self.onDrop(colorName, object)
+            associateOccupyingObject(self, object)
+
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
 
-            associateOccupyingObject(self, object)
             self.invalidateSavedState()
         end
 
@@ -273,25 +274,15 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
             self.invalidateSavedState()
         end
 
-        --- Used programmatically when `object` should be made a direct occupant, but not dropped by a player.
-        ---@param object tts__Object @The object that was dropped.
-        function self.insertOccupyingObject(object)
-            if not TableUtils.find(occupyingObjects, object) then
-                table.insert(occupyingObjects, object)
-            end
-
-            associateOccupyingObject(self, object)
-            self.invalidateSavedState()
-        end
-
         --- Used programmatically when `object` should be made a direct occupant, but was not dropped by a player.
         ---@param object tts__Object @Object to insert
         function self.insertOccupyingObject(object)
+            associateOccupyingObject(self, object)
+
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
 
-            associateOccupyingObject(self, object)
             self.invalidateSavedState()
         end
 
