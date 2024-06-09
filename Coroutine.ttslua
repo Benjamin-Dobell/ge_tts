@@ -24,7 +24,7 @@ end
 ---@param timeout? nil | number @Timeout in seconds (optional).
 ---@param onError? nil | fun(message: string): void @A handler for any errors raised by the current coroutine after it has been resumed.
 ---@param incorrectResumptionErrorMessage? nil | string
----@return false | (true, R) @fn result followed by true if the condition was met, or false if the (optional) timeout was reached.
+---@return false | (true, R) @true followed by fn result if resume was called before the timeout, or false if the (optional) timeout was reached.
 function Coroutine.yield(fn, timeout, onError, incorrectResumptionErrorMessage)
     local co = coroutine.running()
 
@@ -99,7 +99,7 @@ end
 ---@param timeout? nil | number @Timeout in seconds (optional).
 ---@param onError? nil | fun(message: string): void @A handler for any errors raised by the current coroutine after it has been resumed.
 ---@param incorrectResumptionErrorMessage? nil | string
----@return (true, R[]) | (false, table<number, R>) @fn result followed by true if the condition was met, or false if the (optional) timeout was reached.
+---@return (true, R[]) | (false, table<number, R>) @true followed by fn result if resume was called before the timeout, or false if the (optional) timeout was reached.
 function Coroutine.yieldAll(arr, fn, timeout, onError, incorrectResumptionErrorMessage)
     local co = coroutine.running()
 

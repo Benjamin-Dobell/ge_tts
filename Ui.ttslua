@@ -1,7 +1,5 @@
 require('ge_tts.License')
 
-local TableUtils = require('ge_tts.TableUtils')
-
 local Ui = {}
 
 -- Common
