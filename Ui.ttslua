@@ -72,11 +72,20 @@ Ui.Navigation = {
 
 Ui.Tag = {
     Button = "Button",
+    Defaults = "Defaults",
     HorizontalLayout = "HorizontalLayout",
+    Image = "Image",
     Option = "Option",
     Panel = "Panel",
     Text = "Text",
     VerticalLayout = "VerticalLayout",
+}
+
+Ui.TooltipPosition = {
+    Above = "Above",
+    Below = "Below",
+    Left = "Left",
+    Right = "Right",
 }
 
 -- Elements
