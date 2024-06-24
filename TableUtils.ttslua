@@ -444,13 +444,38 @@ function TableUtils.count(tab, predicate)
     return count
 end
 
+--- Picks unique random entries from an array. If `count` is nil/omitted, the result is a single element. When `count`
+--- is specified, then the lesser of `count` / length unique entries will be returned in an array.
 ---@overload fun<V>(arr: std__Packed<V>): nil | V
+---@overload fun<V>(arr: V[]): V
+---@overload fun<V>(arr: std__Packed<V>, count: number): V[]
+---@overload fun<V>(arr: V[], count: number): V[]
 ---@generic V
 ---@param arr V[]
----@return nil | V
-function TableUtils.pickRandom(arr)
-    local count = TableUtils.arrayLength(arr)
-    return count > 0 and arr[math.random(count)] or nil
+---@param count? number
+---@return nil | V | V[]
+function TableUtils.pickRandom(arr, count)
+    local length = TableUtils.arrayLength(arr)
+
+    if length == 0 then
+        -- Not typed as returning nil, but this is the same behavior as accessing an array out of bounds.
+        return count and {} or nil
+    end
+
+    if count == nil then
+        return arr[math.random(length)]
+    end
+
+    count = math.min(--[[---@not nil]] count, length)
+
+    local copy = TableUtils.copy(arr)
+
+    for i = 1, count do
+        local index = math.random(i, length)
+        copy[i], copy[index] = copy[index], copy[i]
+    end
+
+    return TableUtils.range(copy, 1, --[[---@not nil]] count)
 end
 
 ---@overload fun<V>(arr: std__Packed<V>): std__Packed<V>
