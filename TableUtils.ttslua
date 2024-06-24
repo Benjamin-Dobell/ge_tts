@@ -151,11 +151,11 @@ function TableUtils.select(tab, predicate)
 end
 
 ---@overload fun<V>(arr: V[],  predicate: (fun(value: V, index: number): boolean), ...: V[]): void
----@overload fun<V, PV : V, SubsetA : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[]): void
----@overload fun<V, PV : V, SubsetA : PV, SubsetB : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[], b: SubsetB[]): void
----@overload fun<V, PV : V, SubsetA : PV, SubsetB : PV, SubsetC : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[], b: SubsetB[], c: SubsetC[]): void
----@overload fun<V, PV : V, SubsetA : PV, SubsetB : PV, SubsetC : PV, SubsetD : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: SubsetA[], b: SubsetB[], c: SubsetC[], d: SubsetD[]): void
----@overload fun<V, PV : V, Subset : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), ...: Subset[]): void
+---@overload fun<V, PV : V, CovariantA : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: CovariantA[]): void
+---@overload fun<V, PV : V, CovariantA : PV, CovariantB : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: CovariantA[], b: CovariantB[]): void
+---@overload fun<V, PV : V, CovariantA : PV, CovariantB : PV, CovariantC : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: CovariantA[], b: CovariantB[], c: CovariantC[]): void
+---@overload fun<V, PV : V, CovariantA : PV, CovariantB : PV, CovariantC : PV, CovariantD : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), a: CovariantA[], b: CovariantB[], c: CovariantC[], d: CovariantD[]): void
+---@overload fun<V, PV : V, Covariant : PV>(arr: V[], predicate: (fun(value: PV, index: number): boolean), ...: Covariant[]): void
 ---@overload fun<V>(arr: std__Packed<V>, predicate: (fun(value: V, index: number): boolean), ...: V[] | std__Packed<V>): void
 ---@generic K, V
 ---@param tab table<K, V>
@@ -302,12 +302,11 @@ function TableUtils.copy(tab, recursive)
     return --[[---@type T]] copied
 end
 
----@overload fun<V>(arr: V[], ...: V[]): void
----@overload fun<V, SubsetA : V>(arr: V[], a: SubsetA[]): void
----@overload fun<V, SubsetA : V, SubsetB : V>(arr: V[], a: SubsetA[], b: SubsetB[]): void
----@overload fun<V, SubsetA : V, SubsetB : V, SubsetC : V>(arr: V[], a: SubsetA[], b: SubsetB[], c: SubsetC[]): void
----@overload fun<V, SubsetA : V, SubsetB : V, SubsetC : V, SubsetD : V>(arr: V[], a: SubsetA[], b: SubsetB[], c: SubsetC[], d: SubsetD[]): void
----@overload fun<V, Subset : V>(arr: V[], ...: Subset[]): void
+---@overload fun<V>(tab: V, ...: V): void
+---@overload fun<V, CovariantA : V>(arr: V[], a: CovariantA[]): void
+---@overload fun<V, CovariantA : V, CovariantB : V>(arr: V[], a: CovariantA[], b: CovariantB[]): void
+---@overload fun<V, CovariantA : V, CovariantB : V, CovariantC : V>(arr: V[], a: CovariantA[], b: CovariantB[], c: CovariantC[]): void
+---@overload fun<V, CovariantA : V, CovariantB : V, CovariantC : V, CovariantD : V>(arr: V[], a: CovariantA[], b: CovariantB[], c: CovariantC[], d: CovariantD[]): void
 ---@overload fun<V>(arr: std__Packed<V>, ...: V[] | std__Packed<V>): void
 ---@generic K, V
 ---@param tab table<K, V>
@@ -357,7 +356,6 @@ end
 ---@overload fun<A, B>(a: A[], b: B[]): (A | B)[]
 ---@overload fun<A, B, C>(a: A[], b: B[], c: C[]): (A | B | C)[]
 ---@overload fun<A, B, C, D>(a: A[], b: B[], c: C[], d: D[]): (A | B | C | D)[]
----@overload fun<SubsetT, T : SubsetT>(value: T, ...: SubsetT): T
 ---@overload fun<T>(a: T, ...: T): T
 ---@vararg table
 ---@return table
