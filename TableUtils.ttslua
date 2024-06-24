@@ -551,6 +551,45 @@ function TableUtils.unique(arr)
     return values
 end
 
+--- Removes the first occurence of value from a table. In the case of arrays, values are shifted down to fill the gap.
+---@overload fun<T>(arr: T[] | std__Packed<T>, value: T): false | (true, number)
+---@overload fun<K, V>(arr: table<K, V>, value: V): false | (true, K)
+---@param tab table
+---@param value any
+---@return false | (true, any)
+function TableUtils.removeValue(tab, value)
+    for k, v in iterate(tab) do
+        if v == value then
+            if type((--[[---@type std__Packed<any>]] tab).n) == 'number' then
+                local length = (--[[---@type std__Packed<any>]] tab).n
+
+                for i = k + 1, length do
+                    tab[i - 1] = tab[i]
+                end
+
+                tab[length] = nil
+                tab.n = length - 1
+            elseif tab[1] ~= nil then
+                table.remove(--[[---@type any[] ]] tab, k)
+            else
+                tab[k] = nil
+            end
+
+            return true, k
+        end
+    end
+
+    return false
+end
+
+---@param tab table
+---@return void
+function TableUtils.clear(tab)
+    for k in pairs(tab) do
+        tab[k] = nil
+    end
+end
+
 local TYPE_STRINGIFIERS = {
     ['nil'] = function(_) return 'nil' end,
     boolean = function(v) return tostring(v) end,

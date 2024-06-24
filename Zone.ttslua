@@ -36,16 +36,8 @@ end
 local function removeObjectIntersectingZone(object, zone)
     local objectZones = objectIntersectingZonesMap[object]
 
-    if objectZones then
-        local zoneIndex = TableUtils.find(objectZones, zone)
-
-        if zoneIndex then
-            table.remove(objectZones, --[[---@not nil]] zoneIndex)
-
-            if #objectZones == 0 then
-                objectIntersectingZonesMap[object] = nil
-            end
-        end
+    if objectZones and TableUtils.removeValue(objectZones, zone) and #objectZones == 0 then
+        objectIntersectingZonesMap[object] = nil
     end
 end
 
@@ -237,12 +229,7 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         --- Called when a TTS object leaves this Zone.
         ---@param object tts__Object
         function self.onLeave(object)
-            local index = TableUtils.find(occupyingObjects, object)
-
-            if index then
-                table.remove(occupyingObjects, --[[---@not nil]] index)
-            end
-
+            TableUtils.removeValue(occupyingObjects, object)
             disassociateOccupyingObject(self, object)
             self.invalidateSavedState()
         end
@@ -251,25 +238,20 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         ---@param colorName nil | tts__PlayerColor @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was dropped.
         function self.onDrop(colorName, object)
-            associateOccupyingObject(self, object)
-
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
 
             self.invalidateSavedState()
+
+            associateOccupyingObject(self, object)
         end
 
         --- Called when a TTS object is picked up from this Zone.
         ---@param colorName string @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was picked up.
         function self.onPickUp(colorName, object)
-            local index = TableUtils.find(occupyingObjects, object)
-
-            if index then
-                table.remove(occupyingObjects, --[[---@not nil]] index)
-            end
-
+            TableUtils.removeValue(occupyingObjects, object)
             disassociateOccupyingObject(self, object)
             self.invalidateSavedState()
         end
@@ -277,22 +259,20 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         --- Used programmatically when `object` should be made a direct occupant, but was not dropped by a player.
         ---@param object tts__Object @Object to insert
         function self.insertOccupyingObject(object)
-            associateOccupyingObject(self, object)
-
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
             end
 
             self.invalidateSavedState()
+
+            associateOccupyingObject(self, object)
         end
 
         --- Used programmatically when `object` should be removed as a direct occupant.
         ---@param object tts__Object @Object to remove
         ---@param disassociateInstances? boolean @Call setZone(nil) for instances associated with removed objects. Default: false
         function self.removeOccupyingObject(object, disassociateInstances)
-            local index = TableUtils.find(occupyingObjects, object)
-
-            if index then
+            if TableUtils.removeValue(occupyingObjects, object) then
                 disassociateOccupyingObject(self, object, disassociateInstances)
                 self.invalidateSavedState()
             end
