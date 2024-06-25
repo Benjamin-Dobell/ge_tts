@@ -115,8 +115,11 @@ setmetatable(HandZone, TableUtils.merge(getmetatable(Zone), {
                     -- Unlike setPositionSmooth, deal does not seem to work reliably on objects that are in the process
                     -- of spawning. Although, it does seem to work well enough with takeObject() above.
                     Wait.condition(function()
-                        object.use_hands = true
-                        object.deal(1, --[[---@type tts__PlayerHandColor]] owner.color, handIndex)
+                        -- Check that the object is still occupying this hand zone before we try move it here
+                        if self.isObjectOccupying(object) then
+                            object.use_hands = true
+                            object.deal(1, --[[---@type tts__PlayerHandColor]] owner.color, handIndex)
+                        end
                     end, function() return object ~= nil and not object.spawning end)
                 else
                     object.deal(1, --[[---@type tts__PlayerHandColor]] owner.color, handIndex)
