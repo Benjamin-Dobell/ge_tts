@@ -33,6 +33,7 @@ local function numberedIndex(vector, index)
     end
 end
 
+local DEGREES_RATIO = 180 / math.pi
 local RADIANS_RATIO = math.pi / 180
 
 ---@class ge_tts__static_Vector3
@@ -245,6 +246,15 @@ function Vector3.cross(v1, v2)
     local z2 = v2.z or v2[3]
 
     return Vector3(y1 * z2 - z1 * y2, z1 * x2 - x1 * z2, x1 * y2 - y1 * x2)
+end
+
+--- Returns the angle between v1 and v2 in degrees.
+---@overload fun(v1: tts__VectorShape, v2: tts__VectorShape): number
+---@param v1 ge_tts__NumCharVec3
+---@param v2 ge_tts__NumCharVec3
+---@return number
+function Vector3.angle(v1, v2)
+    return DEGREES_RATIO * math.acos(Vector3.dot(v1, v2) / (Vector3.length(v1) * Vector3.length(v2)))
 end
 
 ---@overload fun(v1: tts__VectorShape, v2: tts__VectorShape): number
