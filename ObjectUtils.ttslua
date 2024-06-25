@@ -180,6 +180,58 @@ function ObjectUtils.safeSpawnContainer(containerState, callback_function)
     return --[[---@type tts__Container]] ObjectUtils.safeSpawnObject(containerState, --[[---@type nil | tts__ObjectCallbackFunction]] callback_function)
 end
 
+local POSITION_NEAR_THRESHOLD = 0.025001
+local POSITION_NEAR_THRESHOLD_SQUARED = POSITION_NEAR_THRESHOLD * POSITION_NEAR_THRESHOLD
+
+--- Works around a bug in TTS' setPositionSmooth that occurs if you setPositionSmooth to a position then immediately
+--- back to the current position with setPositionSmooth, then the second call is incorrectly ignored.
+---@param object tts__Object
+---@param position tts__VectorShape
+---@param collide? nil | boolean
+---@param fast? nil | boolean
+function ObjectUtils.setPositionSmooth(object, position, collide, fast)
+    if object.getPositionSmooth() then
+        local objectPosition = object.getPosition()
+
+        if Vector3.distanceSquared(position, objectPosition) <= POSITION_NEAR_THRESHOLD_SQUARED then
+            object.setPosition(position)
+            return
+        end
+    end
+
+    object.setPositionSmooth(position, collide, fast)
+end
+
+local ROTATION_NEAR_THRESHOLD = 1.000001
+
+--- Works around a bug in TTS' setRotationSmooth that occurs if you setRotationSmooth to a rotation then immediately
+--- back to the current rotation with setRotationSmooth, then the second call is incorrectly ignored.
+---@param object tts__Object
+---@param rotation tts__VectorShape
+---@param collide? nil | boolean
+---@param fast? nil | boolean
+function ObjectUtils.setRotationSmooth(object, rotation, collide, fast)
+    if object.getRotationSmooth() then
+        local objectRotation = object.getRotation()
+        local objectRotationDirection = Vector3(1, 0, 0)
+            .rotateZ(objectRotation.z)
+            .rotateX(objectRotation.x)
+            .rotateY(objectRotation.y)
+
+        local rotationDirection = Vector3(1, 0, 0)
+            .rotateZ(Vector3.z(rotation))
+            .rotateX(Vector3.x(rotation))
+            .rotateY(Vector3.y(rotation))
+
+        if Vector3.angle(rotationDirection, objectRotationDirection) <= ROTATION_NEAR_THRESHOLD then
+            object.setRotation(rotation)
+            return
+        end
+    end
+
+    object.setRotationSmooth(rotation, collide, fast)
+end
+
 ---@shape __ge_tts__ObjectUtils_SavedStateData
 ---@field guidPrefix string
 

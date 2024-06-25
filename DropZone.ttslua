@@ -1,6 +1,7 @@
 require('ge_tts.License')
 
 local Class = require('ge_tts.Class')
+local ObjectUtils = require('ge_tts.ObjectUtils')
 local TableUtils = require('ge_tts.TableUtils')
 local Vector3 = require('ge_tts.Vector3')
 local Zone = require('ge_tts.Zone')
@@ -190,7 +191,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
             local objectRotation = object.getRotation()
             local position = self.getObject().positionToWorld(dropOffset)
 
-            object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z }, false, fastMovementEnabled)
+            ObjectUtils.setPositionSmooth(object, { position.x, math.max(position.y, object.getPosition().y), position.z }, false, fastMovementEnabled)
 
             if isInHand(object) then
                 local useHands = object.use_hands
@@ -201,7 +202,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                 Wait.frames(function()
                     if not object.isDestroyed() then
                         if Zone.getObjectOccupyingZone(object) == self then
-                            object.setPositionSmooth({ position.x, math.max(position.y, object.getPosition().y), position.z }, false, fastMovementEnabled)
+                            ObjectUtils.setPositionSmooth(object, { position.x, math.max(position.y, object.getPosition().y), position.z }, false, fastMovementEnabled)
                         end
 
                         object.use_hands = useHands
@@ -236,7 +237,7 @@ setmetatable(DropZone, TableUtils.merge(getmetatable(Zone), {
                     end
                 end
 
-                object.setRotationSmooth(objectRotation, false, fastRotationEnabled)
+                ObjectUtils.setRotationSmooth(object, objectRotation, false, fastRotationEnabled)
             end
 
             if occupantScale then

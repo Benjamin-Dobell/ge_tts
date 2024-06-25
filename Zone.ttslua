@@ -502,8 +502,8 @@ local function onObjectDrop(colorName, object)
         then
             (--[[---@not nil]] instanceZone).drop(colorName, object)
         elseif object.pick_up_position:sqrMagnitude() ~= 0 then
-            object.setPositionSmooth(object.pick_up_position)
-            object.setRotationSmooth(object.pick_up_rotation)
+            ObjectUtils.setPositionSmooth(object, object.pick_up_position)
+            ObjectUtils.setRotationSmooth(object, object.pick_up_rotation)
         end
     end
 end

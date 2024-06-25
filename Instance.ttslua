@@ -217,11 +217,11 @@ setmetatable(Instance, {
             else
                 if options.smooth then
                     if options.position then
-                        sourceObject.setPositionSmooth(--[[---@not nil]] options.position)
+                        ObjectUtils.setPositionSmooth(sourceObject, --[[---@not nil]] options.position)
                     end
 
                     if options.rotation then
-                        sourceObject.setRotationSmooth(--[[---@not nil]] options.rotation)
+                        ObjectUtils.setRotationSmooth(sourceObject, --[[---@not nil]] options.rotation)
                     end
                 else
                     if options.position then
@@ -330,8 +330,8 @@ setmetatable(Instance, {
                     if rejectZone then
                         (--[[---@not nil]] rejectZone).drop(colorName, instanceObject)
                     elseif pickupPosition:sqrMagnitude() ~= 0 then
-                        instanceObject.setPositionSmooth(pickupPosition, false, true)
-                        instanceObject.setRotationSmooth(pickupRotation, false, true)
+                        ObjectUtils.setPositionSmooth(instanceObject, pickupPosition, false, true)
+                        ObjectUtils.setRotationSmooth(instanceObject, pickupRotation, false, true)
                     end
                 end
             })

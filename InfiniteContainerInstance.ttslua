@@ -83,8 +83,8 @@ setmetatable(InfiniteContainerInstance, TableUtils.merge(getmetatable(Instance),
                         local pickupPosition = object.pick_up_position
 
                         if pickupPosition:sqrMagnitude() ~= 0 then
-                            object.setPositionSmooth(pickupPosition, false, true)
-                            object.setRotationSmooth(object.pick_up_rotation, false, true)
+                            ObjectUtils.setPositionSmooth(object, pickupPosition, false, true)
+                            ObjectUtils.setRotationSmooth(object, object.pick_up_rotation, false, true)
                         end
                     end
                 end
