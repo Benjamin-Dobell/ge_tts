@@ -2,7 +2,6 @@ require('ge_tts.License')
 
 local Class = require('ge_tts.Class')
 local EventManager = require('ge_tts.EventManager')
-local Grid = require('ge_tts.Grid')
 local Instance = require('ge_tts.Instance')
 local Logger = require('ge_tts.Logger')
 local Object = require('ge_tts.Object')
@@ -21,14 +20,21 @@ local objectOccupyingZoneMap = {}
 
 ---@param object tts__Object
 ---@param zone ge_tts__Zone
+---@return boolean
 local function addObjectIntersectingZone(object, zone)
     local objectZones = objectIntersectingZonesMap[object]
 
-    if objectZones and not TableUtils.find(objectZones, zone) then
+    if objectZones then
+        if TableUtils.find(objectZones, zone) then
+            return false
+        end
+
         table.insert(objectZones, zone)
     else
         objectIntersectingZonesMap[object] = { zone }
     end
+
+    return true
 end
 
 ---@param object tts__Object
@@ -46,14 +52,14 @@ end
 local function associateOccupyingObject(zone, object)
     local previousOccupiedZone = objectOccupyingZoneMap[object]
 
-    if previousOccupiedZone then
-        previousOccupiedZone.onLeave(object)
+    for _, instance in ipairs(Instance.getInstances(object)) do
+        instance.setZone(zone)
     end
 
     objectOccupyingZoneMap[object] = zone
 
-    for _, instance in ipairs(Instance.getInstances(object)) do
-        instance.setZone(zone)
+    if previousOccupiedZone and previousOccupiedZone ~= zone then
+        previousOccupiedZone.onLeave(object)
     end
 end
 
@@ -106,6 +112,7 @@ end
 
 ---@shape ge_tts__Zone_SavedState : ge_tts__Instance_SavedState
 ---@field occupyingObjectGuids string[]
+---@field retainOccupyingObjects boolean
 
 ---@class ge_tts__static_Zone : ge_tts__static_Instance
 ---@overload fun(position: tts__VectorShape, rotation: tts__VectorShape, scale: tts__VectorShape): ge_tts__Zone
@@ -182,6 +189,8 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         ---@type tts__Object[]
         local occupyingObjects = {}
 
+        local retainOccupyingObjects = true
+
         -- Callback for sub-classes to override.
         function self.onSpawned()
         end
@@ -229,6 +238,10 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         --- Called when a TTS object leaves this Zone.
         ---@param object tts__Object
         function self.onLeave(object)
+            if retainOccupyingObjects and objectOccupyingZoneMap[object] == self then
+                return
+            end
+
             TableUtils.removeValue(occupyingObjects, object)
             disassociateOccupyingObject(self, object)
             self.invalidateSavedState()
@@ -251,6 +264,10 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         ---@param colorName string @Color of the TTS player that dropped the TTS object.
         ---@param object tts__Object @The object that was picked up.
         function self.onPickUp(colorName, object)
+            if retainOccupyingObjects and objectOccupyingZoneMap[object] == self then
+                return
+            end
+
             TableUtils.removeValue(occupyingObjects, object)
             disassociateOccupyingObject(self, object)
             self.invalidateSavedState()
@@ -261,9 +278,8 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         function self.insertOccupyingObject(object)
             if not TableUtils.find(occupyingObjects, object) then
                 table.insert(occupyingObjects, object)
+                self.invalidateSavedState()
             end
-
-            self.invalidateSavedState()
 
             associateOccupyingObject(self, object)
         end
@@ -283,6 +299,21 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
         ---@param object tts__Object @The object that will be dropped.
         function self.drop(colorName, object)
             self.onDrop(colorName, object)
+        end
+
+        -- Whether or not the zone is retaining occupying objects.
+        ---@return boolean
+        ---@see ge_tts__Zone#setRetainOccupyingObjects
+        function self.getRetainOccupyingObjects()
+            return retainOccupyingObjects
+        end
+
+        --- Toggles behavior that when enabled will cause the zone to consider objects as occupying this zone until the
+        --- those objects have been added as occupants of another zone. The default behavior (retain == false) is to
+        --- disassociate objects as soon as they are either picked up or physically leave this zone.
+        ---@param retain boolean
+        function self.setRetainOccupyingObjects(retain)
+            retainOccupyingObjects = retain
         end
 
         local superSave = self.save
@@ -326,6 +357,8 @@ setmetatable(Zone, TableUtils.merge(getmetatable(Instance), {
                 associateOccupyingObject(self, object)
                 return object
             end)
+
+            retainOccupyingObjects = data.retainOccupyingObjects or false -- "or false" for backwards compatibility
         end
 
         for _, object in ipairs(self.getObject().getObjects()) do
@@ -364,16 +397,25 @@ end
 ---@param object tts__Object
 local function onObjectEnterContainer(container, object)
     for _, zone in ipairs(Zone.getObjectIntersectingZones(object)) do
-        if zone.isObjectOccupying(object) and not TableUtils.find(zone.getOccupyingObjects(), container) then
+        if addObjectIntersectingZone(container, zone) then
             Logger.log(
-                    object.type .. ' (' .. tostring(object.getGUID()) .. '), previously dropped in ' .. tostring(zone) .. ', entered ' ..
-                            container.type .. ' (' .. tostring(container.getGUID()) .. ') which will now be marked as dropped in the same zone.',
-                    Logger.DEBUG
+                object.type .. ' (' .. tostring(object.getGUID()) .. '), previously intersecting zone ' .. tostring(zone) .. ', entered ' ..
+                    container.type .. ' (' .. tostring(container.getGUID()) .. ') has now been marked as intersecting the same zone.',
+                Logger.DEBUG
             )
-
-            zone.insertOccupyingObject(container)
-            break
         end
+    end
+
+    local zone = objectOccupyingZoneMap[object]
+
+    if zone then
+        Logger.log(
+            object.type .. ' (' .. tostring(object.getGUID()) .. '), previously occupying zone ' .. tostring(zone) .. ', entered ' ..
+                container.type .. ' (' .. tostring(container.getGUID()) .. ') which will now be marked as occupying the same zone.',
+            Logger.DEBUG
+        )
+
+        zone.insertOccupyingObject(container)
     end
 end
 
@@ -578,8 +620,12 @@ local function onObjectDestroy(object)
         objectIntersectingZonesMap[object] = nil
     end
 
-    -- When objects are programmatically dropped, they may occupy a zone they're not yet intersecting.
+    -- When objects are programmatically dropped (or if setRetainOccupyingObjects is enable), then objects may be
+    -- occupying a zone they're not currently intersecting.
     local occupiedZone = objectOccupyingZoneMap[object]
+
+    -- Cleared here so that zones with retainOccupyingObjects == true don't attempt to retain the occupying object.
+    objectOccupyingZoneMap[object] = nil
 
     if occupiedZone then
         Logger.log(
