@@ -536,8 +536,8 @@ function TableUtils.range(arr, start, finish)
 
     local arrLength, isPacked = TableUtils.arrayLength(arr)
 
-    start = math.min(start, arrLength)
-    finish = finish and math.min(--[[---@not nil]] finish, arrLength) or arrLength
+    start = math.min(start, arrLength + 1)
+    finish = finish and math.min(math.max(start, --[[---@not nil]] finish), arrLength) or arrLength
 
     for i in fixedLengthIterator(--[[---@not nil]] finish), arr, start - 1 do
         range[i - start + 1] = arr[i]
