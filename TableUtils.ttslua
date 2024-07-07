@@ -293,10 +293,19 @@ function TableUtils.copy(tab, recursive)
     ---@type table
     local copied = {}
 
-    for k, v in pairs(--[[---@type table]] tab) do
-        copied[k] = (recursive and type(v) == 'table' and
-            TableUtils.copy(--[[---@type table]] v, true)
-        ) or v
+    if recursive then
+        for k, v in pairs(--[[---@type table]] tab) do
+            copied[type(k) == 'table'
+                and TableUtils.copy(--[[---@type table]] k, true)
+                or k
+            ] = type(v) == 'table'
+                and TableUtils.copy(--[[---@type table]] v, true)
+                or v
+        end
+    else
+        for k, v in pairs(--[[---@type table]] tab) do
+            copied[k] = v
+        end
     end
 
     return --[[---@type T]] copied
