@@ -633,6 +633,33 @@ function TableUtils.clear(tab)
     end
 end
 
+---@generic K, V
+---@param tab1 table<K, V>
+---@param tab2 table<K, V>
+---@param deep boolean | number
+function TableUtils.equals(tab1, tab2, deep)
+    if deep and deep ~= 0 then
+        if TableUtils.size(tab1) ~= TableUtils.size(tab2) then
+            return false
+        end
+
+        for k, v1 in iterate(tab1) do
+            local v2 = tab2[k]
+
+            if v1 ~= v2 and (
+                type(v1) ~= 'table'
+                    or type(v2) ~= 'table'
+                    or not TableUtils.equals(--[[---@type any]] v1, --[[---@type any]] v2, deep == true or (--[[---@type number]] deep) - 1)
+            ) then
+                return false
+            end
+        end
+    else
+    end
+
+    return true
+end
+
 local TYPE_STRINGIFIERS = {
     ['nil'] = function(_) return 'nil' end,
     boolean = function(v) return tostring(v) end,
