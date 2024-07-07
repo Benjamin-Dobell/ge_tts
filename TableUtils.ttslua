@@ -453,6 +453,15 @@ function TableUtils.count(tab, predicate)
     return count
 end
 
+--- If tab is an array, then the array length, otherwise falls back to counting the entries with iteration.
+---@param tab table
+---@return number
+function TableUtils.size(tab)
+    return TableUtils.isArray(tab)
+        and TableUtils.arrayLength(tab)
+        or TableUtils.count(tab)
+end
+
 --- Picks unique random entries from an array. If `count` is nil/omitted, the result is a single element. When `count`
 --- is specified, then the lesser of `count` / length unique entries will be returned in an array.
 ---@overload fun<V>(arr: std__Packed<V>): nil | V
