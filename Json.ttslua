@@ -2,8 +2,10 @@ require('ge_tts.License')
 
 local License = require('ge_tts.License')
 
--- JSON encoding of Color presently fails due to a bug in Color. Fortunately, we can patch Color to fix it.
-require('ge_tts.GlobalPatches')
+if Color then
+    -- JSON encoding of Color presently fails due to a bug in Color. Fortunately, we can patch Color to fix it.
+    require('ge_tts.GlobalPatches')
+end
 
 local Coroutine = require('ge_tts.Coroutine')
 local TableUtils = require('ge_tts.TableUtils')
