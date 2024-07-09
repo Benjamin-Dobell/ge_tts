@@ -1,9 +1,15 @@
 require('ge_tts.License')
 
----@class ge_tts__Logger
+---@shape ge_tts__Logger
+---@field getFilterLevel fun(): ge_tts__Logger_LogLevel
+---@field setFilterLevel fun(level: ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`): void
+---@field log fun(message: string, level?: ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`): void
+---@field assert fun(value: any, message: string): void
+
+---@class ge_tts__DefaultLogger : ge_tts__Logger
 
 ---@class ge_tts__static_Logger
----@overload fun(): ge_tts__Logger
+---@overload fun(): ge_tts__DefaultLogger
 local Logger = {}
 
 Logger.ERROR = 1
@@ -27,8 +33,9 @@ local levelPrefixes = {
 local defaultLogLevel = Logger.DEBUG
 
 setmetatable(Logger, {
+    ---@return ge_tts__DefaultLogger
     __call = function()
-        local self = --[[---@type ge_tts__Logger]] {}
+        local self = --[[---@type ge_tts__DefaultLogger]] {}
 
         ---@type ge_tts__Logger_LogLevel
         local filterLevel = Logger.INFO
@@ -43,13 +50,13 @@ setmetatable(Logger, {
             filterLevel = level
         end
 
-        ---@overload fun(message: string): void
         ---@param message string
-        ---@param level ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
+        ---@param level? ge_tts__Logger_LogLevel | `Logger.ERROR` | `Logger.WARNING` | `Logger.INFO` | `Logger.DEBUG` | `Logger.VERBOSE`
         function self.log(message, level)
             level = level or defaultLogLevel
+
             if level <= filterLevel then
-                print(levelPrefixes[level] .. message)
+                print(levelPrefixes[--[[---@not nil]] level] .. message)
             end
         end
 
@@ -69,6 +76,7 @@ setmetatable(Logger, {
     end
 })
 
+---@type ge_tts__Logger
 local defaultLogger = Logger()
 
 ---@param logger ge_tts__Logger
