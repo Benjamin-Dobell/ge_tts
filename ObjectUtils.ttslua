@@ -33,6 +33,16 @@ function ObjectUtils.isContainerTag(tag)
     return tag == Object.Tag.Deck or tag == Object.Tag.Bag
 end
 
+---@return number
+function ObjectUtils.previousGuidIndex()
+    return guidIndex
+end
+
+---@return string
+function ObjectUtils.guidPrefix()
+    return guidPrefix
+end
+
 ---@return string
 function ObjectUtils.nextGuid()
     guidIndex = guidIndex + 1
@@ -77,6 +87,15 @@ end
 ---@return tts__Object
 function ObjectUtils.safeRespawnObject(objectState, guid, callback_function)
     return safeSpawnObject(objectState, guid, callback_function)
+end
+
+--- This is only useful in very specific circumstances. Generally ObjectUtils is automatically setup appropriately when
+--- Tabletop Simulator calls onLoad.
+---@param guidPrefix string
+---@param guidIndex number
+function ObjectUtils.setup(prefix, index)
+    guidPrefix = prefix
+    guidIndex = index
 end
 
 ---@overload fun(position: nil | tts__VectorShape): tts__ObjectState_Transform
@@ -233,12 +252,14 @@ function ObjectUtils.setRotationSmooth(object, rotation, collide, fast)
 end
 
 ---@shape __ge_tts__ObjectUtils_SavedStateData
+---@field guidIndex number
 ---@field guidPrefix string
 
 ---@return string
 local function onSave()
     ---@type __ge_tts__ObjectUtils_SavedStateData
     local data = {
+        guidIndex = guidIndex,
         guidPrefix = guidPrefix,
     }
 
@@ -265,6 +286,7 @@ local function onLoad(savedState)
     local data = --[[---@type __ge_tts__ObjectUtils_SavedStateData]] Json.decode(savedState)
 
     guidPrefix = data.guidPrefix
+    guidIndex = data.guidIndex
 end
 
 local MODULE_NAME = 'ge_tts.ObjectUtils'
