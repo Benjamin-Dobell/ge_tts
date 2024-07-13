@@ -183,14 +183,9 @@ can extend a ``class'' please refer to `HandZone.ttslua` (or
 
 === Http
 
-A simple (but functionally complete) HTTP client that works in
-conjunction with
-https://github.com/Benjamin-Dobell/tts-proxy[tts-proxy].
-
+Http convenience module which wraps Tabletop Simulators WebRequest API.
 The Http module will automatically encode/decode JSON, otherwise you can
-provide a string and specify headers yourself. You may also provide an
-array of number, which represent bytes if the request body should be an
-octet-stream.
+provide a string and specify headers yourself.
 
 === Instance
 

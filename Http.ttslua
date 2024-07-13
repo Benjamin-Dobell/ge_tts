@@ -1,35 +1,20 @@
 require('ge_tts.License')
 
-local Base64 = require('ge_tts.Base64')
-local Logger = require('ge_tts.Logger')
 local Json = require('ge_tts.Json')
 local TableUtils = require('ge_tts.TableUtils')
 
----@shape ge_tts__Http_Response
+---@shape ge_tts__Http_Response<B>
 ---@field statusCode number
 ---@field headers table<string, string>
----@field body string | number[] | table
+---@field body B
 
----@alias ge_tts__Http_Callback fun(response: nil | ge_tts__Http_Response, error: nil | string): void
-
----@type nil | string
-local proxyUrl
+---@alias ge_tts__Http_Callback<B> fun(response: nil | ge_tts__Http_Response<B>, error: nil | string): void
 
 ---@type nil | string
 local decodeJsonContentType = 'application/json'
 
 ---@class ge_tts__Http
 local Http = {}
-
----@param url string
-function Http.setProxyUrl(url)
-    proxyUrl = url
-end
-
----@return nil | string
-function Http.getProxyUrl()
-    return proxyUrl
-end
 
 ---@param type nil | string
 function Http.setDecodeJsonContentType(type)
@@ -52,87 +37,65 @@ function Http.getHeader(headers, name)
     end)
 end
 
+---@generic B
 ---@param method string
 ---@param url string
----@param options table<string, any>
----@param callback ge_tts__Http_Callback
-function Http.request(method, url, options, callback)
-    Logger.assert(proxyUrl, 'Http must be configured with Http.setProxyUrl(\'YOUR_TTS_PROXY_URL\'). Please refer to https://gitlab.com/BenjaminDobell/tts-proxy for details.')
-
-    local content = Json.encode(TableUtils.merge(
-        {
-            headers = {},
-        },
-        options,
-        {
-            method = method:upper(),
-            url = url,
-        }
-    ))
-
-    WebRequest.put(--[[---@not nil]] proxyUrl, content, function(request)
-        if request.is_error then
-            callback(nil, request.error)
-        elseif request.is_done then
-            Json.decodeAsync(request.text, {
-                ---@param responseContent table
-                onCompletion = function(responseContent)
-                    ---@type ge_tts__Http_Response
-                    local response = {
-                        statusCode = responseContent.status_code,
-                        headers = responseContent.headers,
-                        body = responseContent.body or ""
-                    }
-
-                    if responseContent.base64 then
-                        response.body = Base64.decode(--[[---@type string]] response.body)
-                        callback(response, nil)
-                        return
-                    end
-
-                    local contentType = Http.getHeader(response.headers, 'Content-Type')
-
-                    if contentType and (--[[---@not nil]] contentType):lower() == decodeJsonContentType then
-                        Json.decodeAsync(request.text, {
-                            ---@param value table
-                            onCompletion = function(value)
-                                response.body = value
-                                callback(response, nil)
-                            end,
-                            onError = function(message)
-                                callback(nil, "Failed to parse JSON body: " .. message)
-                            end,
-                        })
-                        return
-                    end
-
-                    callback(response, nil)
-                end,
-                onError = function(message)
-                    callback(nil, "Failed to parse proxy wrapper: " .. message)
-                end,
-            })
-        end
-    end)
-end
-
----@param method string
----@param url string
----@param body number[] | table<string, any> | string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
+---@param body nil | table | string @If provided as a table, it will be JSON encoded. Otherwise, the body must be provided as a string. Tabletop Simulator can only handle UTF-8 text. If a HTTP endpoint you wish to call requires application/octet-stream, then you can Base64 encode the data and send it via your own HTTP proxy.
 ---@param headersOrNil nil | table<string, string>
----@param callback ge_tts__Http_Callback
+---@param callback ge_tts__Http_Callback<B>
+---@return fun(): void
 function Http.submit(method, url, body, headersOrNil, callback)
     ---@type table<string, string>
-    local headers = headersOrNil or {}
+    local headers = headersOrNil and TableUtils.copy(headersOrNil) or {}
+    local canceled = false
 
-    ---@type table<string, any>
-    local options = {headers = headers}
+    ---@type nil | fun(): void
+    local cancelEncoding
 
-    if type((--[[---@type number[] ]] body)[1]) == 'number' then
-        options = TableUtils.copy(options)
-        options.base64 = true
-        body = Base64.encode(--[[---@type number[] ]] body)
-    elseif type(body) == 'table' then
+    ---@type nil | fun(): void
+    local cancelDecoding
+
+    ---@param body string
+    local function performRequest(body)
+        WebRequest.custom(url, method, true, --[[---@type nil | string]] body, headers, function(request)
+            if canceled then
+                return
+            end
+
+            if request.is_error then
+                callback(nil, request.error)
+            elseif request.is_done then
+                local statusCode = request.response_code
+                local responseHeaders = request.getResponseHeaders()
+                local contentType = Http.getHeader(responseHeaders, 'Content-Type')
+
+                if contentType and (--[[---@not nil]] contentType):lower() == decodeJsonContentType then
+                    cancelDecoding = Json.decodeAsync(request.text, {
+                        ---@param value B
+                        onCompletion = function(value)
+                            callback({
+                                body = value,
+                                headers = responseHeaders,
+                                statusCode = statusCode,
+                            }, nil)
+                        end,
+                        onError = function(message)
+                            callback(nil, "Failed to parse JSON response body: " .. message)
+                        end,
+                    })
+                else
+                    callback({
+                        body = --[[---@type B]] request.text,
+                        headers = responseHeaders,
+                        statusCode = statusCode,
+                        outbound = body,
+                    }, nil)
+                end
+            end
+        end)
+    end
+
+    if type(body) == 'table' then
         local contentType, contentTypeHeader = Http.getHeader(headers, 'Content-Type')
         contentTypeHeader = contentTypeHeader or 'Content-Type'
 
@@ -141,50 +104,80 @@ function Http.submit(method, url, body, headersOrNil, callback)
             headers[--[[---@not nil]] contentTypeHeader] = 'application/json'
         end
 
-        body = Json.encode(body)
+        cancelEncoding = Json.encodeAsync(body, {
+            onCompletion = function(json)
+                cancelEncoding = nil
+                performRequest(json)
+            end,
+            onError = function(error)
+                callback(nil, error)
+            end,
+        })
+    else
+        performRequest(--[[---@type string]] body)
     end
 
-    options.body = body
+    return function()
+        if not canceled then
+            canceled = true
 
-    Http.request(method, url, options, callback)
+            if cancelEncoding then
+                (--[[---@not nil]] cancelEncoding)()
+            end
+
+            if cancelDecoding then
+                (--[[---@not nil]] cancelDecoding)()
+            end
+        end
+    end
 end
 
+---@generic B
 ---@param url string
 ---@param headers nil | table<string, string>
----@param callback ge_tts__Http_Callback
+---@param callback ge_tts__Http_Callback<B>
+---@return fun(): void
 function Http.delete(url, headers, callback)
-    Http.request('DELETE', url, {headers=headers}, callback)
+    return Http.submit('DELETE', url, nil, headers, callback)
 end
 
+---@generic B
 ---@param url string
 ---@param headers nil | table<string, string>
----@param callback ge_tts__Http_Callback
+---@param callback ge_tts__Http_Callback<B>
+---@return fun(): void
 function Http.get(url, headers, callback)
-    Http.request('GET', url, {headers=headers}, callback)
+    return Http.submit('GET', url, nil, headers, callback)
 end
 
+---@generic B
 ---@param url string
----@param body number[] | table<string, any> | string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
+---@param body nil | table | string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
 ---@param headers nil | table<string, string>
----@param callback ge_tts__Http_Callback
+---@param callback ge_tts__Http_Callback<B>
+---@return fun(): void
 function Http.patch(url, body, headers, callback)
-    Http.submit('PATCH', url, body, headers, callback)
+    return Http.submit('PATCH', url, body, headers, callback)
 end
 
+---@generic B
 ---@param url string
----@param body number[] | table<string, any> | string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
+---@param body nil | table | string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
 ---@param headers nil | table<string, string>
----@param callback ge_tts__Http_Callback
+---@param callback ge_tts__Http_Callback<B>
+---@return fun(): void
 function Http.post(url, body, headers, callback)
-    Http.submit('POST', url, body, headers, callback)
+    return Http.submit('POST', url, body, headers, callback)
 end
 
+---@generic B
 ---@param url string
----@param body number[] | table<string, any> | string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
+---@param body nil | table | string @If provided as a table, it will be JSON encoded. If provided as a number array, numbers are assumed to be [0, 255] and Base64 encoded. Otherwise, the body is a string.
 ---@param headers nil | table<string, string>
----@param callback ge_tts__Http_Callback
+---@param callback ge_tts__Http_Callback<B>
+---@return fun(): void
 function Http.put(url, body, headers, callback)
-    Http.submit('PUT', url, body, headers, callback)
+    return Http.submit('PUT', url, body, headers, callback)
 end
 
 return Http
