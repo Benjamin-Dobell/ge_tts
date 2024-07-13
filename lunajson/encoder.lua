@@ -2,13 +2,20 @@ local error = error
 local byte, find, format, gsub, match = string.byte, string.find, string.format,  string.gsub, string.match
 local concat = table.concat
 local tostring = tostring
-local rawget, pairs, type = rawget, pairs, type
+local rawget, pairs, type, next = rawget, pairs, type, next
 local setmetatable = setmetatable
 local huge, tiny = 1/0, -1/0
 
 local f_string_esc_pat = '[^ -!#-[%]^-\255]'
 local _ENV = nil
 
+---@shape lunajson__EncodeDispatcher
+---@field boolean fun(v: boolean): void
+---@field number fun(v: number): void
+---@field string fun(v: string): void
+---@field table fun(v: table): void
+
+---@alias lunajson__GenerateValueEncode fun(nullv: any, dispatcher: lunajson__EncodeDispatcher, push: (fun(component: string): void), replace: (fun(replacer: (fun(builder: string[], next: number): string[], number)): void)): (fun(v: any): void)
 
 local function newencoder()
 	---@type any, any
@@ -41,6 +48,7 @@ local function newencoder()
 		end
 	end
 
+	---@param n number
 	local f_number = function(n)
 		if tiny < n and n < huge then
 			local s = format("%.17g", n)
@@ -129,7 +137,6 @@ local function newencoder()
 			else -- detected as object
 				builder[i] = '{'
 				i = i+1
-				local tmp = i
 				for k, v in pairs(o) do
 					if type(k) ~= 'string' then
 						error('non-string key: ' .. tostring(k) .. ' (' .. type(k) .. ')')
@@ -141,7 +148,7 @@ local function newencoder()
 					builder[i] = ','
 					i = i+1
 				end
-				if i > tmp then
+				if next(o) then
 					i = i-1
 				end
 				builder[i] = '}'
@@ -152,18 +159,21 @@ local function newencoder()
 		visited[o] = nil
 	end
 
+	---@type lunajson__EncodeDispatcher
 	local dispatcher = {
 		boolean = f_tostring,
 		number = f_number,
 		string = f_string,
 		table = f_table,
-		__index = function()
-			error("invalid type value")
+		__index = function(_, key)
+			error("invalid type value: " .. key)
 		end
 	}
+
 	setmetatable(dispatcher, dispatcher)
 
-	function doencode(v)
+	---@param v any
+	local function defaultencode(v)
 		if v == nullv then
 			builder[i] = 'null'
 			i = i+1
@@ -172,9 +182,24 @@ local function newencoder()
 		return dispatcher[--[[---@not 'nil' | 'function' | 'thread' | 'userdata']] type(v)](v)
 	end
 
-	local function encode(v_, nullv_)
+	---@param component string
+	local function push(component)
+		builder[i] = component
+		i = i+1
+	end
+
+	---@param replacer fun(builder: string[], next: number): string[], number
+	local function replace(replacer)
+		builder, i = replacer(builder, i)
+	end
+
+	---@param v_ any
+	---@param nullv_? any
+	---@param generate_value_encode? nil | lunajson__GenerateValueEncode
+	local function encode(v_, nullv_, generate_value_encode)
 		v, nullv = v_, nullv_
 		i, builder, visited = 1, {}, {}
+		doencode = generate_value_encode and generate_value_encode(nullv, dispatcher, push, replace) or defaultencode
 
 		doencode(v)
 		return concat(builder)

@@ -91,6 +91,12 @@ local NODE_KEY = 2
 ---@field charactersPerChunk nil | number @Default 2048 (2 KiB)
 ---@field framesBetweenChunks nil | number @Default 1
 
+---@shape ge_tts__Json_EncodeAsyncOptions
+---@field onCompletion fun(json: string): void
+---@field onError fun(message: string): void
+---@field componentsPerChunk nil | number @Default 128
+---@field framesBetweenChunks nil | number @Default 1
+
 ---@type ge_tts__Json_DecodeOptions
 local defaultDecodeOptions = {
     encodeArrayLength = false,
@@ -274,6 +280,68 @@ local encode = LunaJsonEncoder()
 ---@return string
 function Json.encode(value)
     return encode(value, Json.null())
+end
+
+---@param value any
+---@param options ge_tts__Json_EncodeAsyncOptions
+---@return fun(): void
+function Json.encodeAsync(value, options)
+    local canceled = false
+
+    Coroutine.start(function()
+        local asyncEncode = LunaJsonEncoder()
+        local concat = table.concat
+
+        ---@param builder string[]
+        ---@param nextIndex number
+        ---@return string[], number
+        local function replacer(builder, nextIndex)
+            return { concat(builder) }, 2
+        end
+
+        ---@type lunajson__GenerateValueEncode
+        local generateEncode = function(nullv, dispatcher, push, replaceBuilder)
+            local componentCount = 0
+            local chunkSize = options.componentsPerChunk or 128
+            local waitFrames = options.framesBetweenChunks or 1
+
+            ---@param v
+            return function(v)
+                if canceled then
+                    return
+                end
+
+                if v == nullv then
+                    push('null')
+                else
+                    dispatcher[--[[---@not 'nil' | 'function' | 'thread' | 'userdata']] type(v)](v)
+                end
+
+                componentCount = componentCount + 1
+
+                if componentCount >= chunkSize then
+                    componentCount = 0
+                    replaceBuilder(replacer)
+
+                    Coroutine.yieldFrames(waitFrames, function(message)
+                        if not canceled then
+                            options.onError(message)
+                        end
+                    end)
+                end
+            end
+        end
+
+        local result = asyncEncode(value, Json.null(), generateEncode)
+
+        if not canceled then
+            options.onCompletion(result)
+        end
+    end)
+
+    return function()
+        canceled = true
+    end
 end
 
 --- Fills gaps (up to the specified length) in sparseArray with Json.null(), then returns it.
