@@ -422,25 +422,16 @@ end
 ---@param container tts__Container
 ---@param object tts__Object
 local function onObjectLeaveContainer(container, object)
-    local objectPosition = object.getPosition()
-    local containerPosition = container.getPosition()
+    local zone = objectOccupyingZoneMap[container]
 
-    if container.type ~= Object.Tag.Infinite and container.getQuantity() == 0
-        and objectPosition.y <= containerPosition.y
-        and objectPosition.x == containerPosition.x
-        and objectPosition.z == containerPosition.z
-    then
-        local zone = objectOccupyingZoneMap[container]
-
-        if zone then
-            if not TableUtils.find(zone.getOccupyingObjects(), object) then
-                Logger.log(
-                    object.type .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone) .. ' as it was the bottom ' ..
-                        object.type .. ' in now empty ' .. container.type .. ' (' .. tostring(container.getGUID()) .. ').',
-                    Logger.DEBUG
-                )
-                zone.insertOccupyingObject(object)
-            end
+    if zone then
+        if not TableUtils.find(zone.getOccupyingObjects(), object) then
+            Logger.log(
+                object.type .. ' (' .. tostring(object.getGUID()) .. ') is now dropped in ' .. tostring(zone)
+                    .. ' as it left ' .. container.type .. ' (' .. tostring(container.getGUID()) .. ') which is located in this zone.',
+                Logger.DEBUG
+            )
+            zone.insertOccupyingObject(object)
         end
     end
 end
