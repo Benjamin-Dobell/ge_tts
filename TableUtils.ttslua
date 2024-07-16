@@ -174,12 +174,20 @@ function TableUtils.selectInject(tab, predicate, ...)
     ---@type boolean
     local isPacked = false
 
-    for _, otherTable in ipairs(otherTables) do
-        if isArray == nil and next(tab) then
-            isArray = TableUtils.isArray(tab)
+    if next(tab) then
+        isArray = TableUtils.isArray(tab)
 
-            if isArray then
-                arrayLength, isPacked = TableUtils.arrayLength(--[[---@type V[] | std__Packed<V>]] tab)
+        if isArray then
+            arrayLength, isPacked = TableUtils.arrayLength(--[[---@type V[] | std__Packed<V>]] tab)
+        end
+    end
+
+    for _, otherTable in ipairs(otherTables) do
+        if isArray == nil and next(otherTable) then
+            isArray = TableUtils.isArray(otherTable)
+
+            if (--[[---@type std__Packed<V>]] otherTable).n then
+                isPacked = true
             end
         end
 
@@ -333,12 +341,20 @@ function TableUtils.inject(tab, ...)
     ---@type boolean
     local isPacked = false
 
-    for _, otherTable in ipairs(otherTables) do
-        if isArray == nil and next(tab) then
-            isArray = TableUtils.isArray(tab)
+    if next(tab) then
+        isArray = TableUtils.isArray(tab)
 
-            if isArray then
-                arrayLength, isPacked = TableUtils.arrayLength(--[[---@type V[] | std__Packed<V>]] tab)
+        if isArray then
+            arrayLength, isPacked = TableUtils.arrayLength(--[[---@type V[] | std__Packed<V>]] tab)
+        end
+    end
+
+    for _, otherTable in ipairs(otherTables) do
+        if isArray == nil and next(otherTable) then
+            isArray = TableUtils.isArray(otherTable)
+
+            if (--[[---@type std__Packed<V>]] otherTable).n then
+                isPacked = true
             end
         end
 
