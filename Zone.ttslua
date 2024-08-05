@@ -52,21 +52,20 @@ end
 local function associateOccupyingObject(zone, object)
     local previousOccupiedZone = objectOccupyingZoneMap[object]
 
-    for _, instance in ipairs(Instance.getInstances(object)) do
-        instance.setZone(zone)
-    end
-
     objectOccupyingZoneMap[object] = zone
 
     if previousOccupiedZone and previousOccupiedZone ~= zone then
         previousOccupiedZone.onLeave(object)
     end
+
+    for _, instance in ipairs(Instance.getInstances(object)) do
+        instance.setZone(zone)
+    end
 end
 
----@overload fun(zone: ge_tts__Zone, object: tts__Object): void
 ---@param zone ge_tts__Zone
 ---@param object tts__Object
----@param disassociateInstances nil | boolean
+---@param disassociateInstances? nil | boolean
 local function disassociateOccupyingObject(zone, object, disassociateInstances)
     if objectOccupyingZoneMap[object] == zone then
         objectOccupyingZoneMap[object] = nil
