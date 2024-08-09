@@ -1,5 +1,6 @@
 require('ge_tts.License')
 
+---@class ge_tts__static_Ui
 local Ui = {}
 
 -- Common
