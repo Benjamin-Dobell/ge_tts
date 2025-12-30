@@ -9,6 +9,9 @@ local function _parse_error(pos, errmsg)
 	error("parse error at " .. pos .. ": " .. errmsg, 2)
 end
 
+-- Pattern to detect potential control characters.
+-- Note: In MoonSharp (TTS's Lua), this pattern has false positives for Unicode
+-- chars > 255, so we verify matches with a secondary byte-level check.
 local f_str_ctrl_pat = '[^\32-\255]'
 local type, unpack = type, table.unpack
 
@@ -544,8 +547,15 @@ local function newparser(src, saxtbl)
 		str = str .. sub(json, pos, newpos-1)
 		pos = newpos+1
 
-		if find(str, f_str_ctrl_pat) then
-			parse_error("unescaped control string")
+		-- Check for control characters. The pattern may have false positives
+		-- in MoonSharp for Unicode chars > 255, so we verify the byte value.
+		local ctrl_pos = find(str, f_str_ctrl_pat)
+		if ctrl_pos then
+			local b = byte(str, ctrl_pos)
+			-- Only error if it's actually a control char (0-31)
+			if b and b < 32 then
+				parse_error("unescaped control string")
+			end
 		end
 		if bs then  -- a backslash exists
 			-- We need to grab 4 characters after the escape char,
