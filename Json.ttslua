@@ -221,7 +221,7 @@ function Json.decodeAsync(json, options)
         ---@type number
         local framesBetweenChunks
 
-        if options.framesBetweenChunks and framesBetweenChunks > 0 then
+        if options.framesBetweenChunks and options.framesBetweenChunks > 0 then
             framesBetweenChunks = --[[---@not nil]] options.framesBetweenChunks
         else
             framesBetweenChunks = 1
